@@ -6,7 +6,7 @@ from tkcalendar import Calendar  # Asegúrate de importar Calendar
 class SistemaGestionSalas:
     def __init__(self, root):
         self.root = root
-        self.root.title("Gestión de Salas Universitarias")
+        self.root.title("Smart-Room - Sistema de Gestión de Salas")
         self.root.geometry("1200x800")
         self.root.configure(bg="#f8f9fa")
         
