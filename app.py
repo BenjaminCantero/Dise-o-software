@@ -95,7 +95,10 @@ class SistemaGestionSalas:
                 bg=self.color_sidebar, 
                 fg="#adb5bd").pack(side="bottom", pady=10)
         
-        # ===== CONTENIDO PRINCIPAL =====
+# =====================================================================================================
+# Contenedor de contenidos principales
+# =====================================================================================================
+
         self.content_frame = tk.Frame(self.main_frame, bg=self.color_fondo, padx=30, pady=20)
         self.content_frame.pack(side="right", fill="both", expand=True)
         
@@ -205,7 +208,13 @@ class SistemaGestionSalas:
         
         for reserva in reservas:
             self.tree_reservas.insert("", "end", values=reserva)
-    
+
+
+# =====================================================================================================
+# Reservas de Sala 
+# =====================================================================================================    
+
+
     def mostrar_reservas(self):
         self.limpiar_contenido()
         
@@ -324,7 +333,11 @@ class SistemaGestionSalas:
     def limpiar_contenido(self):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
-    
+            
+# =====================================================================================================
+# Calendario de Reservas
+# =====================================================================================================    
+
     def mostrar_calendario(self):
         self.limpiar_contenido()
         
@@ -357,7 +370,13 @@ class SistemaGestionSalas:
                 f"{reserva['hora_inicio']} - {reserva['hora_termino']}",
                 reserva["motivo"]
             ))
-    
+
+
+# =====================================================================================================
+# Mostrar Salas
+# =====================================================================================================
+
+
     def mostrar_salas(self):
         self.limpiar_contenido()
         
@@ -549,7 +568,11 @@ class SistemaGestionSalas:
                  font=self.subtitulo_font, 
                  bg=self.color_fondo, 
                  fg=self.color_advertencia).pack(anchor="nw", pady=(10, 20))
-    
+
+
+# =====================================================================================================
+# Configuración del sistema
+# =====================================================================================================
     def mostrar_config(self):
         self.limpiar_contenido()
         
