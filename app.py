@@ -4,12 +4,91 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 from tkcalendar import Calendar
 
-class SistemaGestionSalas:
+class LoginSistema:
     def __init__(self, root):
+        self.root = root
+        self.root.title("Inicio de Sesión")
+        self.root.geometry("400x400")
+        self.root.configure(bg="#343a40")
+        
+        # Conexión a la base de datos
+        self.conn = sqlite3.connect('gestion_salas.db')
+        self.cursor = self.conn.cursor()
+        
+        # Crear tabla de usuarios si no existe
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL
+            )
+        ''')
+        self.conn.commit()
+        
+        # Insertar usuarios predeterminados si no existen
+        self.cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
+        if not self.cursor.fetchone():
+            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('admin', 'admin123', 'admin')")
+            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('user', 'user123', 'user')")
+            self.conn.commit()
+        
+        # Marco principal
+        frame = tk.Frame(self.root, bg="#495057", padx=20, pady=20, relief="raised", bd=2)
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # Título
+        tk.Label(frame, text="Inicio de Sesión", font=("Segoe UI", 18, "bold"), bg="#495057", fg="white").pack(pady=10)
+        
+        # Usuario
+        tk.Label(frame, text="Usuario:", font=("Segoe UI", 12), bg="#495057", fg="white").pack(anchor="w", pady=(10, 5))
+        self.entry_user = tk.Entry(frame, font=("Segoe UI", 12), relief="flat", bg="#e9ecef", fg="#495057")
+        self.entry_user.pack(fill="x", pady=5)
+        
+        # Contraseña
+        tk.Label(frame, text="Contraseña:", font=("Segoe UI", 12), bg="#495057", fg="white").pack(anchor="w", pady=(10, 5))
+        self.entry_pass = tk.Entry(frame, font=("Segoe UI", 12), show="*", relief="flat", bg="#e9ecef", fg="#495057")
+        self.entry_pass.pack(fill="x", pady=5)
+        
+        # Botón de inicio de sesión
+        tk.Button(frame, text="Iniciar Sesión", font=("Segoe UI", 12, "bold"), bg="#007bff", fg="white", 
+                  activebackground="#0056b3", activeforeground="white", relief="flat", 
+                  command=self.validar_login).pack(pady=20, fill="x")
+    
+    def validar_login(self):
+        username = self.entry_user.get()
+        password = self.entry_pass.get()
+        
+        # Validar credenciales
+        self.cursor.execute("SELECT role FROM usuarios WHERE username = ? AND password = ?", (username, password))
+        result = self.cursor.fetchone()
+        
+        if result:
+            role = result[0]
+            messagebox.showinfo("Éxito", f"Bienvenido, {username} ({role})")
+            self.root.destroy()  # Cerrar ventana de login
+            
+            # Abrir la aplicación principal
+            main_root = tk.Tk()
+            app = SistemaGestionSalas(main_root, role)
+            main_root.mainloop()
+        else:
+            messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
+    
+    def __del__(self):
+        self.conn.close()
+        
+#-----------------------------------------------------------------------------------
+# Clase principal para la gestión de salas
+#-----------------------------------------------------------------------------------
+
+class SistemaGestionSalas:
+    def __init__(self, root, role):
         self.root = root
         self.root.title("Gestión de Salas Universitarias")
         self.root.geometry("1200x800")
         self.root.configure(bg="#f8f9fa")
+        self.role = role
         
         # Paleta de colores mejorada
         self.color_fondo = "#f8f9fa"
@@ -64,12 +143,14 @@ class SistemaGestionSalas:
         # Opciones del menú
         menu_opciones = [
             ("Inicio", "home", self.mostrar_inicio),
-            ("Reservar Sala", "calendar-plus", self.mostrar_reservas),
             ("Calendario", "calendar", self.mostrar_calendario),
             ("Salas", "door-open", self.mostrar_salas),
             ("Reportes", "file-text", self.mostrar_reportes),
             ("Configuración", "settings", self.mostrar_config)
         ]
+        
+        if self.role == "admin":
+            menu_opciones.insert(1, ("Reservar Sala", "calendar-plus", self.mostrar_reservas))
         
         for texto, icono, comando in menu_opciones:
             btn = tk.Button(self.sidebar,
@@ -335,6 +416,11 @@ class SistemaGestionSalas:
         for widget in self.content_frame.winfo_children():
             widget.destroy()
     
+
+#---------------------------------------------------------------------------------------
+# Clase para mostrar el calendario de reservas
+#---------------------------------------------------------------------------------------
+
     def mostrar_calendario(self):
         self.limpiar_contenido()
         
@@ -369,7 +455,9 @@ class SistemaGestionSalas:
                 f"{reserva[4]} - {reserva[5]}",
                 reserva[6]
             ))
-
+#----------------------------------------------------------------------------------------
+# mostrar_salas
+#----------------------------------------------------------------------------------------
     def mostrar_salas(self):
         self.limpiar_contenido()
         
@@ -550,6 +638,13 @@ class SistemaGestionSalas:
         self.tree_salas.delete(selected_item)
         messagebox.showinfo("Éxito", "Sala eliminada correctamente.")
 
+
+
+#---------------------------------------------------------------------------------------
+# Clase para mostrar reportes y estadísticas
+#---------------------------------------------------------------------------------------
+
+
     def mostrar_reportes(self):
         self.limpiar_contenido()
         
@@ -569,7 +664,13 @@ class SistemaGestionSalas:
                  font=self.subtitulo_font, 
                  bg=self.color_fondo, 
                  fg=self.color_advertencia).pack(anchor="nw", pady=(10, 20))
-    
+
+
+#---------------------------------------------------------------------------------------
+# Clase para mostrar configuración del sistema
+#---------------------------------------------------------------------------------------
+
+
     def mostrar_config(self):
         self.limpiar_contenido()
         
@@ -629,7 +730,11 @@ class SistemaGestionSalas:
             messagebox.showinfo("Configuración", "Idioma cambiado a Español.")
         elif idioma == "Inglés":
             messagebox.showinfo("Configuración", "Language changed to English.")
-    
+
+#   --------------------------------------------------------------------------------------
+#   Clase para reportar problemas
+#   --------------------------------------------------------------------------------------
+
     def reportar_problema(self):
         self.limpiar_contenido()
         tk.Label(self.content_frame, 
@@ -648,5 +753,5 @@ class SistemaGestionSalas:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = SistemaGestionSalas(root)
+    login = LoginSistema(root)
     root.mainloop()

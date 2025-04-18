@@ -29,6 +29,22 @@ def crear_base_datos():
     )
     ''')
 
+    # Crear tabla de usuarios
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL
+    )
+    ''')
+
+    # Insertar usuarios predeterminados si no existen
+    cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('admin', 'admin123', 'admin')")
+        cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('user', 'user123', 'user')")
+
     # Guardar cambios y cerrar conexión
     conn.commit()
     conn.close()
