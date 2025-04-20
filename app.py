@@ -1,14 +1,94 @@
+import sqlite3
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from tkcalendar import Calendar  # Asegúrate de importar Calendar
+from tkcalendar import Calendar
 
-class SistemaGestionSalas:
+class LoginSistema:
     def __init__(self, root):
         self.root = root
-        self.root.title("Smart-Room - Sistema de Gestión de Salas")
+        self.root.title("Inicio de Sesión")
+        self.root.geometry("400x400")
+        self.root.configure(bg="#343a40")
+        
+        # Conexión a la base de datos
+        self.conn = sqlite3.connect('gestion_salas.db')
+        self.cursor = self.conn.cursor()
+        
+        # Crear tabla de usuarios si no existe
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL
+            )
+        ''')
+        self.conn.commit()
+        
+        # Insertar usuarios predeterminados si no existen
+        self.cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
+        if not self.cursor.fetchone():
+            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('admin', 'admin123', 'admin')")
+            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('user', 'user123', 'user')")
+            self.conn.commit()
+        
+        # Marco principal
+        frame = tk.Frame(self.root, bg="#495057", padx=20, pady=20, relief="raised", bd=2)
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # Título
+        tk.Label(frame, text="Inicio de Sesión", font=("Segoe UI", 18, "bold"), bg="#495057", fg="white").pack(pady=10)
+        
+        # Usuario
+        tk.Label(frame, text="Usuario:", font=("Segoe UI", 12), bg="#495057", fg="white").pack(anchor="w", pady=(10, 5))
+        self.entry_user = tk.Entry(frame, font=("Segoe UI", 12), relief="flat", bg="#e9ecef", fg="#495057")
+        self.entry_user.pack(fill="x", pady=5)
+        
+        # Contraseña
+        tk.Label(frame, text="Contraseña:", font=("Segoe UI", 12), bg="#495057", fg="white").pack(anchor="w", pady=(10, 5))
+        self.entry_pass = tk.Entry(frame, font=("Segoe UI", 12), show="*", relief="flat", bg="#e9ecef", fg="#495057")
+        self.entry_pass.pack(fill="x", pady=5)
+        
+        # Botón de inicio de sesión
+        tk.Button(frame, text="Iniciar Sesión", font=("Segoe UI", 12, "bold"), bg="#007bff", fg="white", 
+                  activebackground="#0056b3", activeforeground="white", relief="flat", 
+                  command=self.validar_login).pack(pady=20, fill="x")
+    
+    def validar_login(self):
+        username = self.entry_user.get()
+        password = self.entry_pass.get()
+        
+        # Validar credenciales
+        self.cursor.execute("SELECT role FROM usuarios WHERE username = ? AND password = ?", (username, password))
+        result = self.cursor.fetchone()
+        
+        if result:
+            role = result[0]
+            messagebox.showinfo("Éxito", f"Bienvenido, {username} ({role})")
+            self.root.destroy()  # Cerrar ventana de login
+            
+            # Abrir la aplicación principal
+            main_root = tk.Tk()
+            app = SistemaGestionSalas(main_root, role)
+            main_root.mainloop()
+        else:
+            messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
+    
+    def __del__(self):
+        self.conn.close()
+        
+#-----------------------------------------------------------------------------------
+# Clase principal para la gestión de salas
+#-----------------------------------------------------------------------------------
+
+class SistemaGestionSalas:
+    def __init__(self, root, role):
+        self.root = root
+        self.root.title("Gestión de Salas Universitarias")
         self.root.geometry("1200x800")
         self.root.configure(bg="#f8f9fa")
+        self.role = role
         
         # Paleta de colores mejorada
         self.color_fondo = "#f8f9fa"
@@ -63,12 +143,14 @@ class SistemaGestionSalas:
         # Opciones del menú
         menu_opciones = [
             ("Inicio", "home", self.mostrar_inicio),
-            ("Reservar Sala", "calendar-plus", self.mostrar_reservas),
             ("Calendario", "calendar", self.mostrar_calendario),
             ("Salas", "door-open", self.mostrar_salas),
             ("Reportes", "file-text", self.mostrar_reportes),
             ("Configuración", "settings", self.mostrar_config)
         ]
+        
+        if self.role == "admin":
+            menu_opciones.insert(1, ("Reservar Sala", "calendar-plus", self.mostrar_reservas))
         
         for texto, icono, comando in menu_opciones:
             btn = tk.Button(self.sidebar,
@@ -95,26 +177,30 @@ class SistemaGestionSalas:
                 bg=self.color_sidebar, 
                 fg="#adb5bd").pack(side="bottom", pady=10)
         
-# =====================================================================================================
-# Contenedor de contenidos principales
-# =====================================================================================================
-
+        # ===== CONTENIDO PRINCIPAL =====
         self.content_frame = tk.Frame(self.main_frame, bg=self.color_fondo, padx=30, pady=20)
         self.content_frame.pack(side="right", fill="both", expand=True)
         
-        # Inicializar la lista de salas
-        self.salas = [
-            (1, "A101", 30, "Disponible"),
-            (2, "B205", 50, "En Mantenimiento"),
-            (3, "C302", 20, "Disponible")
-        ]
-        
-        # Inicializar la lista de reservas
-        self.reservas = []  # Aquí se guardarán las reservas realizadas
+        # Inicializar la base de datos
+        self.conectar_base_datos()
+        self.cargar_salas()
+        self.cargar_reservas()
         
         # Mostrar panel de inicio por defecto
         self.mostrar_inicio()
-    
+
+    def conectar_base_datos(self):
+        self.conn = sqlite3.connect('gestion_salas.db')
+        self.cursor = self.conn.cursor()
+
+    def cargar_salas(self):
+        self.cursor.execute("SELECT * FROM salas")
+        self.salas = self.cursor.fetchall()
+
+    def cargar_reservas(self):
+        self.cursor.execute("SELECT * FROM reservas")
+        self.reservas = self.cursor.fetchall()
+
     def mostrar_inicio(self):
         self.limpiar_contenido()
         
@@ -129,9 +215,9 @@ class SistemaGestionSalas:
         resumen_frame.pack(fill="x", pady=(0, 30))
         
         resumen_data = [
-            {"title": "Salas Disponibles", "value": "24", "color": self.color_principal},
-            {"title": "Reservas Hoy", "value": "18", "color": self.color_exito},
-            {"title": "En Mantenimiento", "value": "3", "color": self.color_advertencia},
+            {"title": "Salas Disponibles", "value": str(len([sala for sala in self.salas if sala[3] == "Disponible"])), "color": self.color_principal},
+            {"title": "Reservas Hoy", "value": str(len([reserva for reserva in self.reservas if reserva[3] == datetime.now().strftime("%Y-%m-%d")])), "color": self.color_exito},
+            {"title": "En Mantenimiento", "value": str(len([sala for sala in self.salas if sala[3] == "En Mantenimiento"])), "color": self.color_advertencia},
             {"title": "Ocupación Total", "value": "78%", "color": "#6c757d"}
         ]
         
@@ -199,21 +285,17 @@ class SistemaGestionSalas:
         self.tree_reservas.pack(fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        # Datos de ejemplo
-        reservas = [
-            ("A101", "Juan Pérez", "15/06/2023", "08:00-10:00", "Confirmada"),
-            ("B205", "María Gómez", "15/06/2023", "10:00-12:00", "Pendiente"),
-            ("C302", "Carlos Ruiz", "16/06/2023", "14:00-16:00", "Confirmada")
-        ]
-        
-        for reserva in reservas:
-            self.tree_reservas.insert("", "end", values=reserva)
-
-
-# =====================================================================================================
-# Reservas de Sala 
-# =====================================================================================================    
-
+        # Mostrar las reservas actuales
+        for reserva in self.reservas:
+            self.cursor.execute("SELECT nombre FROM salas WHERE id = ?", (reserva[1],))
+            sala_nombre = self.cursor.fetchone()[0]
+            self.tree_reservas.insert("", "end", values=(
+                sala_nombre,
+                reserva[2],
+                reserva[3],
+                f"{reserva[4]} - {reserva[5]}",
+                reserva[6]
+            ))
 
     def mostrar_reservas(self):
         self.limpiar_contenido()
@@ -243,7 +325,7 @@ class SistemaGestionSalas:
         # Campos del formulario
         campos = [
             {"label": "Responsable", "type": "entry"},
-            {"label": "Sala a Reservar", "type": "combobox", "values": ["A101", "B205", "C302", "D404"]},
+            {"label": "Sala a Reservar", "type": "combobox", "values": [sala[1] for sala in self.salas]},
             {"label": "Fecha de Reserva", "type": "calendar"},
             {"label": "Hora Inicio", "type": "combobox", "values": [f"{h:02d}:00" for h in range(8, 21)]},
             {"label": "Hora Término", "type": "combobox", "values": [f"{h:02d}:00" for h in range(8, 21)]},
@@ -302,41 +384,42 @@ class SistemaGestionSalas:
             messagebox.showerror("Error", "Conflicto de horario con otra reserva existente.")
             return
         
-        # Guardar la reserva en la lista
-        nueva_reserva = {
-            "sala": sala,
-            "responsable": responsable,
-            "fecha": fecha,
-            "hora_inicio": hora_inicio,
-            "hora_termino": hora_termino,
-            "motivo": motivo
-        }
-        self.reservas.append(nueva_reserva)
+        # Guardar la reserva en la base de datos
+        self.cursor.execute('''
+            INSERT INTO reservas (sala_id, responsable, fecha, hora_inicio, hora_termino, motivo)
+            VALUES ((SELECT id FROM salas WHERE nombre = ?), ?, ?, ?, ?, ?)
+        ''', (sala, responsable, fecha, hora_inicio, hora_termino, motivo))
+        self.conn.commit()
         
         # Mostrar mensaje de éxito
         messagebox.showinfo("Reserva Guardada", f"Reserva para la sala {sala} creada correctamente.")
         self.mostrar_inicio()
-    
+
     def verificar_conflictos(self, sala, fecha, hora_inicio, hora_termino):
         # Verificar si hay conflictos con las reservas existentes
-        for reserva in self.reservas:
-            if reserva["sala"] == sala and reserva["fecha"] == fecha:
-                inicio_reserva = datetime.strptime(reserva["hora_inicio"], "%H:%M")
-                termino_reserva = datetime.strptime(reserva["hora_termino"], "%H:%M")
-                nuevo_inicio = datetime.strptime(hora_inicio, "%H:%M")
-                nuevo_termino = datetime.strptime(hora_termino, "%H:%M")
-                
-                if not (nuevo_termino <= inicio_reserva or nuevo_inicio >= termino_reserva):
-                    return False  # Hay conflicto
+        self.cursor.execute('''
+            SELECT * FROM reservas WHERE sala_id = (SELECT id FROM salas WHERE nombre = ?) AND fecha = ?
+        ''', (sala, fecha))
+        reservas_existentes = self.cursor.fetchall()
+        
+        for reserva in reservas_existentes:
+            inicio_reserva = datetime.strptime(reserva[4], "%H:%M")
+            termino_reserva = datetime.strptime(reserva[5], "%H:%M")
+            nuevo_inicio = datetime.strptime(hora_inicio, "%H:%M")
+            nuevo_termino = datetime.strptime(hora_termino, "%H:%M")
+            
+            if not (nuevo_termino <= inicio_reserva or nuevo_inicio >= termino_reserva):
+                return False  # Hay conflicto
         return True  # No hay conflicto
 
     def limpiar_contenido(self):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
-            
-# =====================================================================================================
-# Calendario de Reservas
-# =====================================================================================================    
+    
+
+#---------------------------------------------------------------------------------------
+# Clase para mostrar el calendario de reservas
+#---------------------------------------------------------------------------------------
 
     def mostrar_calendario(self):
         self.limpiar_contenido()
@@ -363,20 +446,18 @@ class SistemaGestionSalas:
         
         # Mostrar las reservas actuales
         for reserva in self.reservas:
+            self.cursor.execute("SELECT nombre FROM salas WHERE id = ?", (reserva[1],))
+            sala_nombre = self.cursor.fetchone()[0]
             tree_reservas.insert("", "end", values=(
-                reserva["sala"],
-                reserva["responsable"],
-                reserva["fecha"],
-                f"{reserva['hora_inicio']} - {reserva['hora_termino']}",
-                reserva["motivo"]
+                sala_nombre,
+                reserva[2],
+                reserva[3],
+                f"{reserva[4]} - {reserva[5]}",
+                reserva[6]
             ))
-
-
-# =====================================================================================================
-# Mostrar Salas
-# =====================================================================================================
-
-
+#----------------------------------------------------------------------------------------
+# mostrar_salas
+#----------------------------------------------------------------------------------------
     def mostrar_salas(self):
         self.limpiar_contenido()
         
@@ -401,6 +482,7 @@ class SistemaGestionSalas:
         scrollbar.pack(side="right", fill="y")
         
         # Mostrar las salas actuales
+        self.cargar_salas()  # Cargar salas desde la base de datos
         for sala in self.salas:
             self.tree_salas.insert("", "end", values=sala)
         
@@ -445,9 +527,14 @@ class SistemaGestionSalas:
                 messagebox.showerror("Error", "Todos los campos son obligatorios.")
                 return
             
-            nueva_sala = (len(self.salas) + 1, nombre, int(capacidad), estado)
-            self.salas.append(nueva_sala)
-            self.tree_salas.insert("", "end", values=nueva_sala)
+            # Guardar la nueva sala en la base de datos
+            self.cursor.execute('''
+                INSERT INTO salas (nombre, capacidad, estado) VALUES (?, ?, ?)
+            ''', (nombre, int(capacidad), estado))
+            self.conn.commit()
+            
+            self.cargar_salas()  # Recargar salas
+            self.tree_salas.insert("", "end", values=(self.cursor.lastrowid, nombre, capacidad, estado))
             top.destroy()
             messagebox.showinfo("Éxito", "Sala agregada correctamente.")
         
@@ -501,11 +588,11 @@ class SistemaGestionSalas:
                 messagebox.showerror("Error", "La capacidad debe ser un número.")
                 return
 
-            # Actualizar la sala en la lista self.salas
-            for i, s in enumerate(self.salas):
-                if s[0] == sala[0]:  # Comparar por ID
-                    self.salas[i] = (s[0], nuevo_nombre, nueva_capacidad, nuevo_estado)
-                    break
+            # Actualizar la sala en la base de datos
+            self.cursor.execute('''
+                UPDATE salas SET nombre = ?, capacidad = ?, estado = ? WHERE id = ?
+            ''', (nuevo_nombre, nueva_capacidad, nuevo_estado, sala[0]))
+            self.conn.commit()
 
             # Actualizar la sala en el Treeview
             self.tree_salas.item(selected_item, values=(sala[0], nuevo_nombre, nueva_capacidad, nuevo_estado))
@@ -545,10 +632,19 @@ class SistemaGestionSalas:
             return
         
         sala_id = self.tree_salas.item(selected_item, "values")[0]
-        self.salas = [s for s in self.salas if str(s[0]) != sala_id]
+        self.cursor.execute("DELETE FROM salas WHERE id = ?", (sala_id,))
+        self.conn.commit()
+        
         self.tree_salas.delete(selected_item)
         messagebox.showinfo("Éxito", "Sala eliminada correctamente.")
-    
+
+
+
+#---------------------------------------------------------------------------------------
+# Clase para mostrar reportes y estadísticas
+#---------------------------------------------------------------------------------------
+
+
     def mostrar_reportes(self):
         self.limpiar_contenido()
         
@@ -570,9 +666,11 @@ class SistemaGestionSalas:
                  fg=self.color_advertencia).pack(anchor="nw", pady=(10, 20))
 
 
-# =====================================================================================================
-# Configuración del sistema
-# =====================================================================================================
+#---------------------------------------------------------------------------------------
+# Clase para mostrar configuración del sistema
+#---------------------------------------------------------------------------------------
+
+
     def mostrar_config(self):
         self.limpiar_contenido()
         
@@ -632,7 +730,11 @@ class SistemaGestionSalas:
             messagebox.showinfo("Configuración", "Idioma cambiado a Español.")
         elif idioma == "Inglés":
             messagebox.showinfo("Configuración", "Language changed to English.")
-    
+
+#   --------------------------------------------------------------------------------------
+#   Clase para reportar problemas
+#   --------------------------------------------------------------------------------------
+
     def reportar_problema(self):
         self.limpiar_contenido()
         tk.Label(self.content_frame, 
@@ -646,21 +748,10 @@ class SistemaGestionSalas:
                 font=self.subtitulo_font, 
                 bg=self.color_fondo).pack(pady=100)
 
-    def mostrar_reservas_existentes(self, sala, fecha):
-        # Ejemplo de reservas existentes
-        reservas = [
-            {"sala": "A101", "fecha": "15/06/2023", "hora": "08:00-10:00", "responsable": "Juan Pérez"},
-            {"sala": "A101", "fecha": "15/06/2023", "hora": "10:00-12:00", "responsable": "María Gómez"}
-        ]
-        
-        reservas_filtradas = [r for r in reservas if r["sala"] == sala and r["fecha"] == fecha]
-        
-        if reservas_filtradas:
-            messagebox.showinfo("Reservas Existentes", "\n".join([f"{r['hora']} - {r['responsable']}" for r in reservas_filtradas]))
-        else:
-            messagebox.showinfo("Reservas Existentes", "No hay reservas para esta sala en la fecha seleccionada.")
+    def __del__(self):
+        self.conn.close()  # Cerrar la conexión a la base de datos al destruir la instancia
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = SistemaGestionSalas(root)
+    login = LoginSistema(root)
     root.mainloop()
