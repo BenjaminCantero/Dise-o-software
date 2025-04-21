@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 from tkcalendar import Calendar
 
+
 class LoginSistema:
     def __init__(self, root):
         self.root = root
@@ -24,13 +25,38 @@ class LoginSistema:
                 role TEXT NOT NULL
             )
         ''')
+        
+        # Crear tabla de salas si no existe
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS salas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                capacidad INTEGER NOT NULL,
+                estado TEXT NOT NULL
+            )
+        ''')
+        
+        # Crear tabla de reservas si no existe
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS reservas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sala_id INTEGER NOT NULL,
+                responsable TEXT NOT NULL,
+                fecha TEXT NOT NULL,
+                hora_inicio TEXT NOT NULL,
+                hora_termino TEXT NOT NULL,
+                motivo TEXT NOT NULL,
+                FOREIGN KEY (sala_id) REFERENCES salas (id)
+            )
+        ''')
         self.conn.commit()
         
         # Insertar usuarios predeterminados si no existen
         self.cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
         if not self.cursor.fetchone():
             self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('admin', 'admin123', 'admin')")
-            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('user', 'user123', 'user')")
+            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('profesor', 'profesor123', 'profesor')")
+            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('estudiante', 'estudiante123', 'estudiante')")
             self.conn.commit()
         
         # Marco principal
@@ -77,10 +103,6 @@ class LoginSistema:
     
     def __del__(self):
         self.conn.close()
-        
-#-----------------------------------------------------------------------------------
-# Clase principal para la gestión de salas
-#-----------------------------------------------------------------------------------
 
 class SistemaGestionSalas:
     def __init__(self, root, role):
@@ -89,7 +111,7 @@ class SistemaGestionSalas:
         self.root.geometry("1200x800")
         self.root.configure(bg="#f8f9fa")
         self.role = role
-        
+
         # Paleta de colores mejorada
         self.color_fondo = "#f8f9fa"
         self.color_sidebar = "#343a40"
@@ -99,99 +121,150 @@ class SistemaGestionSalas:
         self.color_advertencia = "#dc3545"
         self.color_texto = "#212529"
         self.color_borde = "#dee2e6"
-        
+
         # Fuentes mejoradas
         self.titulo_font = ("Segoe UI", 18, "bold")
         self.subtitulo_font = ("Segoe UI", 14)
         self.normal_font = ("Segoe UI", 11)
         self.boton_font = ("Segoe UI", 10, "bold")
-        
+
         # Configurar el estilo general
         self.style = ttk.Style()
         self.style.theme_use("clam")
-        
+
         # Configurar estilos personalizados
         self.style.configure("TFrame", background=self.color_fondo)
-        self.style.configure("TLabel", background=self.color_fondo, 
-                           foreground=self.color_texto, font=self.normal_font)
-        self.style.configure("TButton", font=self.boton_font, 
-                           borderwidth=1, relief="solid")
-        self.style.map("TButton", 
-                      foreground=[("active", "white")],
-                      background=[("active", self.color_secundario)])
-        
+        self.style.configure("TLabel", background=self.color_fondo,
+                             foreground=self.color_texto, font=self.normal_font)
+        self.style.configure("TButton", font=self.boton_font,
+                             borderwidth=1, relief="solid")
+        self.style.map("TButton",
+                       foreground=[("active", "white")],
+                       background=[("active", self.color_secundario)])
+
         # Contenedor principal
         self.main_frame = tk.Frame(root, bg=self.color_fondo)
         self.main_frame.pack(fill="both", expand=True)
-        
+
         # ===== SIDEBAR MEJORADO =====
         self.sidebar = tk.Frame(self.main_frame, bg=self.color_sidebar, width=250)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
-        
+
         # Logo o título
-        tk.Label(self.sidebar, 
-                text="Gestión de Salas", 
-                font=("Segoe UI", 16, "bold"), 
-                bg=self.color_sidebar, 
-                fg="white",
-                pady=20).pack(fill="x")
-        
+        tk.Label(self.sidebar,
+                 text="Gestión de Salas",
+                 font=("Segoe UI", 16, "bold"),
+                 bg=self.color_sidebar,
+                 fg="white",
+                 pady=20).pack(fill="x")
+
         # Separador
         ttk.Separator(self.sidebar, orient="horizontal").pack(fill="x", padx=10, pady=5)
-        
+
         # Opciones del menú
-        menu_opciones = [
-            ("Inicio", "home", self.mostrar_inicio),
-            ("Calendario", "calendar", self.mostrar_calendario),
-            ("Salas", "door-open", self.mostrar_salas),
-            ("Reportes", "file-text", self.mostrar_reportes),
-            ("Configuración", "settings", self.mostrar_config)
-        ]
-        
-        if self.role == "admin":
-            menu_opciones.insert(1, ("Reservar Sala", "calendar-plus", self.mostrar_reservas))
-        
-        for texto, icono, comando in menu_opciones:
-            btn = tk.Button(self.sidebar,
-                          text=f"  {texto}",
-                          font=self.normal_font,
-                          bg=self.color_sidebar,
-                          fg="white",
-                          activebackground=self.color_secundario,
-                          activeforeground="white",
-                          anchor="w",
-                          padx=15,
-                          pady=12,
-                          relief="flat",
-                          command=comando)
-            btn.pack(fill="x", padx=5)
-        
+        self.menu_opciones = []
+        self.crear_menu()
+
         # Separador final
         ttk.Separator(self.sidebar, orient="horizontal").pack(fill="x", padx=10, pady=5)
-        
+
         # Versión del sistema
-        tk.Label(self.sidebar, 
-                text="v2.0", 
-                font=("Segoe UI", 8), 
-                bg=self.color_sidebar, 
-                fg="#adb5bd").pack(side="bottom", pady=10)
-        
+        tk.Label(self.sidebar,
+                 text="v2.0",
+                 font=("Segoe UI", 8),
+                 bg=self.color_sidebar,
+                 fg="#adb5bd").pack(side="bottom", pady=10)
+
         # ===== CONTENIDO PRINCIPAL =====
         self.content_frame = tk.Frame(self.main_frame, bg=self.color_fondo, padx=30, pady=20)
         self.content_frame.pack(side="right", fill="both", expand=True)
-        
+
         # Inicializar la base de datos
         self.conectar_base_datos()
         self.cargar_salas()
         self.cargar_reservas()
-        
+
         # Mostrar panel de inicio por defecto
         self.mostrar_inicio()
+
+    def crear_menu(self):
+        # Limpiar el menú existente
+        for widget in self.sidebar.winfo_children():
+            if isinstance(widget, tk.Button):
+                widget.destroy()
+
+        menu_base = [
+            ("Inicio", "home", self.mostrar_inicio),
+            ("Calendario", "calendar", self.mostrar_calendario),
+            ("Salas", "door-open", self.mostrar_salas)
+        ]
+
+        menu_admin = [
+            ("Reservar Sala", "calendar-plus", self.mostrar_reservas),
+            ("Reportes", "file-text", self.mostrar_reportes),
+            ("Configuración", "settings", self.mostrar_config)
+        ]
+
+        menu_profesor = [] # El profesor solo ve el menú base
+
+        menu_estudiante = [
+            ("Reservar Sala", "calendar-plus", self.mostrar_reservas)
+        ]
+
+        menu_final = menu_base.copy()
+
+        if self.role == "admin":
+            menu_final.extend(menu_admin)
+        elif self.role == "profesor":
+            menu_final.extend(menu_profesor)
+        elif self.role == "estudiante":
+            # Insertar "Reservar Sala" después de "Inicio"
+            menu_final.insert(1, ("Reservar Sala", "calendar-plus", self.mostrar_reservas))
+
+        for texto, icono, comando in menu_final:
+            btn = tk.Button(self.sidebar,
+                            text=f"  {texto}",
+                            font=self.normal_font,
+                            bg=self.color_sidebar,
+                            fg="white",
+                            activebackground=self.color_secundario,
+                            activeforeground="white",
+                            anchor="w",
+                            padx=15,
+                            pady=12,
+                            relief="flat",
+                            command=comando)
+            btn.pack(fill="x", padx=5)
 
     def conectar_base_datos(self):
         self.conn = sqlite3.connect('gestion_salas.db')
         self.cursor = self.conn.cursor()
+        self.crear_tablas()
+
+    def crear_tablas(self):
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS salas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT UNIQUE NOT NULL,
+                capacidad INTEGER NOT NULL,
+                estado TEXT NOT NULL DEFAULT 'Disponible'
+            )
+        ''')
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS reservas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sala_id INTEGER NOT NULL,
+                responsable TEXT NOT NULL,
+                fecha TEXT NOT NULL,
+                hora_inicio TEXT NOT NULL,
+                hora_termino TEXT NOT NULL,
+                motivo TEXT,
+                estado TEXT NOT NULL DEFAULT 'Pendiente',
+                FOREIGN KEY (sala_id) REFERENCES salas(id)
+            )
+        ''')
+        self.conn.commit()
 
     def cargar_salas(self):
         self.cursor.execute("SELECT * FROM salas")
@@ -201,90 +274,101 @@ class SistemaGestionSalas:
         self.cursor.execute("SELECT * FROM reservas")
         self.reservas = self.cursor.fetchall()
 
+    def limpiar_contenido(self):
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+
     def mostrar_inicio(self):
         self.limpiar_contenido()
-        
+
         # Título principal
-        tk.Label(self.content_frame, 
-                text="Panel Principal", 
-                font=self.titulo_font, 
-                bg=self.color_fondo).pack(anchor="nw", pady=(0, 20))
-        
+        tk.Label(self.content_frame,
+                 text="Panel Principal",
+                 font=self.titulo_font,
+                 bg=self.color_fondo).pack(anchor="nw", pady=(0, 20))
+
         # Tarjetas resumen
         resumen_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
         resumen_frame.pack(fill="x", pady=(0, 30))
-        
+
+        salas_disponibles = len([sala for sala in self.salas if sala[3] == "Disponible"])
+        reservas_hoy = len([reserva for reserva in self.reservas if reserva[3] == datetime.now().strftime("%Y-%m-%d")])
+        en_mantenimiento = len([sala for sala in self.salas if sala[3] == "En Mantenimiento"])
+        ocupacion_total = "N/A" # Necesitaríamos lógica más compleja para calcular esto
+
         resumen_data = [
-            {"title": "Salas Disponibles", "value": str(len([sala for sala in self.salas if sala[3] == "Disponible"])), "color": self.color_principal},
-            {"title": "Reservas Hoy", "value": str(len([reserva for reserva in self.reservas if reserva[3] == datetime.now().strftime("%Y-%m-%d")])), "color": self.color_exito},
-            {"title": "En Mantenimiento", "value": str(len([sala for sala in self.salas if sala[3] == "En Mantenimiento"])), "color": self.color_advertencia},
-            {"title": "Ocupación Total", "value": "78%", "color": "#6c757d"}
+            {"title": "Salas Disponibles", "value": str(salas_disponibles), "color": self.color_principal},
+            {"title": "Reservas Hoy", "value": str(reservas_hoy), "color": self.color_exito},
+            {"title": "En Mantenimiento", "value": str(en_mantenimiento), "color": self.color_advertencia},
+            {"title": "Ocupación Total", "value": ocupacion_total, "color": "#6c757d"}
         ]
-        
+
         for i, data in enumerate(resumen_data):
-            card = tk.Frame(resumen_frame, bg="white", bd=1, relief="solid", 
-                          highlightbackground=self.color_borde, highlightthickness=1)
+            card = tk.Frame(resumen_frame, bg="white", bd=1, relief="solid",
+                            highlightbackground=self.color_borde, highlightthickness=1)
             card.pack(side="left", expand=True, fill="both", padx=5)
-            
-            tk.Label(card, 
-                    text=data["title"], 
-                    font=self.normal_font, 
-                    bg="white").pack(pady=(15, 5), padx=10, anchor="w")
-            
-            tk.Label(card, 
-                    text=data["value"], 
-                    font=("Segoe UI", 24, "bold"), 
-                    fg=data["color"], 
-                    bg="white").pack(pady=(0, 15), padx=10, anchor="w")
-        
-        # Sección de acciones rápidas
-        tk.Label(self.content_frame, 
-                text="Acciones Rápidas", 
-                font=self.subtitulo_font, 
-                bg=self.color_fondo).pack(anchor="nw", pady=(10, 15))
-        
+
+            tk.Label(card,
+                     text=data["title"],
+                     font=self.normal_font,
+                     bg="white").pack(pady=(15, 5), padx=10, anchor="w")
+
+            tk.Label(card,
+                     text=data["value"],
+                     font=("Segoe UI", 24, "bold"),
+                     fg=data["color"],
+                     bg="white").pack(pady=(0, 15), padx=10, anchor="w")
+
+        # Sección de acciones rápidas (dependiendo del rol)
+        tk.Label(self.content_frame,
+                 text="Acciones Rápidas",
+                 font=self.subtitulo_font,
+                 bg=self.color_fondo).pack(anchor="nw", pady=(10, 15))
+
         acciones_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
         acciones_frame.pack(fill="x", pady=(0, 30))
-        
-        acciones = [
-            {"text": "Nueva Reserva", "command": self.mostrar_reservas, "color": self.color_principal},
-            {"text": "Ver Calendario", "command": self.mostrar_calendario, "color": "#17a2b8"},
-            {"text": "Reportar Problema", "command": self.reportar_problema, "color": self.color_advertencia}
-        ]
-        
+
+        acciones = []
+        if self.role == "admin" or self.role == "estudiante":
+            acciones.append({"text": "Nueva Reserva", "command": self.mostrar_reservas, "color": self.color_principal})
+        acciones.append({"text": "Ver Calendario", "command": self.mostrar_calendario, "color": "#17a2b8"})
+        acciones.append({"text": "Ver Salas", "command": self.mostrar_salas, "color": "#28a745"})
+        if self.role == "admin":
+            acciones.append({"text": "Reportar Problema", "command": self.reportar_problema, "color": self.color_advertencia})
+
         for accion in acciones:
             btn = tk.Button(acciones_frame,
-                          text=accion["text"],
-                          font=self.boton_font,
-                          bg=accion["color"],
-                          fg="white",
-                          activebackground=accion["color"],
-                          relief="solid",
-                          padx=20,
-                          pady=10,
-                          command=accion["command"])
+                            text=accion["text"],
+                            font=self.boton_font,
+                            bg=accion["color"],
+                            fg="white",
+                            activebackground=accion["color"],
+                            relief="solid",
+                            padx=20,
+                            pady=10,
+                            command=accion["command"])
             btn.pack(side="left", padx=10)
-        
+
         # Sección de últimas reservas
-        tk.Label(self.content_frame, 
-                text="Últimas Reservas", 
-                font=self.subtitulo_font, 
-                bg=self.color_fondo).pack(anchor="nw", pady=(10, 15))
-        
+        tk.Label(self.content_frame,
+                 text="Últimas Reservas",
+                 font=self.subtitulo_font,
+                 bg=self.color_fondo).pack(anchor="nw", pady=(10, 15))
+
         # Tabla de reservas recientes
         columns = ("Sala", "Responsable", "Fecha", "Hora", "Estado")
         self.tree_reservas = ttk.Treeview(self.content_frame, columns=columns, show="headings", height=8)
-        
+
         for col in columns:
             self.tree_reservas.heading(col, text=col)
             self.tree_reservas.column(col, width=120, anchor="center")
-        
+
         # Añadir scrollbar
         scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=self.tree_reservas.yview)
         self.tree_reservas.configure(yscrollcommand=scrollbar.set)
         self.tree_reservas.pack(fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-        
+
         # Mostrar las reservas actuales
         for reserva in self.reservas:
             self.cursor.execute("SELECT nombre FROM salas WHERE id = ?", (reserva[1],))
@@ -299,18 +383,18 @@ class SistemaGestionSalas:
 
     def mostrar_reservas(self):
         self.limpiar_contenido()
-        
+
         # Título
-        tk.Label(self.content_frame, 
-                 text="Nueva Reserva de Sala", 
-                 font=self.titulo_font, 
+        tk.Label(self.content_frame,
+                 text="Nueva Reserva de Sala",
+                 font=self.titulo_font,
                  bg=self.color_fondo).pack(anchor="nw", pady=(0, 20))
-        
+
         # Contenedor con scroll
         canvas = tk.Canvas(self.content_frame, bg="white", highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg="white")
-        
+
         # Configurar el canvas y el frame
         scrollable_frame.bind(
             "<Configure>",
@@ -318,10 +402,10 @@ class SistemaGestionSalas:
         )
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
-        
+
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-        
+
         # Campos del formulario
         campos = [
             {"label": "Responsable", "type": "entry"},
@@ -331,313 +415,108 @@ class SistemaGestionSalas:
             {"label": "Hora Término", "type": "combobox", "values": [f"{h:02d}:00" for h in range(8, 21)]},
             {"label": "Motivo", "type": "text"}
         ]
-        
+
         self.entries = {}
         for campo in campos:
             tk.Label(scrollable_frame, text=f"{campo['label']}:", font=self.normal_font, bg="white").pack(anchor="w", pady=(10, 5))
-            
+
             if campo["type"] == "entry":
                 entry = tk.Entry(scrollable_frame, font=self.normal_font)
             elif campo["type"] == "combobox":
                 entry = ttk.Combobox(scrollable_frame, font=self.normal_font, values=campo.get("values", []))
             elif campo["type"] == "calendar":
-                entry = Calendar(scrollable_frame, selectmode="day", date_pattern="dd/mm/yyyy")
+                entry = Calendar(scrollable_frame, selectmode="day", date_pattern="yyyy-mm-dd") # Formato para la base de datos
             elif campo["type"] == "text":
                 entry = tk.Text(scrollable_frame, font=self.normal_font, height=4, width=40)
-            
+
             entry.pack(fill="x", pady=(0, 10))
             self.entries[campo["label"]] = entry
-        
+
         # Botones del formulario
         btn_frame = tk.Frame(scrollable_frame, bg="white", pady=20)
         btn_frame.pack(fill="x", side="bottom")
-        
+
         tk.Button(btn_frame, text="Cancelar", font=self.boton_font, bg="#6c757d", fg="white", padx=20, pady=8, command=self.mostrar_inicio).pack(side="left", padx=10)
         tk.Button(btn_frame, text="Reservar Sala", font=self.boton_font, bg=self.color_principal, fg="white", padx=20, pady=8, command=self.guardar_reserva).pack(side="right", padx=10)
 
     def guardar_reserva(self):
         # Validar campos y guardar la reserva
         responsable = self.entries["Responsable"].get()
-        sala = self.entries["Sala a Reservar"].get()
+        sala_nombre = self.entries["Sala a Reservar"].get()
         fecha = self.entries["Fecha de Reserva"].get_date()
         hora_inicio = self.entries["Hora Inicio"].get()
         hora_termino = self.entries["Hora Término"].get()
         motivo = self.entries["Motivo"].get("1.0", "end").strip()
-        
-        if not responsable or not sala or not fecha or not hora_inicio or not hora_termino or not motivo:
-            messagebox.showerror("Error", "Por favor, completa todos los campos obligatorios.")
+
+        # Validar campos obligatorios
+        if not responsable or not sala_nombre or not fecha or not hora_inicio or not hora_termino:
+            tk.messagebox.showerror("Error", "Todos los campos obligatorios deben ser completados")
             return
-        
-        # Validar que la hora de inicio sea anterior a la hora de término
+
+        # Validar que la hora de término sea posterior a la hora de inicio
+        if hora_inicio >= hora_termino:
+            tk.messagebox.showerror("Error", "La hora de término debe ser posterior a la hora de inicio")
+            return
+
         try:
-            hora_inicio_dt = datetime.strptime(hora_inicio, "%H:%M")
-            hora_termino_dt = datetime.strptime(hora_termino, "%H:%M")
-            if hora_inicio_dt >= hora_termino_dt:
-                messagebox.showerror("Error", "La hora de inicio debe ser anterior a la hora de término.")
-                return
-        except ValueError:
-            messagebox.showerror("Error", "Formato de hora inválido. Usa HH:MM.")
-            return
-        
-        # Verificar conflictos de reserva
-        if not self.verificar_conflictos(sala, fecha, hora_inicio, hora_termino):
-            messagebox.showerror("Error", "Conflicto de horario con otra reserva existente.")
-            return
-        
-        # Guardar la reserva en la base de datos
-        self.cursor.execute('''
-            INSERT INTO reservas (sala_id, responsable, fecha, hora_inicio, hora_termino, motivo)
-            VALUES ((SELECT id FROM salas WHERE nombre = ?), ?, ?, ?, ?, ?)
-        ''', (sala, responsable, fecha, hora_inicio, hora_termino, motivo))
-        self.conn.commit()
-        
-        # Mostrar mensaje de éxito
-        messagebox.showinfo("Reserva Guardada", f"Reserva para la sala {sala} creada correctamente.")
-        self.mostrar_inicio()
+            # Obtener el ID de la sala
+            self.cursor.execute("SELECT id FROM salas WHERE nombre = ?", (sala_nombre,))
+            sala_id = self.cursor.fetchone()[0]
 
-    def verificar_conflictos(self, sala, fecha, hora_inicio, hora_termino):
-        # Verificar si hay conflictos con las reservas existentes
-        self.cursor.execute('''
-            SELECT * FROM reservas WHERE sala_id = (SELECT id FROM salas WHERE nombre = ?) AND fecha = ?
-        ''', (sala, fecha))
-        reservas_existentes = self.cursor.fetchall()
-        
-        for reserva in reservas_existentes:
-            inicio_reserva = datetime.strptime(reserva[4], "%H:%M")
-            termino_reserva = datetime.strptime(reserva[5], "%H:%M")
-            nuevo_inicio = datetime.strptime(hora_inicio, "%H:%M")
-            nuevo_termino = datetime.strptime(hora_termino, "%H:%M")
+            # Insertar la reserva en la base de datos
+            self.cursor.execute('''
+                INSERT INTO reservas (sala_id, responsable, fecha, hora_inicio, hora_termino, motivo, estado)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (sala_id, responsable, fecha, hora_inicio, hora_termino, motivo, "Pendiente"))
             
-            if not (nuevo_termino <= inicio_reserva or nuevo_inicio >= termino_reserva):
-                return False  # Hay conflicto
-        return True  # No hay conflicto
-
-    def limpiar_contenido(self):
-        for widget in self.content_frame.winfo_children():
-            widget.destroy()
-    
-
-#---------------------------------------------------------------------------------------
-# Clase para mostrar el calendario de reservas
-#---------------------------------------------------------------------------------------
+            self.conn.commit()
+            tk.messagebox.showinfo("Éxito", "Reserva creada correctamente")
+            self.cargar_reservas()
+            self.mostrar_inicio()
+            
+        except Exception as e:
+            self.conn.rollback()
+            tk.messagebox.showerror("Error", f"No se pudo crear la reserva: {str(e)}")
 
     def mostrar_calendario(self):
         self.limpiar_contenido()
-        
-        # Título
-        tk.Label(self.content_frame, 
-                 text="Reservas", 
-                 font=self.titulo_font, 
+        tk.Label(self.content_frame,
+                 text="Calendario de Reservas",
+                 font=self.titulo_font,
                  bg=self.color_fondo).pack(anchor="nw", pady=(0, 20))
-        
-        # Tabla de reservas
-        columns = ("Sala", "Responsable", "Fecha", "Hora", "Motivo")
-        tree_reservas = ttk.Treeview(self.content_frame, columns=columns, show="headings", height=12)
-        
-        for col in columns:
-            tree_reservas.heading(col, text=col)
-            tree_reservas.column(col, width=120, anchor="center")
-        
-        # Añadir scrollbar
-        scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=tree_reservas.yview)
-        tree_reservas.configure(yscrollcommand=scrollbar.set)
-        tree_reservas.pack(fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # Mostrar las reservas actuales
-        for reserva in self.reservas:
-            self.cursor.execute("SELECT nombre FROM salas WHERE id = ?", (reserva[1],))
-            sala_nombre = self.cursor.fetchone()[0]
-            tree_reservas.insert("", "end", values=(
-                sala_nombre,
-                reserva[2],
-                reserva[3],
-                f"{reserva[4]} - {reserva[5]}",
-                reserva[6]
-            ))
-#----------------------------------------------------------------------------------------
-# mostrar_salas
-#----------------------------------------------------------------------------------------
+        # Aquí iría la implementación del calendario
+
     def mostrar_salas(self):
         self.limpiar_contenido()
-        
-        # Título
-        tk.Label(self.content_frame, 
-                 text="Gestión de Salas", 
-                 font=self.titulo_font, 
+        tk.Label(self.content_frame,
+                 text="Listado de Salas",
+                 font=self.titulo_font,
                  bg=self.color_fondo).pack(anchor="nw", pady=(0, 20))
-        
-        # Tabla de salas
-        columns = ("ID", "Nombre", "Capacidad", "Estado")
-        self.tree_salas = ttk.Treeview(self.content_frame, columns=columns, show="headings", height=8)
-        
-        for col in columns:
-            self.tree_salas.heading(col, text=col)
-            self.tree_salas.column(col, width=120, anchor="center")
-        
-        # Añadir scrollbar
-        scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=self.tree_salas.yview)
-        self.tree_salas.configure(yscrollcommand=scrollbar.set)
-        self.tree_salas.pack(fill="both", expand=True, pady=(10, 20))
-        scrollbar.pack(side="right", fill="y")
-        
-        # Mostrar las salas actuales
-        self.cargar_salas()  # Cargar salas desde la base de datos
-        for sala in self.salas:
-            self.tree_salas.insert("", "end", values=sala)
-        
-        # Botones para agregar, editar y eliminar salas
-        btn_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
-        btn_frame.pack(fill="x", pady=10)
-        
-        tk.Button(btn_frame, 
-                  text="Agregar Sala", 
-                  font=self.boton_font, 
-                  bg=self.color_principal, 
-                  fg="white", 
-                  padx=20, 
-                  pady=10, 
-                  command=self.agregar_sala).pack(side="left", padx=10)
-        
-        tk.Button(btn_frame, 
-                  text="Editar Sala", 
-                  font=self.boton_font, 
-                  bg="#ffc107", 
-                  fg="white", 
-                  padx=20, 
-                  pady=10, 
-                  command=self.editar_sala).pack(side="left", padx=10)
-        
-        tk.Button(btn_frame, 
-                  text="Eliminar Sala", 
-                  font=self.boton_font, 
-                  bg=self.color_advertencia, 
-                  fg="white", 
-                  padx=20, 
-                  pady=10, 
-                  command=self.eliminar_sala).pack(side="left", padx=10)
+        # Aquí iría la implementación del listado de salas
 
-    def agregar_sala(self):
-        def guardar_nueva_sala():
-            nombre = entry_nombre.get()
-            capacidad = entry_capacidad.get()
-            estado = combo_estado.get()
-            
-            if not nombre or not capacidad or not estado:
-                messagebox.showerror("Error", "Todos los campos son obligatorios.")
-                return
-            
-            # Guardar la nueva sala en la base de datos
-            self.cursor.execute('''
-                INSERT INTO salas (nombre, capacidad, estado) VALUES (?, ?, ?)
-            ''', (nombre, int(capacidad), estado))
-            self.conn.commit()
-            
-            self.cargar_salas()  # Recargar salas
-            self.tree_salas.insert("", "end", values=(self.cursor.lastrowid, nombre, capacidad, estado))
-            top.destroy()
-            messagebox.showinfo("Éxito", "Sala agregada correctamente.")
-        
-        top = tk.Toplevel(self.root)
-        top.title("Agregar Sala")
-        top.geometry("400x300")
-        top.configure(bg="white")
-        
-        tk.Label(top, text="Nombre de la Sala:", font=self.normal_font, bg="white").pack(anchor="w", pady=(10, 5), padx=10)
-        entry_nombre = tk.Entry(top, font=self.normal_font)
-        entry_nombre.pack(fill="x", padx=10, pady=(0, 10))
-        
-        tk.Label(top, text="Capacidad:", font=self.normal_font, bg="white").pack(anchor="w", pady=(10, 5), padx=10)
-        entry_capacidad = tk.Entry(top, font=self.normal_font)
-        entry_capacidad.pack(fill="x", padx=10, pady=(0, 10))
-        
-        tk.Label(top, text="Estado:", font=self.normal_font, bg="white").pack(anchor="w", pady=(10, 5), padx=10)
-        combo_estado = ttk.Combobox(top, font=self.normal_font, values=["Disponible", "En Mantenimiento"])
-        combo_estado.pack(fill="x", padx=10, pady=(0, 10))
-        
-        tk.Button(top, text="Guardar", font=self.boton_font, bg=self.color_principal, fg="white", 
-                  command=guardar_nueva_sala).pack(pady=20)
+    def mostrar_reportes(self):
+        self.limpiar_contenido()
+        tk.Label(self.content_frame,
+                 text="Reportes",
+                 font=self.titulo_font,
+                 bg=self.color_fondo).pack(anchor="nw", pady=(0, 20))
+        # Aquí iría la implementación de reportes
 
-    def editar_sala(self):
-        selected_item = self.tree_salas.selection()
-        if not selected_item:
-            messagebox.showerror("Error", "Por favor, selecciona una sala para editar.")
-            return
+    def mostrar_config(self):
+        self.limpiar_contenido()
+        tk.Label(self.content_frame,
+                 text="Configuración",
+                 font=self.titulo_font,
+                 bg=self.color_fondo).pack(anchor="nw", pady=(0, 20))
+        # Aquí iría la implementación de configuración
 
-        # Obtener el ID de la sala seleccionada
-        sala_id = self.tree_salas.item(selected_item, "values")[0]
-        sala = next((s for s in self.salas if str(s[0]) == sala_id), None)
-
-        if not sala:
-            messagebox.showerror("Error", "No se encontró la sala seleccionada.")
-            return
-
-        def guardar_cambios():
-            # Obtener los valores actualizados del formulario
-            nuevo_nombre = entry_nombre.get()
-            nueva_capacidad = entry_capacidad.get()
-            nuevo_estado = combo_estado.get()
-
-            if not nuevo_nombre or not nueva_capacidad or not nuevo_estado:
-                messagebox.showerror("Error", "Todos los campos son obligatorios.")
-                return
-
-            try:
-                nueva_capacidad = int(nueva_capacidad)
-            except ValueError:
-                messagebox.showerror("Error", "La capacidad debe ser un número.")
-                return
-
-            # Actualizar la sala en la base de datos
-            self.cursor.execute('''
-                UPDATE salas SET nombre = ?, capacidad = ?, estado = ? WHERE id = ?
-            ''', (nuevo_nombre, nueva_capacidad, nuevo_estado, sala[0]))
-            self.conn.commit()
-
-            # Actualizar la sala en el Treeview
-            self.tree_salas.item(selected_item, values=(sala[0], nuevo_nombre, nueva_capacidad, nuevo_estado))
-
-            # Cerrar la ventana y mostrar mensaje de éxito
-            top.destroy()
-            messagebox.showinfo("Éxito", "Sala editada correctamente.")
-
-        # Crear ventana para editar la sala
-        top = tk.Toplevel(self.root)
-        top.title("Editar Sala")
-        top.geometry("400x300")
-        top.configure(bg="white")
-
-        tk.Label(top, text="Nombre de la Sala:", font=self.normal_font, bg="white").pack(anchor="w", pady=(10, 5), padx=10)
-        entry_nombre = tk.Entry(top, font=self.normal_font)
-        entry_nombre.insert(0, sala[1])  # Nombre actual
-        entry_nombre.pack(fill="x", padx=10, pady=(0, 10))
-
-        tk.Label(top, text="Capacidad:", font=self.normal_font, bg="white").pack(anchor="w", pady=(10, 5), padx=10)
-        entry_capacidad = tk.Entry(top, font=self.normal_font)
-        entry_capacidad.insert(0, sala[2])  # Capacidad actual
-        entry_capacidad.pack(fill="x", padx=10, pady=(0, 10))
-
-        tk.Label(top, text="Estado:", font=self.normal_font, bg="white").pack(anchor="w", pady=(10, 5), padx=10)
-        combo_estado = ttk.Combobox(top, font=self.normal_font, values=["Disponible", "En Mantenimiento"])
-        combo_estado.set(sala[3])  # Estado actual
-        combo_estado.pack(fill="x", padx=10, pady=(0, 10))
-
-        tk.Button(top, text="Guardar", font=self.boton_font, bg=self.color_principal, fg="white",
-                  command=guardar_cambios).pack(pady=20)
-
-    def eliminar_sala(self):
-        selected_item = self.tree_salas.selection()
-        if not selected_item:
-            messagebox.showerror("Error", "Por favor, selecciona una sala para eliminar.")
-            return
-        
-        sala_id = self.tree_salas.item(selected_item, "values")[0]
-        self.cursor.execute("DELETE FROM salas WHERE id = ?", (sala_id,))
-        self.conn.commit()
-        
-        self.tree_salas.delete(selected_item)
-        messagebox.showinfo("Éxito", "Sala eliminada correctamente.")
-
+    def reportar_problema(self):
+        self.limpiar_contenido()
+        tk.Label(self.content_frame,
+                 text="Reportar Problema",
+                 font=self.titulo_font,
+                 bg=self.color_fondo).pack(anchor="nw", pady=(0, 20))
+        # Aquí iría la implementación para reportar problemas
 
 
 #---------------------------------------------------------------------------------------
