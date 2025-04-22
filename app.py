@@ -155,24 +155,28 @@ class SistemaGestionSalas:
             if isinstance(widget, tk.Button):
                 widget.destroy()
 
+        # Opciones base para todos los usuarios
         menu_base = [
             ("Inicio", self.mostrar_inicio),
-            ("Calendario", self.mostrar_calendario),
-            ("Salas", self.mostrar_salas)
+            ("Calendario", self.mostrar_calendario)
         ]
 
+        # Opciones específicas por rol
         menu_admin = [
             ("Reservar Sala", self.mostrar_reservas),
             ("Reportes", self.mostrar_reportes),
             ("Configuración", self.mostrar_config)
         ]
 
-        menu_profesor = []  # El profesor solo ve el menú base
+        menu_profesor = [
+            ("Reservar Sala", self.mostrar_reservas)
+        ]
 
         menu_estudiante = [
             ("Reservar Sala", self.mostrar_reservas)
         ]
 
+        # Construir el menú final según el rol
         menu_final = menu_base.copy()
 
         if self.role == "admin":
@@ -180,9 +184,9 @@ class SistemaGestionSalas:
         elif self.role == "profesor":
             menu_final.extend(menu_profesor)
         elif self.role == "estudiante":
-            # Insertar "Reservar Sala" después de "Inicio"
             menu_final.insert(1, ("Reservar Sala", self.mostrar_reservas))
 
+        # Crear los botones del menú
         for texto, comando in menu_final:
             btn = tk.Button(self.sidebar,
                             text=f"  {texto}",
