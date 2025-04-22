@@ -448,9 +448,13 @@ class SistemaGestionSalas:
         # Filtrar reservas por la fecha seleccionada
         reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha]
 
+        # Depurar datos
+        print("Reservas filtradas:", reservas_fecha)
+
         # Insertar datos en la tabla
         for reserva in reservas_fecha:
-            tree.insert("", "end", values=reserva)
+            # Asegúrate de que los datos estén en el orden correcto
+            tree.insert("", "end", values=(reserva[0], reserva[1], reserva[2], reserva[4], reserva[5], reserva[6]))
 
         # Agregar barra de desplazamiento
         scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=tree.yview)
