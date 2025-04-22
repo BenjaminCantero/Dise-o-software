@@ -326,26 +326,36 @@ class SistemaGestionSalas:
         form_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
         form_frame.pack(fill="x", pady=(10, 20))
 
-        tk.Label(form_frame, text="Sala:", font=self.normal_font, bg=self.color_fondo).grid(row=0, column=0, sticky="w", pady=5)
+        # Estilo de etiquetas y entradas
+        label_style = {"font": self.normal_font, "bg": self.color_fondo, "fg": self.color_texto}
+
+        # Campo: Sala
+        tk.Label(form_frame, text="Sala:", **label_style).grid(row=0, column=0, sticky="w", pady=5, padx=5)
         sala_combo = ttk.Combobox(form_frame, values=[sala[1] for sala in self.salas], state="readonly")
-        sala_combo.grid(row=0, column=1, pady=5)
+        sala_combo.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
 
-        tk.Label(form_frame, text="Responsable:", font=self.normal_font, bg=self.color_fondo).grid(row=1, column=0, sticky="w", pady=5)
-        responsable_entry = tk.Entry(form_frame, font=self.normal_font)
-        responsable_entry.grid(row=1, column=1, pady=5)
+        # Campo: Responsable
+        tk.Label(form_frame, text="Responsable:", **label_style).grid(row=1, column=0, sticky="w", pady=5, padx=5)
+        responsable_entry = tk.Entry(form_frame, font=self.normal_font, relief="flat", bg="#dfe6e9", fg=self.color_texto)
+        responsable_entry.grid(row=1, column=1, pady=5, padx=5, sticky="ew")
 
-        tk.Label(form_frame, text="Fecha:", font=self.normal_font, bg=self.color_fondo).grid(row=2, column=0, sticky="w", pady=5)
-        fecha_entry = tk.Entry(form_frame, font=self.normal_font)
-        fecha_entry.grid(row=2, column=1, pady=5)
+        # Campo: Fecha con calendario
+        tk.Label(form_frame, text="Fecha:", **label_style).grid(row=2, column=0, sticky="w", pady=5, padx=5)
+        fecha_calendar = Calendar(form_frame, selectmode="day", year=2025, month=4, day=21)
+        fecha_calendar.grid(row=2, column=1, pady=5, padx=5, sticky="ew")
 
-        tk.Label(form_frame, text="Hora Inicio:", font=self.normal_font, bg=self.color_fondo).grid(row=3, column=0, sticky="w", pady=5)
-        hora_inicio_entry = tk.Entry(form_frame, font=self.normal_font)
-        hora_inicio_entry.grid(row=3, column=1, pady=5)
+        # Campo: Hora Inicio
+        tk.Label(form_frame, text="Hora Inicio:", **label_style).grid(row=3, column=0, sticky="w", pady=5, padx=5)
+        horas = [f"{h:02d}:00" for h in range(8, 22)]  # Horas de 08:00 a 21:00
+        hora_inicio_combo = ttk.Combobox(form_frame, values=horas, state="readonly")
+        hora_inicio_combo.grid(row=3, column=1, pady=5, padx=5, sticky="ew")
 
-        tk.Label(form_frame, text="Hora Término:", font=self.normal_font, bg=self.color_fondo).grid(row=4, column=0, sticky="w", pady=5)
-        hora_termino_entry = tk.Entry(form_frame, font=self.normal_font)
-        hora_termino_entry.grid(row=4, column=1, pady=5)
+        # Campo: Hora Término
+        tk.Label(form_frame, text="Hora Término:", **label_style).grid(row=4, column=0, sticky="w", pady=5, padx=5)
+        hora_termino_combo = ttk.Combobox(form_frame, values=horas, state="readonly")
+        hora_termino_combo.grid(row=4, column=1, pady=5, padx=5, sticky="ew")
 
+        # Botón de reserva estilizado
         tk.Button(form_frame,
                   text="Reservar",
                   font=self.boton_font,
@@ -354,8 +364,16 @@ class SistemaGestionSalas:
                   activebackground=self.color_secundario,
                   activeforeground="white",
                   relief="flat",
-                  command=lambda: self.realizar_reserva(sala_combo.get(), responsable_entry.get(), fecha_entry.get(),
-                                                        hora_inicio_entry.get(), hora_termino_entry.get())).grid(row=5, columnspan=2, pady=10)
+                  command=lambda: self.realizar_reserva(
+                      sala_combo.get(),
+                      responsable_entry.get(),
+                      fecha_calendar.get_date(),  # Obtener la fecha seleccionada
+                      hora_inicio_combo.get(),
+                      hora_termino_combo.get()
+                  )).grid(row=5, columnspan=2, pady=20, ipady=5, sticky="ew")
+
+        # Ajustar las columnas para que se expandan uniformemente
+        form_frame.grid_columnconfigure(1, weight=1)
 
     def realizar_reserva(self, sala, responsable, fecha, hora_inicio, hora_termino):
         # Validar que todos los campos estén llenos
