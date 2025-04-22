@@ -328,6 +328,7 @@ class SistemaGestionSalas:
 
         # Estilo de etiquetas y entradas
         label_style = {"font": self.normal_font, "bg": self.color_fondo, "fg": self.color_texto}
+        entry_style = {"font": self.normal_font, "relief": "flat", "bg": "#dfe6e9", "fg": self.color_texto}
 
         # Campo: Sala
         tk.Label(form_frame, text="Sala:", **label_style).grid(row=0, column=0, sticky="w", pady=5, padx=5)
@@ -336,7 +337,7 @@ class SistemaGestionSalas:
 
         # Campo: Responsable
         tk.Label(form_frame, text="Responsable:", **label_style).grid(row=1, column=0, sticky="w", pady=5, padx=5)
-        responsable_entry = tk.Entry(form_frame, font=self.normal_font, relief="flat", bg="#dfe6e9", fg=self.color_texto)
+        responsable_entry = tk.Entry(form_frame, **entry_style)
         responsable_entry.grid(row=1, column=1, pady=5, padx=5, sticky="ew")
 
         # Campo: Fecha con calendario
@@ -370,7 +371,7 @@ class SistemaGestionSalas:
                       fecha_calendar.get_date(),  # Obtener la fecha seleccionada
                       hora_inicio_combo.get(),
                       hora_termino_combo.get()
-                  )).grid(row=5, columnspan=2, pady=20, ipady=5, sticky="ew")
+                  )).grid(row=5, column=0, columnspan=2, pady=20, ipady=5, sticky="ew")
 
         # Ajustar las columnas para que se expandan uniformemente
         form_frame.grid_columnconfigure(1, weight=1)
