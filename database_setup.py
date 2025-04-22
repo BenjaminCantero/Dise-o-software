@@ -27,6 +27,7 @@ class DatabaseSetup:
             hora_inicio TEXT NOT NULL,
             hora_termino TEXT NOT NULL,
             motivo TEXT,
+            estado TEXT NOT NULL DEFAULT 'Pendiente',
             FOREIGN KEY (sala_id) REFERENCES salas (id)
         )
         ''')
@@ -46,7 +47,33 @@ class DatabaseSetup:
         self.cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
         if not self.cursor.fetchone():
             self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('admin', 'admin123', 'admin')")
-            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('user', 'user123', 'user')")
+            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('profesor', 'profesor123', 'profesor')")
+            self.cursor.execute("INSERT INTO usuarios (username, password, role) VALUES ('estudiante', 'estudiante123', 'estudiante')")
+
+    def insertar_salas_predeterminadas(self):
+        # Insertar salas predeterminadas si no existen
+        self.cursor.execute("SELECT * FROM salas")
+        if not self.cursor.fetchone():
+            salas = [
+                ("Sala A", 20, "Disponible"),
+                ("Sala B", 15, "Reservada"),
+                ("Sala C", 30, "Disponible"),
+                ("Sala D", 25, "Reservada")
+            ]
+            self.cursor.executemany("INSERT INTO salas (nombre, capacidad, estado) VALUES (?, ?, ?)", salas)
+
+    def insertar_reservas_predeterminadas(self):
+        # Insertar reservas predeterminadas si no existen
+        self.cursor.execute("SELECT * FROM reservas")
+        if not self.cursor.fetchone():
+            reservas = [
+                (1, "Admin", "2025-04-21", "10:00", "12:00", "Reunión de equipo", "Confirmada"),
+                (2, "Profesor", "2025-04-22", "14:00", "16:00", "Clase especial", "Pendiente")
+            ]
+            self.cursor.executemany(
+                "INSERT INTO reservas (sala_id, responsable, fecha, hora_inicio, hora_termino, motivo, estado) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                reservas
+            )
 
     def obtener_usuario(self, username, password):
         # Buscar usuario por nombre de usuario y contraseña
@@ -55,17 +82,23 @@ class DatabaseSetup:
 
     def obtener_salas(self):
         # Obtener todas las salas
-        self.cursor.execute("SELECT * FROM salas")
+        self.cursor.execute("SELECT id, nombre, capacidad, estado FROM salas")
         return self.cursor.fetchall()
 
     def obtener_reservas(self):
         # Obtener todas las reservas
-        self.cursor.execute("SELECT * FROM reservas")
+        self.cursor.execute('''
+        SELECT r.id, s.nombre AS sala, r.responsable, r.fecha, r.hora_inicio, r.hora_termino, r.estado
+        FROM reservas r
+        JOIN salas s ON r.sala_id = s.id
+        ''')
         return self.cursor.fetchall()
 
     def inicializar_base_datos(self):
         self.crear_tablas()
         self.insertar_usuarios_predeterminados()
+        self.insertar_salas_predeterminadas()
+        self.insertar_reservas_predeterminadas()
         self.conn.commit()
 
     def cerrar_conexion(self):
