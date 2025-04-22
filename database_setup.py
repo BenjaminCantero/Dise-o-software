@@ -117,6 +117,18 @@ class DatabaseSetup:
             print(f"Error al insertar reserva: {e}")
             raise
 
+    def actualizar_reserva(self, reserva_id, sala, responsable, hora_inicio, hora_termino):
+        self.cursor.execute('''
+        UPDATE reservas
+        SET sala_id = ?, responsable = ?, hora_inicio = ?, hora_termino = ?
+        WHERE id = ?
+        ''', (sala, responsable, hora_inicio, hora_termino, reserva_id))
+        self.conn.commit()
+
+    def eliminar_reserva(self, reserva_id):
+        self.cursor.execute('DELETE FROM reservas WHERE id = ?', (reserva_id,))
+        self.conn.commit()
+
     def inicializar_base_datos(self):
         self.crear_tablas()
         self.insertar_usuarios_predeterminados()

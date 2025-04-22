@@ -450,12 +450,19 @@ class SistemaGestionSalas:
                  bg=self.color_fondo,
                  fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
 
-        # Crear un calendario interactivo
-        calendar = Calendar(self.content_frame, selectmode="day", year=2025, month=4, day=21)
-        calendar.pack(pady=20)
+        # Crear un marco para el calendario y los botones
+        calendar_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
+        calendar_frame.pack(fill="x", pady=(10, 20))
 
-        # Botón para consultar reservas en la fecha seleccionada
-        tk.Button(self.content_frame,
+        # Crear el calendario interactivo
+        calendar = Calendar(calendar_frame, selectmode="day", year=2025, month=4, day=21)
+        calendar.pack(side="left", padx=10)
+
+        # Botones para interactuar con el calendario
+        buttons_frame = tk.Frame(calendar_frame, bg=self.color_fondo)
+        buttons_frame.pack(side="left", padx=10)
+
+        tk.Button(buttons_frame,
                   text="Consultar Reservas",
                   font=self.boton_font,
                   bg=self.color_principal,
@@ -463,50 +470,179 @@ class SistemaGestionSalas:
                   activebackground=self.color_secundario,
                   activeforeground="white",
                   relief="flat",
-                  command=lambda: self.consultar_reservas_fecha(calendar.get_date())).pack(pady=10)
+                  command=lambda: self.consultar_reservas_fecha(calendar.get_date())).pack(fill="x", pady=5)
+
+        tk.Button(buttons_frame,
+                  text="Actualizar Reservas",
+                  font=self.boton_font,
+                  bg=self.color_principal,
+                  fg="white",
+                  activebackground=self.color_secundario,
+                  activeforeground="white",
+                  relief="flat",
+                  command=lambda: self.consultar_reservas_fecha(calendar.get_date())).pack(fill="x", pady=5)
+
+        # Tabla para mostrar reservas
+        self.reservas_table_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
+        self.reservas_table_frame.pack(fill="both", expand=True, pady=(10, 20))
 
     def consultar_reservas_fecha(self, fecha):
-        self.limpiar_contenido()
+        # Limpiar el contenido de la tabla
+        for widget in self.reservas_table_frame.winfo_children():
+            widget.destroy()
 
-        # Título del módulo de reservas por fecha
-        tk.Label(self.content_frame,
+        # Título de la tabla
+        tk.Label(self.reservas_table_frame,
                  text=f"Reservas para la Fecha: {fecha}",
-                 font=self.titulo_font,
+                 font=self.subtitulo_font,
                  bg=self.color_fondo,
-                 fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
+                 fg=self.color_principal).pack(anchor="nw", pady=(0, 10))
 
         # Crear tabla para mostrar reservas
         columns = ("ID", "Sala", "Responsable", "Hora Inicio", "Hora Término", "Estado")
-        tree = ttk.Treeview(self.content_frame, columns=columns, show="headings", height=15)
+        tree = ttk.Treeview(self.reservas_table_frame, columns=columns, show="headings", height=10)
         tree.pack(fill="both", expand=True, pady=10)
 
-        # Configurar encabezados y ancho de columnas
+        # Configurar encabezados
         for col in columns:
             tree.heading(col, text=col)
-            if col in ["Hora Inicio", "Hora Término"]:
-                tree.column(col, width=120, anchor="center")  # Ajustar ancho para mostrar horas completas
-            else:
-                tree.column(col, width=100, anchor="center", stretch=True)  # Otras columnas con ajuste flexible
+            tree.column(col, width=120, anchor="center")
 
-        # Filtrar reservas por la fecha seleccionada
-        reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha]
+        # Filtrar reservas según el rol del usuario
+        if self.role == "admin":
+            reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha]
+        else:
+            reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha and reserva[2] == self.username]
 
-        # Insertar datos en la tabla
-        for reserva in reservas_fecha:
-            tree.insert("", "end", values=(reserva[0], reserva[1], reserva[2], reserva[4], reserva[5], reserva[6]))
+        # Insertar datos en la tabla con colores alternados
+        for i, reserva in enumerate(reservas_fecha):
+            tree.insert("", "end", values=(reserva[0], reserva[1], reserva[2], reserva[4], reserva[5], reserva[6]),
+                        tags=("evenrow" if i % 2 == 0 else "oddrow"))
 
-        # Agregar barra de desplazamiento
-        scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=tree.yview)
-        tree.configure(yscroll=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
+        # Configurar colores alternados para las filas
+        tree.tag_configure("evenrow", background="#f2f2f2")
+        tree.tag_configure("oddrow", background="#ffffff")
+
+        # Agregar barra de desplazamiento vertical
+        scrollbar_y = ttk.Scrollbar(self.reservas_table_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscroll=scrollbar_y.set)
+        scrollbar_y.pack(side="right", fill="y")
+
+        # Agregar barra de desplazamiento horizontal
+        scrollbar_x = ttk.Scrollbar(self.reservas_table_frame, orient="horizontal", command=tree.xview)
+        tree.configure(xscroll=scrollbar_x.set)
+        scrollbar_x.pack(side="bottom", fill="x")
+
+        # Botones para editar y eliminar reservas
+        buttons_frame = tk.Frame(self.reservas_table_frame, bg=self.color_fondo)
+        buttons_frame.pack(fill="x", pady=(10, 0))
+
+        tk.Button(buttons_frame,
+                  text="Editar Reserva",
+                  font=self.boton_font,
+                  bg=self.color_principal,
+                  fg="white",
+                  activebackground=self.color_secundario,
+                  activeforeground="white",
+                  relief="flat",
+                  command=lambda: self.editar_reserva(tree)).pack(side="left", padx=10)
+
+        tk.Button(buttons_frame,
+                  text="Eliminar Reserva",
+                  font=self.boton_font,
+                  bg=self.color_advertencia,
+                  fg="white",
+                  activebackground="#c82333",
+                  activeforeground="white",
+                  relief="flat",
+                  command=lambda: self.eliminar_reserva(tree)).pack(side="left", padx=10)
 
         # Mostrar mensaje si no hay reservas
         if not reservas_fecha:
-            tk.Label(self.content_frame,
+            tk.Label(self.reservas_table_frame,
                      text="No hay reservas para esta fecha.",
                      font=self.normal_font,
                      bg=self.color_fondo,
                      fg=self.color_advertencia).pack(anchor="nw", pady=(10, 0))
+
+    def editar_reserva(self, tree):
+        # Obtener la reserva seleccionada
+        selected_item = tree.selection()
+        if not selected_item:
+            messagebox.showerror("Error", "Por favor, selecciona una reserva para editar.")
+            return
+
+        reserva = tree.item(selected_item, "values")
+
+        # Crear una ventana emergente para editar la reserva
+        edit_window = tk.Toplevel(self.root)
+        edit_window.title("Editar Reserva")
+        edit_window.geometry("400x400")
+        edit_window.configure(bg=self.color_fondo)
+
+        # Campos para editar la reserva
+        tk.Label(edit_window, text="Sala:", font=self.normal_font, bg=self.color_fondo).pack(pady=5)
+        sala_entry = tk.Entry(edit_window, font=self.normal_font)
+        sala_entry.insert(0, reserva[1])
+        sala_entry.pack(pady=5)
+
+        tk.Label(edit_window, text="Responsable:", font=self.normal_font, bg=self.color_fondo).pack(pady=5)
+        responsable_entry = tk.Entry(edit_window, font=self.normal_font)
+        responsable_entry.insert(0, reserva[2])
+        responsable_entry.pack(pady=5)
+
+        tk.Label(edit_window, text="Hora Inicio:", font=self.normal_font, bg=self.color_fondo).pack(pady=5)
+        hora_inicio_entry = tk.Entry(edit_window, font=self.normal_font)
+        hora_inicio_entry.insert(0, reserva[3])
+        hora_inicio_entry.pack(pady=5)
+
+        tk.Label(edit_window, text="Hora Término:", font=self.normal_font, bg=self.color_fondo).pack(pady=5)
+        hora_termino_entry = tk.Entry(edit_window, font=self.normal_font)
+        hora_termino_entry.insert(0, reserva[4])
+        hora_termino_entry.pack(pady=5)
+
+        # Botón para guardar los cambios
+        tk.Button(edit_window,
+                  text="Guardar Cambios",
+                  font=self.boton_font,
+                  bg=self.color_principal,
+                  fg="white",
+                  activebackground=self.color_secundario,
+                  activeforeground="white",
+                  relief="flat",
+                  command=lambda: self.guardar_cambios_reserva(edit_window, reserva[0], sala_entry.get(),
+                                                              responsable_entry.get(), hora_inicio_entry.get(),
+                                                              hora_termino_entry.get())).pack(pady=20)
+
+    def guardar_cambios_reserva(self, window, reserva_id, sala, responsable, hora_inicio, hora_termino):
+        try:
+            # Actualizar la reserva en la base de datos
+            self.db.actualizar_reserva(reserva_id, sala, responsable, hora_inicio, hora_termino)
+            messagebox.showinfo("Éxito", "Reserva actualizada correctamente.")
+            window.destroy()
+            self.reservas = self.db.obtener_reservas(self.role, self.username)
+            self.mostrar_calendario()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo actualizar la reserva: {e}")
+
+    def eliminar_reserva(self, tree):
+        # Obtener la reserva seleccionada
+        selected_item = tree.selection()
+        if not selected_item:
+            messagebox.showerror("Error", "Por favor, selecciona una reserva para eliminar.")
+            return
+
+        reserva = tree.item(selected_item, "values")
+        confirm = messagebox.askyesno("Confirmar", f"¿Estás seguro de que deseas eliminar la reserva de la sala {reserva[1]}?")
+        if confirm:
+            try:
+                # Eliminar la reserva de la base de datos
+                self.db.eliminar_reserva(reserva[0])
+                messagebox.showinfo("Éxito", "Reserva eliminada correctamente.")
+                self.reservas = self.db.obtener_reservas(self.role, self.username)
+                self.mostrar_calendario()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo eliminar la reserva: {e}")
 
     def mostrar_salas(self):
         self.limpiar_contenido()
