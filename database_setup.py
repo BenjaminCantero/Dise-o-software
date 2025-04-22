@@ -95,12 +95,16 @@ class DatabaseSetup:
         return self.cursor.fetchall()
 
     def insertar_reserva(self, sala_id, responsable, fecha, hora_inicio, hora_termino, estado):
-        # Insertar una nueva reserva en la tabla de reservas
-        self.cursor.execute('''
-        INSERT INTO reservas (sala_id, responsable, fecha, hora_inicio, hora_termino, estado)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ''', (sala_id, responsable, fecha, hora_inicio, hora_termino, estado))
-        self.conn.commit()
+        try:
+            query = """
+            INSERT INTO reservas (sala_id, responsable, fecha, hora_inicio, hora_termino, estado)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """
+            self.cursor.execute(query, (sala_id, responsable, fecha, hora_inicio, hora_termino, estado))
+            self.conn.commit()
+        except Exception as e:
+            print(f"Error al insertar reserva: {e}")
+            raise
 
     def inicializar_base_datos(self):
         self.crear_tablas()

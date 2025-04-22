@@ -326,24 +326,85 @@ class SistemaGestionSalas:
                  bg=self.color_fondo,
                  fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
 
-        # Filtros
-        filter_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
-        filter_frame.pack(fill="x", pady=(0, 10))
+        # ===== FORMULARIO PARA RESERVAR SALA =====
+        form_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
+        form_frame.pack(fill="x", pady=(0, 20))
 
-        tk.Label(filter_frame, text="Filtrar por Estado:", font=self.normal_font, bg=self.color_fondo).pack(side="left", padx=5)
-        estado_combo = ttk.Combobox(filter_frame, values=["Todos", "Pendiente", "Confirmada", "Cancelada"], state="readonly")
-        estado_combo.set("Todos")
-        estado_combo.pack(side="left", padx=5)
+        # Estilo de etiquetas y entradas
+        label_style = {"font": self.normal_font, "bg": self.color_fondo, "fg": self.color_texto}
+        entry_style = {"font": self.normal_font, "relief": "flat", "bg": "#dfe6e9", "fg": self.color_texto}
 
-        tk.Label(filter_frame, text="Fecha:", font=self.normal_font, bg=self.color_fondo).pack(side="left", padx=5)
-        fecha_calendar = Calendar(filter_frame, selectmode="day", year=2025, month=4, day=22)
-        fecha_calendar.pack(side="left", padx=5)
+        # Campo: Sala
+        tk.Label(form_frame, text="Sala:", **label_style).grid(row=0, column=0, sticky="w", pady=5, padx=5)
+        sala_combo = ttk.Combobox(form_frame, values=[sala[1] for sala in self.salas], state="readonly", width=30)
+        sala_combo.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
 
-        tk.Button(filter_frame, text="Aplicar Filtros", font=self.boton_font, bg=self.color_principal, fg="white",
-                  command=lambda: self.aplicar_filtros_reservas(estado_combo.get(), fecha_calendar.get_date())).pack(side="left", padx=10)
+        # Campo: Responsable
+        tk.Label(form_frame, text="Responsable:", **label_style).grid(row=1, column=0, sticky="w", pady=5, padx=5)
+        responsable_entry = tk.Entry(form_frame, **entry_style)
+        responsable_entry.grid(row=1, column=1, pady=5, padx=5, sticky="ew")
 
-        # Crear tabla de reservas
-        self.crear_tabla_reservas()
+        # Campo: Fecha con calendario
+        tk.Label(form_frame, text="Fecha:", **label_style).grid(row=2, column=0, sticky="w", pady=5, padx=5)
+        fecha_calendar = Calendar(form_frame, selectmode="day", year=2025, month=4, day=22)
+        fecha_calendar.grid(row=2, column=1, pady=5, padx=5, sticky="ew")
+
+        # Campo: Hora de inicio
+        tk.Label(form_frame, text="Hora Inicio:", **label_style).grid(row=3, column=0, sticky="w", pady=5, padx=5)
+        hora_inicio_combo = ttk.Combobox(form_frame, values=[f"{h:02d}:00" for h in range(8, 22)], state="readonly", width=10)
+        hora_inicio_combo.grid(row=3, column=1, pady=5, padx=5, sticky="w")
+
+        # Campo: Hora de término
+        tk.Label(form_frame, text="Hora Término:", **label_style).grid(row=4, column=0, sticky="w", pady=5, padx=5)
+        hora_termino_combo = ttk.Combobox(form_frame, values=[f"{h:02d}:00" for h in range(8, 22)], state="readonly", width=10)
+        hora_termino_combo.grid(row=4, column=1, pady=5, padx=5, sticky="w")
+
+        # Botón para realizar la reserva
+        tk.Button(form_frame,
+                  text="Reservar",
+                  font=self.boton_font,
+                  bg=self.color_principal,
+                  fg="white",
+                  activebackground=self.color_secundario,
+                  activeforeground="white",
+                  relief="flat",
+                  command=lambda: self.realizar_reserva(
+                      sala_combo.get(),
+                      responsable_entry.get(),
+                      fecha_calendar.get_date(),
+                      hora_inicio_combo.get(),
+                      hora_termino_combo.get()
+                  )).grid(row=5, column=0, columnspan=2, pady=20, ipady=5, sticky="ew")
+
+        # Ajustar las columnas para que se expandan uniformemente
+        form_frame.grid_columnconfigure(1, weight=1)
+
+    def realizar_reserva(self, sala, responsable, fecha, hora_inicio, hora_termino):
+        if not sala or not responsable or not fecha or not hora_inicio or not hora_termino:
+            messagebox.showerror("Error", "Todos los campos son obligatorios.")
+            return
+
+        sala_id = next((s[0] for s in self.salas if s[1] == sala), None)
+        if not sala_id:
+            messagebox.showerror("Error", "La sala seleccionada no es válida.")
+            return
+
+        # Validar conflictos de horario
+        for reserva in self.reservas:
+            if reserva[1] == sala and reserva[3] == fecha:
+                if not (hora_termino <= reserva[4] or hora_inicio >= reserva[5]):
+                    messagebox.showerror("Error", "La sala ya está reservada en este horario.")
+                    return
+
+        try:
+            # Insertar la reserva con estado inicial "Pendiente"
+            self.db.insertar_reserva(sala_id, responsable, fecha, hora_inicio, hora_termino, "Pendiente")
+            messagebox.showinfo("Éxito", f"Reserva realizada para la sala {sala}. Estado: Pendiente.")
+            self.salas = self.db.obtener_salas()
+            self.reservas = self.db.obtener_reservas()
+            self.mostrar_inicio()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo realizar la reserva: {e}")
 
     def aplicar_filtros_reservas(self, estado, fecha):
         reservas_filtradas = [reserva for reserva in self.reservas if
@@ -373,33 +434,6 @@ class SistemaGestionSalas:
         scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=tree.yview)
         tree.configure(yscroll=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
-
-    def realizar_reserva(self, sala, responsable, fecha, hora_inicio, hora_termino):
-        if not sala or not responsable or not fecha or not hora_inicio or not hora_termino:
-            messagebox.showerror("Error", "Todos los campos son obligatorios.")
-            return
-
-        sala_id = next((s[0] for s in self.salas if s[1] == sala), None)
-        if not sala_id:
-            messagebox.showerror("Error", "La sala seleccionada no es válida.")
-            return
-
-        # Validar conflictos de horario
-        for reserva in self.reservas:
-            if reserva[1] == sala and reserva[3] == fecha:
-                if not (hora_termino <= reserva[4] or hora_inicio >= reserva[5]):
-                    messagebox.showerror("Error", "La sala ya está reservada en este horario.")
-                    return
-
-        try:
-            # Insertar la reserva con estado inicial "Pendiente"
-            self.db.insertar_reserva(sala_id, responsable, fecha, hora_inicio, hora_termino, "Pendiente", self.role)
-            messagebox.showinfo("Éxito", f"Reserva realizada para la sala {sala}. Estado: Pendiente.")
-            self.salas = self.db.obtener_salas()
-            self.reservas = self.db.obtener_reservas()
-            self.mostrar_inicio()
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo realizar la reserva: {e}")
 
     def mostrar_calendario(self):
         self.limpiar_contenido()
