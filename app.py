@@ -322,58 +322,53 @@ class SistemaGestionSalas:
                  bg=self.color_fondo,
                  fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
 
-        # Formulario para reservar sala
-        form_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
-        form_frame.pack(fill="x", pady=(10, 20))
+        # Filtros
+        filter_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
+        filter_frame.pack(fill="x", pady=(0, 10))
 
-        # Estilo de etiquetas y entradas
-        label_style = {"font": self.normal_font, "bg": self.color_fondo, "fg": self.color_texto}
+        tk.Label(filter_frame, text="Filtrar por Estado:", font=self.normal_font, bg=self.color_fondo).pack(side="left", padx=5)
+        estado_combo = ttk.Combobox(filter_frame, values=["Todos", "Pendiente", "Confirmada", "Cancelada"], state="readonly")
+        estado_combo.set("Todos")
+        estado_combo.pack(side="left", padx=5)
 
-        # Campo: Sala
-        tk.Label(form_frame, text="Sala:", **label_style).grid(row=0, column=0, sticky="w", pady=5, padx=5)
-        sala_combo = ttk.Combobox(form_frame, values=[sala[1] for sala in self.salas], state="readonly")
-        sala_combo.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
+        tk.Label(filter_frame, text="Fecha:", font=self.normal_font, bg=self.color_fondo).pack(side="left", padx=5)
+        fecha_calendar = Calendar(filter_frame, selectmode="day", year=2025, month=4, day=22)
+        fecha_calendar.pack(side="left", padx=5)
 
-        # Campo: Responsable
-        tk.Label(form_frame, text="Responsable:", **label_style).grid(row=1, column=0, sticky="w", pady=5, padx=5)
-        responsable_entry = tk.Entry(form_frame, font=self.normal_font, relief="flat", bg="#dfe6e9", fg=self.color_texto)
-        responsable_entry.grid(row=1, column=1, pady=5, padx=5, sticky="ew")
+        tk.Button(filter_frame, text="Aplicar Filtros", font=self.boton_font, bg=self.color_principal, fg="white",
+                  command=lambda: self.aplicar_filtros_reservas(estado_combo.get(), fecha_calendar.get_date())).pack(side="left", padx=10)
 
-        # Campo: Fecha con calendario
-        tk.Label(form_frame, text="Fecha:", **label_style).grid(row=2, column=0, sticky="w", pady=5, padx=5)
-        fecha_calendar = Calendar(form_frame, selectmode="day", year=2025, month=4, day=21)
-        fecha_calendar.grid(row=2, column=1, pady=5, padx=5, sticky="ew")
+        # Crear tabla de reservas
+        self.crear_tabla_reservas()
 
-        # Campo: Hora Inicio
-        tk.Label(form_frame, text="Hora Inicio:", **label_style).grid(row=3, column=0, sticky="w", pady=5, padx=5)
-        horas = [f"{h:02d}:00" for h in range(8, 22)]  # Horas de 08:00 a 21:00
-        hora_inicio_combo = ttk.Combobox(form_frame, values=horas, state="readonly")
-        hora_inicio_combo.grid(row=3, column=1, pady=5, padx=5, sticky="ew")
+    def aplicar_filtros_reservas(self, estado, fecha):
+        reservas_filtradas = [reserva for reserva in self.reservas if
+                              (estado == "Todos" or reserva[6] == estado) and reserva[3] == fecha]
+        self.limpiar_contenido()
+        self.crear_tabla_reservas(reservas_filtradas)
 
-        # Campo: Hora Término
-        tk.Label(form_frame, text="Hora Término:", **label_style).grid(row=4, column=0, sticky="w", pady=5, padx=5)
-        hora_termino_combo = ttk.Combobox(form_frame, values=horas, state="readonly")
-        hora_termino_combo.grid(row=4, column=1, pady=5, padx=5, sticky="ew")
+    def crear_tabla_reservas(self, reservas=None):
+        if reservas is None:
+            reservas = self.reservas
 
-        # Botón de reserva estilizado
-        tk.Button(form_frame,
-                  text="Reservar",
-                  font=self.boton_font,
-                  bg=self.color_principal,
-                  fg="white",
-                  activebackground=self.color_secundario,
-                  activeforeground="white",
-                  relief="flat",
-                  command=lambda: self.realizar_reserva(
-                      sala_combo.get(),
-                      responsable_entry.get(),
-                      fecha_calendar.get_date(),  # Obtener la fecha seleccionada
-                      hora_inicio_combo.get(),
-                      hora_termino_combo.get()
-                  )).grid(row=5, columnspan=2, pady=20, ipady=5, sticky="ew")
+        # Crear tabla
+        columns = ("ID", "Sala", "Responsable", "Fecha", "Hora Inicio", "Hora Término", "Estado")
+        tree = ttk.Treeview(self.content_frame, columns=columns, show="headings", height=15)
+        tree.pack(fill="both", expand=True, pady=10)
 
-        # Ajustar las columnas para que se expandan uniformemente
-        form_frame.grid_columnconfigure(1, weight=1)
+        # Configurar encabezados
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, width=120, anchor="center")
+
+        # Insertar datos en la tabla
+        for reserva in reservas:
+            tree.insert("", "end", values=reserva)
+
+        # Agregar barra de desplazamiento
+        scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
 
     def realizar_reserva(self, sala, responsable, fecha, hora_inicio, hora_termino):
         if not sala or not responsable or not fecha or not hora_inicio or not hora_termino:
