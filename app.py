@@ -1,5 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkcalendar import Calendar
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from database_setup import DatabaseSetup  # Importar la clase de configuración de la base de datos
 
 
@@ -153,21 +156,21 @@ class SistemaGestionSalas:
                 widget.destroy()
 
         menu_base = [
-            ("Inicio", "home", self.mostrar_inicio),
-            ("Calendario", "calendar", self.mostrar_calendario),
-            ("Salas", "door-open", self.mostrar_salas)
+            ("Inicio", self.mostrar_inicio),
+            ("Calendario", self.mostrar_calendario),
+            ("Salas", self.mostrar_salas)
         ]
 
         menu_admin = [
-            ("Reservar Sala", "calendar-plus", self.mostrar_reservas),
-            ("Reportes", "file-text", self.mostrar_reportes),
-            ("Configuración", "settings", self.mostrar_config)
+            ("Reservar Sala", self.mostrar_reservas),
+            ("Reportes", self.mostrar_reportes),
+            ("Configuración", self.mostrar_config)
         ]
 
         menu_profesor = []  # El profesor solo ve el menú base
 
         menu_estudiante = [
-            ("Reservar Sala", "calendar-plus", self.mostrar_reservas)
+            ("Reservar Sala", self.mostrar_reservas)
         ]
 
         menu_final = menu_base.copy()
@@ -178,9 +181,9 @@ class SistemaGestionSalas:
             menu_final.extend(menu_profesor)
         elif self.role == "estudiante":
             # Insertar "Reservar Sala" después de "Inicio"
-            menu_final.insert(1, ("Reservar Sala", "calendar-plus", self.mostrar_reservas))
+            menu_final.insert(1, ("Reservar Sala", self.mostrar_reservas))
 
-        for texto, icono, comando in menu_final:
+        for texto, comando in menu_final:
             btn = tk.Button(self.sidebar,
                             text=f"  {texto}",
                             font=self.normal_font,
@@ -205,49 +208,56 @@ class SistemaGestionSalas:
                  bg=self.color_fondo,
                  fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
 
-        # Panel de estadísticas
-        stats_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
-        stats_frame.pack(fill="x", pady=(10, 20))
+        # ===== REPORTE COMPLETO DEL SISTEMA =====
+        report_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
+        report_frame.pack(fill="x", pady=(10, 20))
 
-        total_salas = len(self.salas)
-        total_reservas = len(self.reservas)
-        salas_disponibles = sum(1 for sala in self.salas if sala[3] == "Disponible")  # Asumiendo que el estado está en la columna 3
-
-        tk.Label(stats_frame,
-                 text="Estadísticas Generales",
+        tk.Label(report_frame,
+                 text="Reporte Completo del Sistema",
                  font=self.subtitulo_font,
                  bg=self.color_fondo,
                  fg=self.color_texto).pack(anchor="w", pady=(0, 10))
 
-        tk.Label(stats_frame,
+        total_salas = len(self.salas)
+        salas_disponibles = sum(1 for sala in self.salas if sala[3] == "Disponible")
+        salas_ocupadas = total_salas - salas_disponibles
+        reservas_activas = len(self.reservas)
+
+        tk.Label(report_frame,
                  text=f"Total de Salas: {total_salas}",
                  font=self.normal_font,
                  bg=self.color_fondo,
                  fg=self.color_texto).pack(anchor="w", pady=5)
 
-        tk.Label(stats_frame,
+        tk.Label(report_frame,
                  text=f"Salas Disponibles: {salas_disponibles}",
                  font=self.normal_font,
                  bg=self.color_fondo,
                  fg=self.color_exito).pack(anchor="w", pady=5)
 
-        tk.Label(stats_frame,
-                 text=f"Reservas Activas: {total_reservas}",
+        tk.Label(report_frame,
+                 text=f"Salas Ocupadas: {salas_ocupadas}",
                  font=self.normal_font,
                  bg=self.color_fondo,
                  fg=self.color_advertencia).pack(anchor="w", pady=5)
 
-        # Panel de acceso rápido
-        quick_access_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
-        quick_access_frame.pack(fill="x", pady=(10, 20))
+        tk.Label(report_frame,
+                 text=f"Reservas Activas: {reservas_activas}",
+                 font=self.normal_font,
+                 bg=self.color_fondo,
+                 fg=self.color_principal).pack(anchor="w", pady=5)
 
-        tk.Label(quick_access_frame,
-                 text="Acceso Rápido",
+        # ===== ATAJOS RÁPIDOS =====
+        shortcuts_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
+        shortcuts_frame.pack(fill="x", pady=(10, 20))
+
+        tk.Label(shortcuts_frame,
+                 text="Atajos Rápidos",
                  font=self.subtitulo_font,
                  bg=self.color_fondo,
                  fg=self.color_texto).pack(anchor="w", pady=(0, 10))
 
-        tk.Button(quick_access_frame,
+        tk.Button(shortcuts_frame,
                   text="Reservar Sala",
                   font=self.boton_font,
                   bg=self.color_principal,
@@ -257,18 +267,8 @@ class SistemaGestionSalas:
                   relief="flat",
                   command=self.mostrar_reservas).pack(fill="x", pady=5, ipady=5)
 
-        tk.Button(quick_access_frame,
-                  text="Ver Salas Disponibles",
-                  font=self.boton_font,
-                  bg=self.color_principal,
-                  fg="white",
-                  activebackground=self.color_secundario,
-                  activeforeground="white",
-                  relief="flat",
-                  command=self.mostrar_salas).pack(fill="x", pady=5, ipady=5)
-
-        tk.Button(quick_access_frame,
-                  text="Ver Calendario de Reservas",
+        tk.Button(shortcuts_frame,
+                  text="Ver Calendario",
                   font=self.boton_font,
                   bg=self.color_principal,
                   fg="white",
@@ -277,51 +277,107 @@ class SistemaGestionSalas:
                   relief="flat",
                   command=self.mostrar_calendario).pack(fill="x", pady=5, ipady=5)
 
-        # Mensaje de bienvenida según el rol
-        mensaje_rol = {
-            "admin": "Tienes acceso completo al sistema.",
-            "profesor": "Puedes gestionar tus reservas y consultar salas.",
-            "estudiante": "Puedes realizar reservas de salas disponibles."
-        }
+        # ===== TABLA DE TODAS LAS SALAS =====
+        table_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
+        table_frame.pack(fill="both", expand=True, pady=(10, 20))
 
-        tk.Label(self.content_frame,
-                 text=mensaje_rol.get(self.role, "Bienvenido al sistema."),
-                 font=self.normal_font,
+        tk.Label(table_frame,
+                 text="Todas las Salas",
+                 font=self.subtitulo_font,
                  bg=self.color_fondo,
-                 fg=self.color_texto).pack(anchor="nw", pady=(20, 10))
+                 fg=self.color_texto).pack(anchor="w", pady=(0, 10))
 
-    def limpiar_contenido(self):
-        for widget in self.content_frame.winfo_children():
-            widget.destroy()
+        columns = ("ID", "Nombre", "Capacidad", "Estado")
+        tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=10)
+        tree.pack(fill="both", expand=True, pady=10)
+
+        # Configurar encabezados
+        tree.heading("ID", text="ID")
+        tree.heading("Nombre", text="Nombre")
+        tree.heading("Capacidad", text="Capacidad")
+        tree.heading("Estado", text="Estado")
+
+        # Configurar ancho de columnas
+        tree.column("ID", width=50, anchor="center")
+        tree.column("Nombre", width=200, anchor="w")
+        tree.column("Capacidad", width=100, anchor="center")
+        tree.column("Estado", width=150, anchor="center")
+
+        # Insertar datos en la tabla
+        for sala in self.salas:
+            tree.insert("", "end", values=sala)
+
+        # Agregar barra de desplazamiento
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
 
     def mostrar_reservas(self):
         self.limpiar_contenido()
 
         # Título del módulo de reservas
         tk.Label(self.content_frame,
-                 text="Reservas Activas",
+                 text="Reservar Sala",
                  font=self.titulo_font,
                  bg=self.color_fondo,
                  fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
 
-        # Crear tabla para mostrar reservas
-        columns = ("ID", "Sala", "Responsable", "Fecha", "Hora Inicio", "Hora Término", "Estado")
-        tree = ttk.Treeview(self.content_frame, columns=columns, show="headings", height=15)
-        tree.pack(fill="both", expand=True, pady=10)
+        # Formulario para reservar sala
+        form_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
+        form_frame.pack(fill="x", pady=(10, 20))
 
-        # Configurar encabezados
-        for col in columns:
-            tree.heading(col, text=col)
-            tree.column(col, anchor="center")
+        tk.Label(form_frame, text="Sala:", font=self.normal_font, bg=self.color_fondo).grid(row=0, column=0, sticky="w", pady=5)
+        sala_combo = ttk.Combobox(form_frame, values=[sala[1] for sala in self.salas], state="readonly")
+        sala_combo.grid(row=0, column=1, pady=5)
 
-        # Obtener datos de las reservas
-        for reserva in self.reservas:
-            tree.insert("", "end", values=reserva)
+        tk.Label(form_frame, text="Responsable:", font=self.normal_font, bg=self.color_fondo).grid(row=1, column=0, sticky="w", pady=5)
+        responsable_entry = tk.Entry(form_frame, font=self.normal_font)
+        responsable_entry.grid(row=1, column=1, pady=5)
 
-        # Agregar barra de desplazamiento
-        scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=tree.yview)
-        tree.configure(yscroll=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
+        tk.Label(form_frame, text="Fecha:", font=self.normal_font, bg=self.color_fondo).grid(row=2, column=0, sticky="w", pady=5)
+        fecha_entry = tk.Entry(form_frame, font=self.normal_font)
+        fecha_entry.grid(row=2, column=1, pady=5)
+
+        tk.Label(form_frame, text="Hora Inicio:", font=self.normal_font, bg=self.color_fondo).grid(row=3, column=0, sticky="w", pady=5)
+        hora_inicio_entry = tk.Entry(form_frame, font=self.normal_font)
+        hora_inicio_entry.grid(row=3, column=1, pady=5)
+
+        tk.Label(form_frame, text="Hora Término:", font=self.normal_font, bg=self.color_fondo).grid(row=4, column=0, sticky="w", pady=5)
+        hora_termino_entry = tk.Entry(form_frame, font=self.normal_font)
+        hora_termino_entry.grid(row=4, column=1, pady=5)
+
+        tk.Button(form_frame,
+                  text="Reservar",
+                  font=self.boton_font,
+                  bg=self.color_principal,
+                  fg="white",
+                  activebackground=self.color_secundario,
+                  activeforeground="white",
+                  relief="flat",
+                  command=lambda: self.realizar_reserva(sala_combo.get(), responsable_entry.get(), fecha_entry.get(),
+                                                        hora_inicio_entry.get(), hora_termino_entry.get())).grid(row=5, columnspan=2, pady=10)
+
+    def realizar_reserva(self, sala, responsable, fecha, hora_inicio, hora_termino):
+        # Validar que todos los campos estén llenos
+        if not sala or not responsable or not fecha or not hora_inicio or not hora_termino:
+            messagebox.showerror("Error", "Todos los campos son obligatorios.")
+            return
+
+        # Obtener el ID de la sala seleccionada
+        sala_id = next((s[0] for s in self.salas if s[1] == sala), None)
+        if not sala_id:
+            messagebox.showerror("Error", "La sala seleccionada no es válida.")
+            return
+
+        # Insertar la reserva en la base de datos
+        try:
+            self.db.insertar_reserva(sala_id, responsable, fecha, hora_inicio, hora_termino, "Pendiente")
+            messagebox.showinfo("Éxito", f"Reserva realizada para la sala {sala}.")
+            self.salas = self.db.obtener_salas()  # Actualizar las salas
+            self.reservas = self.db.obtener_reservas()  # Actualizar las reservas
+            self.mostrar_inicio()  # Refrescar el panel de inicio
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo realizar la reserva: {e}")
 
     def mostrar_calendario(self):
         self.limpiar_contenido()
@@ -334,7 +390,6 @@ class SistemaGestionSalas:
                  fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
 
         # Crear un calendario interactivo
-        from tkcalendar import Calendar
         calendar = Calendar(self.content_frame, selectmode="day", year=2025, month=4, day=21)
         calendar.pack(pady=20)
 
@@ -350,7 +405,6 @@ class SistemaGestionSalas:
                   command=lambda: self.consultar_reservas_fecha(calendar.get_date())).pack(pady=10)
 
     def consultar_reservas_fecha(self, fecha):
-        # Limpiar contenido para mostrar las reservas de la fecha seleccionada
         self.limpiar_contenido()
 
         # Título del módulo de reservas por fecha
@@ -371,7 +425,7 @@ class SistemaGestionSalas:
             tree.column(col, anchor="center")
 
         # Filtrar reservas por la fecha seleccionada
-        reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha]  # Asumiendo que la fecha está en la columna 3
+        reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha]
 
         # Insertar datos en la tabla
         for reserva in reservas_fecha:
@@ -488,6 +542,10 @@ class SistemaGestionSalas:
 
     def mostrar_config(self):
         pass  # Implementar lógica para mostrar configuración
+
+    def limpiar_contenido(self):
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
 
 
 if __name__ == "__main__":
