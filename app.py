@@ -376,24 +376,29 @@ class SistemaGestionSalas:
         form_frame.grid_columnconfigure(1, weight=1)
 
     def realizar_reserva(self, sala, responsable, fecha, hora_inicio, hora_termino):
-        # Validar que todos los campos estén llenos
         if not sala or not responsable or not fecha or not hora_inicio or not hora_termino:
             messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
 
-        # Obtener el ID de la sala seleccionada
         sala_id = next((s[0] for s in self.salas if s[1] == sala), None)
         if not sala_id:
             messagebox.showerror("Error", "La sala seleccionada no es válida.")
             return
 
-        # Insertar la reserva en la base de datos
+        # Validar conflictos de horario
+        for reserva in self.reservas:
+            if reserva[1] == sala and reserva[3] == fecha:
+                if not (hora_termino <= reserva[4] or hora_inicio >= reserva[5]):
+                    messagebox.showerror("Error", "La sala ya está reservada en este horario.")
+                    return
+
         try:
-            self.db.insertar_reserva(sala_id, responsable, fecha, hora_inicio, hora_termino, "Pendiente")
-            messagebox.showinfo("Éxito", f"Reserva realizada para la sala {sala}.")
-            self.salas = self.db.obtener_salas()  # Actualizar las salas
-            self.reservas = self.db.obtener_reservas()  # Actualizar las reservas
-            self.mostrar_inicio()  # Refrescar el panel de inicio
+            # Insertar la reserva con estado inicial "Pendiente"
+            self.db.insertar_reserva(sala_id, responsable, fecha, hora_inicio, hora_termino, "Pendiente", self.role)
+            messagebox.showinfo("Éxito", f"Reserva realizada para la sala {sala}. Estado: Pendiente.")
+            self.salas = self.db.obtener_salas()
+            self.reservas = self.db.obtener_reservas()
+            self.mostrar_inicio()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo realizar la reserva: {e}")
 
