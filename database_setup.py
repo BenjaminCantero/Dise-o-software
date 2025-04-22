@@ -85,13 +85,24 @@ class DatabaseSetup:
         self.cursor.execute("SELECT id, nombre, capacidad, estado FROM salas")
         return self.cursor.fetchall()
 
-    def obtener_reservas(self):
-        # Obtener todas las reservas
-        self.cursor.execute('''
-        SELECT r.id, s.nombre AS sala, r.responsable, r.fecha, r.hora_inicio, r.hora_termino, r.estado
-        FROM reservas r
-        JOIN salas s ON r.sala_id = s.id
-        ''')
+    def obtener_reservas(self, role, username=None):
+        if role == "admin":
+            # El admin ve todas las reservas
+            query = '''
+            SELECT r.id, s.nombre AS sala, r.responsable, r.fecha, r.hora_inicio, r.hora_termino, r.estado
+            FROM reservas r
+            JOIN salas s ON r.sala_id = s.id
+            '''
+            self.cursor.execute(query)
+        else:
+            # Profesores y estudiantes solo ven sus reservas
+            query = '''
+            SELECT r.id, s.nombre AS sala, r.responsable, r.fecha, r.hora_inicio, r.hora_termino, r.estado
+            FROM reservas r
+            JOIN salas s ON r.sala_id = s.id
+            WHERE r.responsable = ?
+            '''
+            self.cursor.execute(query, (username,))
         return self.cursor.fetchall()
 
     def insertar_reserva(self, sala_id, responsable, fecha, hora_inicio, hora_termino, estado):

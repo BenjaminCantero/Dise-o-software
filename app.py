@@ -56,7 +56,7 @@ class LoginSistema:
 
             # Abrir la aplicación principal
             main_root = tk.Tk()
-            app = SistemaGestionSalas(main_root, role, self.db)
+            app = SistemaGestionSalas(main_root, role, self.db, username)
             main_root.mainloop()
         else:
             messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
@@ -66,13 +66,18 @@ class LoginSistema:
 
 
 class SistemaGestionSalas:
-    def __init__(self, root, role, db):
+    def __init__(self, root, role, db, username):
         self.root = root
         self.root.title("Gestión de Salas Universitarias")
         self.root.geometry("1200x800")
         self.root.configure(bg="#f8f9fa")
         self.role = role
         self.db = db  # Reutilizar la conexión a la base de datos
+        self.username = username
+
+        # Inicializar datos
+        self.salas = self.db.obtener_salas()
+        self.reservas = self.db.obtener_reservas(self.role, self.username)  # Pasar role y username
 
         # Paleta de colores mejorada
         self.color_fondo = "#f8f9fa"
@@ -144,7 +149,7 @@ class SistemaGestionSalas:
 
         # Cargar datos iniciales
         self.salas = self.db.obtener_salas()
-        self.reservas = self.db.obtener_reservas()
+        self.reservas = self.db.obtener_reservas(self.role, self.username)
 
         # Mostrar panel de inicio por defecto
         self.mostrar_inicio()
@@ -401,7 +406,7 @@ class SistemaGestionSalas:
             self.db.insertar_reserva(sala_id, responsable, fecha, hora_inicio, hora_termino, "Pendiente")
             messagebox.showinfo("Éxito", f"Reserva realizada para la sala {sala}. Estado: Pendiente.")
             self.salas = self.db.obtener_salas()
-            self.reservas = self.db.obtener_reservas()
+            self.reservas = self.db.obtener_reservas(self.role, self.username)
             self.mostrar_inicio()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo realizar la reserva: {e}")
@@ -486,12 +491,8 @@ class SistemaGestionSalas:
         # Filtrar reservas por la fecha seleccionada
         reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha]
 
-        # Depurar datos
-        print("Reservas filtradas:", reservas_fecha)
-
         # Insertar datos en la tabla
         for reserva in reservas_fecha:
-            # Asegúrate de que los datos estén en el orden correcto
             tree.insert("", "end", values=(reserva[0], reserva[1], reserva[2], reserva[4], reserva[5], reserva[6]))
 
         # Agregar barra de desplazamiento
@@ -585,23 +586,35 @@ class SistemaGestionSalas:
                   command=self.generar_reporte_reservas).pack(fill="x", pady=5, ipady=5)
 
     def generar_reporte_salas(self):
-        # Generar un reporte básico de salas
-        reporte = "Reporte de Salas:\n\n"
-        for sala in self.salas:
-            reporte += f"ID: {sala[0]}, Nombre: {sala[1]}, Capacidad: {sala[2]}, Estado: {sala[3]}\n"
+        try:
+            # Obtener datos de las salas desde la base de datos
+            salas = self.db.obtener_salas()  # Método en database_setup.py
 
-        # Mostrar el reporte en un cuadro de diálogo
-        messagebox.showinfo("Reporte de Salas", reporte)
+            # Generar el reporte
+            reporte = "Reporte de Salas:\n\n"
+            for sala in salas:
+                reporte += f"ID: {sala[0]}, Nombre: {sala[1]}, Capacidad: {sala[2]}, Estado: {sala[3]}\n"
+
+            # Mostrar el reporte en un cuadro de diálogo
+            messagebox.showinfo("Reporte de Salas", reporte)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo generar el reporte de salas: {e}")
 
     def generar_reporte_reservas(self):
-        # Generar un reporte básico de reservas
-        reporte = "Reporte de Reservas:\n\n"
-        for reserva in self.reservas:
-            reporte += f"ID: {reserva[0]}, Sala: {reserva[1]}, Responsable: {reserva[2]}, Fecha: {reserva[3]}, " \
-                       f"Hora Inicio: {reserva[4]}, Hora Término: {reserva[5]}, Estado: {reserva[6]}\n"
+        try:
+            # Obtener reservas según el rol del usuario
+            reservas = self.db.obtener_reservas(self.role, self.username)
 
-        # Mostrar el reporte en un cuadro de diálogo
-        messagebox.showinfo("Reporte de Reservas", reporte)
+            # Generar el reporte
+            reporte = "Reporte de Reservas:\n\n"
+            for reserva in reservas:
+                reporte += f"ID: {reserva[0]}, Sala: {reserva[1]}, Responsable: {reserva[2]}, Fecha: {reserva[3]}, " \
+                           f"Hora Inicio: {reserva[4]}, Hora Término: {reserva[5]}, Estado: {reserva[6]}\n"
+
+            # Mostrar el reporte en un cuadro de diálogo
+            messagebox.showinfo("Reporte de Reservas", reporte)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo generar el reporte de reservas: {e}")
 
     def mostrar_config(self):
         pass  # Implementar lógica para mostrar configuración
