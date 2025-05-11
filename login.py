@@ -60,3 +60,4 @@ class LoginSistema:
 
     def __del__(self):
         self.db.cerrar_conexion()
+        
