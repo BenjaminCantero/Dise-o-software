@@ -3,13 +3,15 @@ from tkinter import ttk, messagebox, simpledialog
 from tkcalendar import Calendar
 from ui_componentes import UIComponentes
 from utils import mostrar_mensaje, limpiar_frame, centrar_ventana, validar_entrada, formatear_fecha
+from mediator import Mediator
 
 class SistemaGestionSalas:
-    def __init__(self, root, role, db, username):
+    def __init__(self, root, role, db, username, mediator=None):
         self.root = root
         self.role = role
         self.db = db
         self.username = username
+        self.mediator = mediator or Mediator()
 
         # Inicializar componentes de UI
         self.ui = UIComponentes()
@@ -30,6 +32,11 @@ class SistemaGestionSalas:
         self.salas = self.db.obtener_salas()
         self.reservas = self.db.obtener_reservas(self.role, self.username)
         self.mostrar_inicio()
+
+        # Registrar paneles en el mediador
+        self.mediator.registrar("inicio", self)
+        self.mediator.registrar("reservas", self)
+        self.mediator.registrar("reportes", self)
 
     # --- COMPONENTES MODULARES ---
     def _crear_sidebar(self):
@@ -251,3 +258,44 @@ class SistemaGestionSalas:
         config_frame = tk.Frame(self.content_frame, bg=self.ui.color_tarjeta, bd=2, relief="groove", padx=20, pady=20)
         config_frame.pack(fill="x", pady=(10, 20))
         self.ui.crear_label(config_frame, "(Opciones de configuración próximamente...)", fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta, color_texto=self.ui.color_texto).pack(anchor="nw", pady=(10, 0))
+
+    # Ejemplo de uso del mediador al actualizar una sala
+    def guardar_sala(self, nombre, capacidad, estado):
+        if nombre and capacidad.isdigit():
+            try:
+                self.db.cursor.execute(
+                    "INSERT INTO salas (nombre, capacidad, estado) VALUES (?, ?, ?)",
+                    (nombre, int(capacidad), estado)
+                )
+                self.db.conn.commit()
+                self.salas = self.db.obtener_salas()
+                self.mediator.notificar("sala_actualizada")
+                mostrar_mensaje("info", "Éxito", "Sala guardada correctamente.")
+            except Exception as e:
+                mostrar_mensaje("error", "Error", f"No se pudo guardar la sala: {e}")
+        else:
+            mostrar_mensaje("warning", "Datos inválidos", "Verifica los datos ingresados.")
+
+    # Ejemplo de uso del mediador al realizar una reserva
+    def realizar_reserva(self, sala_id, responsable, fecha, hora_inicio, hora_termino, estado):
+        if sala_id and responsable and fecha and hora_inicio and hora_termino:
+            try:
+                self.db.cursor.execute(
+                    "INSERT INTO reservas (sala_id, responsable, fecha, hora_inicio, hora_termino, estado) VALUES (?, ?, ?, ?, ?, ?)",
+                    (sala_id, responsable, fecha, hora_inicio, hora_termino, estado)
+                )
+                self.db.conn.commit()
+                self.reservas = self.db.obtener_reservas(self.role, self.username)
+                self.mediator.notificar("reserva_realizada")
+                mostrar_mensaje("info", "Éxito", "Reserva realizada correctamente.")
+            except Exception as e:
+                mostrar_mensaje("error", "Error", f"No se pudo realizar la reserva: {e}")
+        else:
+            mostrar_mensaje("warning", "Datos incompletos", "Completa todos los campos.")
+
+    # Métodos de actualización llamados por el mediador
+    def actualizar(self):
+        # Actualiza la vista según el panel (puedes personalizar)
+        self.salas = self.db.obtener_salas()
+        self.reservas = self.db.obtener_reservas(self.role, self.username)
+        self.mostrar_inicio()

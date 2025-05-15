@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from database_setup import DatabaseSetup
 from sistema_gestion import SistemaGestionSalas  # Importar la clase del sistema de gestión
+from mediator import Mediator
 
 class LoginSistema:
     def __init__(self, root):
@@ -13,6 +14,9 @@ class LoginSistema:
         # Inicializar la base de datos
         self.db = DatabaseSetup()
         self.db.inicializar_base_datos()
+
+        # Inicializar el mediador
+        self.mediator = Mediator()
 
         # Marco principal
         frame = tk.Frame(self.root, bg="#ecf0f1", padx=30, pady=30, relief="raised", bd=2)
@@ -53,11 +57,10 @@ class LoginSistema:
 
             # Abrir la aplicación principal
             main_root = tk.Tk()
-            app = SistemaGestionSalas(main_root, role, self.db, username)
+            app = SistemaGestionSalas(main_root, role, self.db, username, mediator=self.mediator)
             main_root.mainloop()
         else:
             messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
 
     def __del__(self):
         self.db.cerrar_conexion()
-        
