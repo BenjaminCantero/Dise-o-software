@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from tkcalendar import Calendar
+from ui_componentes import UIComponentes
+from utils import mostrar_mensaje, limpiar_frame, centrar_ventana, validar_entrada, formatear_fecha
 
 class SistemaGestionSalas:
     def __init__(self, root, role, db, username):
@@ -9,35 +11,19 @@ class SistemaGestionSalas:
         self.db = db
         self.username = username
 
-        # Paleta y fuentes
-        self.color_fondo = "#f7fafd"
-        self.color_sidebar = "#1a1a2e"
-        self.color_principal = "#0f3460"
-        self.color_secundario = "#e94560"
-        self.color_tarjeta = "#ffffff"
-        self.color_borde = "#dbe2ef"
-        self.color_texto = "#22223b"
-        self.titulo_font = ("Segoe UI", 22, "bold")
-        self.subtitulo_font = ("Segoe UI", 14, "bold")
-        self.normal_font = ("Segoe UI", 11)
-        self.boton_font = ("Segoe UI", 11, "bold")
-
-        # Estilo ttk
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("Treeview", font=self.normal_font, rowheight=28, background=self.color_tarjeta, fieldbackground=self.color_tarjeta, bordercolor=self.color_borde)
-        style.configure("Treeview.Heading", font=self.subtitulo_font, background=self.color_principal, foreground="white")
-        style.map("Treeview", background=[("selected", self.color_secundario)])
+        # Inicializar componentes de UI
+        self.ui = UIComponentes()
+        self.ui.configurar_estilos(ttk.Style())
 
         # Layout principal
-        self.root.configure(bg=self.color_fondo)
-        self.main_frame = tk.Frame(self.root, bg=self.color_fondo)
+        self.root.configure(bg=self.ui.color_fondo)
+        self.main_frame = tk.Frame(self.root, bg=self.ui.color_fondo)
         self.main_frame.pack(fill="both", expand=True)
 
         # Sidebar
         self.sidebar = self._crear_sidebar()
         # Contenido principal
-        self.content_frame = tk.Frame(self.main_frame, bg=self.color_fondo)
+        self.content_frame = tk.Frame(self.main_frame, bg=self.ui.color_fondo)
         self.content_frame.pack(side="right", fill="both", expand=True)
 
         # Datos iniciales
@@ -47,28 +33,26 @@ class SistemaGestionSalas:
 
     # --- COMPONENTES MODULARES ---
     def _crear_sidebar(self):
-        sidebar = tk.Frame(self.main_frame, bg=self.color_sidebar, width=220)
+        sidebar = tk.Frame(self.main_frame, bg=self.ui.color_sidebar, width=220)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
-        tk.Label(sidebar, text="Salas U", font=("Segoe UI", 20, "bold"), bg=self.color_sidebar, fg="white", pady=30).pack()
+        self.ui.crear_label(sidebar, "Salas U", fuente=("Segoe UI", 20, "bold"), color_fondo=self.ui.color_sidebar, color_texto="white").pack(pady=30)
         self._sidebar_button(sidebar, "Inicio", self.mostrar_inicio)
         self._sidebar_button(sidebar, "Reservas", self.mostrar_reservas)
         self._sidebar_button(sidebar, "Calendario", self.mostrar_calendario)
         self._sidebar_button(sidebar, "Reportes", self.mostrar_reportes)
         self._sidebar_button(sidebar, "Configuración", self.mostrar_config)
-        tk.Button(sidebar, text="Cerrar sesión", font=self.boton_font, bg=self.color_secundario, fg="white", relief="flat", command=self.root.destroy).pack(side="bottom", pady=20, fill="x", padx=20)
+        self.ui.crear_boton(sidebar, "Cerrar sesión", self.root.destroy, color_fondo=self.ui.color_secundario).pack(side="bottom", pady=20, fill="x", padx=20)
         return sidebar
 
     def _sidebar_button(self, parent, text, command):
-        tk.Button(parent, text=text, font=self.boton_font, bg=self.color_sidebar, fg="white",
-                  activebackground=self.color_principal, activeforeground="white", relief="flat",
-                  bd=0, pady=15, command=command).pack(fill="x", padx=20, pady=2)
+        self.ui.crear_boton(parent, text, command, color_fondo=self.ui.color_sidebar).pack(fill="x", padx=20, pady=2)
 
     def _tarjeta_resumen(self, parent, titulo, valor, color, col):
-        frame = tk.Frame(parent, bg=self.color_tarjeta, bd=0, relief="ridge", highlightbackground=self.color_borde, highlightthickness=1)
+        frame = self.ui.crear_frame(parent, color_fondo=self.ui.color_tarjeta)
         frame.grid(row=0, column=col, padx=20, ipadx=30, ipady=20, sticky="nsew")
-        tk.Label(frame, text=titulo, font=self.normal_font, bg=self.color_tarjeta, fg=self.color_texto).pack(anchor="w")
-        tk.Label(frame, text=str(valor), font=("Segoe UI", 28, "bold"), bg=self.color_tarjeta, fg=color).pack(anchor="w")
+        self.ui.crear_label(frame, titulo, fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta, color_texto=self.ui.color_texto).pack(anchor="w")
+        self.ui.crear_label(frame, str(valor), fuente=("Segoe UI", 28, "bold"), color_fondo=self.ui.color_tarjeta, color_texto=color).pack(anchor="w")
 
     def _tabla(self, parent, columns, data, height=10):
         tree = ttk.Treeview(parent, columns=columns, show="headings", height=height)
@@ -84,14 +68,13 @@ class SistemaGestionSalas:
         return tree
 
     def limpiar_contenido(self):
-        for widget in self.content_frame.winfo_children():
-            widget.destroy()
+        limpiar_frame(self.content_frame)
 
     # --- PANELES PRINCIPALES ---
     def mostrar_inicio(self):
         self.limpiar_contenido()
         # Tarjetas resumen
-        resumen_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
+        resumen_frame = tk.Frame(self.content_frame, bg=self.ui.color_fondo)
         resumen_frame.pack(fill="x", pady=20)
         total_salas = len(self.salas)
         salas_disponibles = sum(1 for sala in self.salas if sala[3] == "Disponible")
@@ -105,23 +88,23 @@ class SistemaGestionSalas:
             self._tarjeta_resumen(resumen_frame, titulo, valor, color, i)
 
         # Atajos rápidos
-        atajos = tk.Frame(self.content_frame, bg=self.color_fondo)
+        atajos = tk.Frame(self.content_frame, bg=self.ui.color_fondo)
         atajos.pack(fill="x", pady=10)
-        tk.Label(atajos, text="Atajos rápidos", font=self.subtitulo_font, bg=self.color_fondo, fg=self.color_texto).pack(anchor="w", padx=10)
-        tk.Button(atajos, text="Reservar Sala", font=self.boton_font, bg=self.color_principal, fg="white", relief="flat", command=self.mostrar_reservas).pack(side="left", padx=10, ipadx=10)
-        tk.Button(atajos, text="Ver Calendario", font=self.boton_font, bg=self.color_principal, fg="white", relief="flat", command=self.mostrar_calendario).pack(side="left", padx=10, ipadx=10)
+        self.ui.crear_label(atajos, "Atajos rápidos", fuente=self.ui.subtitulo_font, color_fondo=self.ui.color_fondo, color_texto=self.ui.color_texto).pack(anchor="w", padx=10)
+        self.ui.crear_boton(atajos, "Reservar Sala", self.mostrar_reservas, color_fondo=self.ui.color_principal).pack(side="left", padx=10, ipadx=10)
+        self.ui.crear_boton(atajos, "Ver Calendario", self.mostrar_calendario, color_fondo=self.ui.color_principal).pack(side="left", padx=10, ipadx=10)
 
         # --- Botones de gestión de salas ---
-        gestion_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
+        gestion_frame = tk.Frame(self.content_frame, bg=self.ui.color_fondo)
         gestion_frame.pack(fill="x", pady=(10, 0), padx=20)
-        tk.Button(gestion_frame, text="Añadir Sala", font=self.boton_font, bg="#28a745", fg="white", relief="flat", command=self.dialogo_añadir_sala).pack(side="left", padx=5, ipadx=10)
-        tk.Button(gestion_frame, text="Editar Sala", font=self.boton_font, bg="#ffc107", fg="#22223b", relief="flat", command=self.dialogo_editar_sala).pack(side="left", padx=5, ipadx=10)
-        tk.Button(gestion_frame, text="Borrar Sala", font=self.boton_font, bg="#dc3545", fg="white", relief="flat", command=self.dialogo_borrar_sala).pack(side="left", padx=5, ipadx=10)
+        self.ui.crear_boton(gestion_frame, "Añadir Sala", self.dialogo_añadir_sala, color_fondo="#28a745").pack(side="left", padx=5, ipadx=10)
+        self.ui.crear_boton(gestion_frame, "Editar Sala", self.dialogo_editar_sala, color_fondo="#ffc107", color_texto="#22223b").pack(side="left", padx=5, ipadx=10)
+        self.ui.crear_boton(gestion_frame, "Borrar Sala", self.dialogo_borrar_sala, color_fondo="#dc3545").pack(side="left", padx=5, ipadx=10)
 
         # Tabla de salas
-        tabla_frame = tk.Frame(self.content_frame, bg=self.color_tarjeta, bd=2, relief="groove")
+        tabla_frame = tk.Frame(self.content_frame, bg=self.ui.color_tarjeta, bd=2, relief="groove")
         tabla_frame.pack(fill="both", expand=True, padx=20, pady=20)
-        tk.Label(tabla_frame, text="Todas las Salas", font=self.subtitulo_font, bg=self.color_tarjeta, fg=self.color_texto).pack(anchor="w", pady=(10, 0), padx=10)
+        self.ui.crear_label(tabla_frame, "Todas las Salas", fuente=self.ui.subtitulo_font, color_fondo=self.ui.color_tarjeta, color_texto=self.ui.color_texto).pack(anchor="w", pady=(10, 0), padx=10)
         columns = ("ID", "Nombre", "Capacidad", "Estado")
         self.salas_tree = self._tabla(tabla_frame, columns, self.salas, height=12)
 
@@ -129,14 +112,14 @@ class SistemaGestionSalas:
     def dialogo_añadir_sala(self):
         dialog = tk.Toplevel(self.root)
         dialog.title("Añadir Sala")
-        dialog.configure(bg=self.color_tarjeta)
-        tk.Label(dialog, text="Nombre:", font=self.normal_font, bg=self.color_tarjeta).pack(pady=5)
-        nombre = tk.Entry(dialog, font=self.normal_font)
+        dialog.configure(bg=self.ui.color_tarjeta)
+        self.ui.crear_label(dialog, "Nombre:", fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta).pack(pady=5)
+        nombre = tk.Entry(dialog, font=self.ui.normal_font)
         nombre.pack(pady=5)
-        tk.Label(dialog, text="Capacidad:", font=self.normal_font, bg=self.color_tarjeta).pack(pady=5)
-        capacidad = tk.Entry(dialog, font=self.normal_font)
+        self.ui.crear_label(dialog, "Capacidad:", fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta).pack(pady=5)
+        capacidad = tk.Entry(dialog, font=self.ui.normal_font)
         capacidad.pack(pady=5)
-        tk.Label(dialog, text="Estado:", font=self.normal_font, bg=self.color_tarjeta).pack(pady=5)
+        self.ui.crear_label(dialog, "Estado:", fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta).pack(pady=5)
         estado = ttk.Combobox(dialog, values=["Disponible", "Reservada"], state="readonly")
         estado.set("Disponible")
         estado.pack(pady=5)
@@ -149,7 +132,7 @@ class SistemaGestionSalas:
                 dialog.destroy()
             else:
                 messagebox.showerror("Error", "Datos inválidos.")
-        tk.Button(dialog, text="Guardar", font=self.boton_font, bg=self.color_principal, fg="white", command=guardar).pack(pady=10)
+        self.ui.crear_boton(dialog, "Guardar", guardar, color_fondo=self.ui.color_principal).pack(pady=10)
 
     def dialogo_editar_sala(self):
         item = self.salas_tree.selection()
@@ -159,16 +142,16 @@ class SistemaGestionSalas:
         valores = self.salas_tree.item(item, "values")
         dialog = tk.Toplevel(self.root)
         dialog.title("Editar Sala")
-        dialog.configure(bg=self.color_tarjeta)
-        tk.Label(dialog, text="Nombre:", font=self.normal_font, bg=self.color_tarjeta).pack(pady=5)
-        nombre = tk.Entry(dialog, font=self.normal_font)
+        dialog.configure(bg=self.ui.color_tarjeta)
+        self.ui.crear_label(dialog, "Nombre:", fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta).pack(pady=5)
+        nombre = tk.Entry(dialog, font=self.ui.normal_font)
         nombre.insert(0, valores[1])
         nombre.pack(pady=5)
-        tk.Label(dialog, text="Capacidad:", font=self.normal_font, bg=self.color_tarjeta).pack(pady=5)
-        capacidad = tk.Entry(dialog, font=self.normal_font)
+        self.ui.crear_label(dialog, "Capacidad:", fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta).pack(pady=5)
+        capacidad = tk.Entry(dialog, font=self.ui.normal_font)
         capacidad.insert(0, valores[2])
         capacidad.pack(pady=5)
-        tk.Label(dialog, text="Estado:", font=self.normal_font, bg=self.color_tarjeta).pack(pady=5)
+        self.ui.crear_label(dialog, "Estado:", fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta).pack(pady=5)
         estado = ttk.Combobox(dialog, values=["Disponible", "Reservada"], state="readonly")
         estado.set(valores[3])
         estado.pack(pady=5)
@@ -181,7 +164,7 @@ class SistemaGestionSalas:
                 dialog.destroy()
             else:
                 messagebox.showerror("Error", "Datos inválidos.")
-        tk.Button(dialog, text="Guardar Cambios", font=self.boton_font, bg=self.color_principal, fg="white", command=guardar).pack(pady=10)
+        self.ui.crear_boton(dialog, "Guardar Cambios", guardar, color_fondo=self.ui.color_principal).pack(pady=10)
 
     def dialogo_borrar_sala(self):
         item = self.salas_tree.selection()
@@ -198,22 +181,22 @@ class SistemaGestionSalas:
 
     def mostrar_reservas(self):
         self.limpiar_contenido()
-        frame = tk.Frame(self.content_frame, bg=self.color_tarjeta, bd=2, relief="groove")
+        frame = tk.Frame(self.content_frame, bg=self.ui.color_tarjeta, bd=2, relief="groove")
         frame.pack(fill="both", expand=True, padx=40, pady=40)
-        tk.Label(frame, text="Reservas Activas", font=self.titulo_font, bg=self.color_tarjeta, fg=self.color_principal).pack(anchor="nw", pady=(0, 20), padx=10)
+        self.ui.crear_label(frame, "Reservas Activas", fuente=self.ui.titulo_font, color_fondo=self.ui.color_tarjeta, color_texto=self.ui.color_principal).pack(anchor="nw", pady=(0, 20), padx=10)
         columns = ("ID", "Sala", "Responsable", "Fecha", "Hora Inicio", "Hora Término", "Estado")
         self._tabla(frame, columns, self.reservas, height=15)
 
     def mostrar_calendario(self):
         self.limpiar_contenido()
-        frame = tk.Frame(self.content_frame, bg=self.color_tarjeta, bd=2, relief="groove")
+        frame = tk.Frame(self.content_frame, bg=self.ui.color_tarjeta, bd=2, relief="groove")
         frame.pack(fill="both", expand=True, padx=40, pady=40)
-        tk.Label(frame, text="Calendario de Reservas", font=self.titulo_font, bg=self.color_tarjeta, fg=self.color_principal).pack(anchor="nw", pady=(0, 20), padx=10)
+        self.ui.crear_label(frame, "Calendario de Reservas", fuente=self.ui.titulo_font, color_fondo=self.ui.color_tarjeta, color_texto=self.ui.color_principal).pack(anchor="nw", pady=(0, 20), padx=10)
         calendar = Calendar(frame, selectmode="day")
         calendar.pack(side="left", padx=20, pady=10)
-        reservas_frame = tk.Frame(frame, bg=self.color_tarjeta)
+        reservas_frame = tk.Frame(frame, bg=self.ui.color_tarjeta)
         reservas_frame.pack(side="left", fill="both", expand=True, padx=20)
-        tk.Label(reservas_frame, text="Reservas del día", font=self.subtitulo_font, bg=self.color_tarjeta, fg=self.color_texto).pack(anchor="nw", pady=(0, 10))
+        self.ui.crear_label(reservas_frame, "Reservas del día", fuente=self.ui.subtitulo_font, color_fondo=self.ui.color_tarjeta, color_texto=self.ui.color_texto).pack(anchor="nw", pady=(0, 10))
         columns = ("ID", "Sala", "Responsable", "Hora Inicio", "Hora Término", "Estado")
         tree = self._tabla(reservas_frame, columns, [], height=12)
 
@@ -230,22 +213,16 @@ class SistemaGestionSalas:
             if not reservas_fecha:
                 tree.insert("", "end", values=("", "", "No hay reservas para esta fecha.", "", "", ""))
 
-        tk.Button(frame, text="Consultar Reservas", font=self.boton_font, bg=self.color_principal, fg="white",
-                  activebackground=self.color_secundario, activeforeground="white", relief="flat",
-                  command=actualizar_tabla).pack(side="left", padx=20, pady=10)
+        self.ui.crear_boton(frame, "Consultar Reservas", actualizar_tabla, color_fondo=self.ui.color_principal).pack(side="left", padx=20, pady=10)
 
     def mostrar_reportes(self):
         self.limpiar_contenido()
-        tk.Label(self.content_frame, text="Reportes del Sistema", font=self.titulo_font, bg=self.color_fondo, fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
-        report_frame = tk.Frame(self.content_frame, bg=self.color_fondo, relief="groove", bd=2, padx=20, pady=20)
+        self.ui.crear_label(self.content_frame, "Reportes del Sistema", fuente=self.ui.titulo_font, color_fondo=self.ui.color_fondo, color_texto=self.ui.color_principal).pack(anchor="nw", pady=(0, 20))
+        report_frame = tk.Frame(self.content_frame, bg=self.ui.color_fondo, relief="groove", bd=2, padx=20, pady=20)
         report_frame.pack(fill="x", pady=(10, 20))
-        tk.Label(report_frame, text="Seleccione el tipo de reporte:", font=self.subtitulo_font, bg=self.color_fondo, fg=self.color_texto).pack(anchor="w", pady=(0, 10))
-        tk.Button(report_frame, text="Reporte de Salas", font=self.boton_font, bg=self.color_principal, fg="white",
-                  activebackground=self.color_secundario, activeforeground="white", relief="flat",
-                  command=self.generar_reporte_salas).pack(fill="x", pady=5, ipady=5)
-        tk.Button(report_frame, text="Reporte de Reservas", font=self.boton_font, bg=self.color_principal, fg="white",
-                  activebackground=self.color_secundario, activeforeground="white", relief="flat",
-                  command=self.generar_reporte_reservas).pack(fill="x", pady=5, ipady=5)
+        self.ui.crear_label(report_frame, "Seleccione el tipo de reporte:", fuente=self.ui.subtitulo_font, color_fondo=self.ui.color_fondo, color_texto=self.ui.color_texto).pack(anchor="w", pady=(0, 10))
+        self.ui.crear_boton(report_frame, "Reporte de Salas", self.generar_reporte_salas, color_fondo=self.ui.color_principal).pack(fill="x", pady=5, ipady=5)
+        self.ui.crear_boton(report_frame, "Reporte de Reservas", self.generar_reporte_reservas, color_fondo=self.ui.color_principal).pack(fill="x", pady=5, ipady=5)
 
     def generar_reporte_salas(self):
         try:
@@ -270,7 +247,7 @@ class SistemaGestionSalas:
 
     def mostrar_config(self):
         self.limpiar_contenido()
-        tk.Label(self.content_frame, text="Configuración del Sistema", font=self.titulo_font, bg=self.color_fondo, fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
-        config_frame = tk.Frame(self.content_frame, bg=self.color_tarjeta, bd=2, relief="groove", padx=20, pady=20)
+        self.ui.crear_label(self.content_frame, "Configuración del Sistema", fuente=self.ui.titulo_font, color_fondo=self.ui.color_fondo, color_texto=self.ui.color_principal).pack(anchor="nw", pady=(0, 20))
+        config_frame = tk.Frame(self.content_frame, bg=self.ui.color_tarjeta, bd=2, relief="groove", padx=20, pady=20)
         config_frame.pack(fill="x", pady=(10, 20))
-        tk.Label(config_frame, text="(Opciones de configuración próximamente...)", font=self.normal_font, bg=self.color_tarjeta, fg=self.color_texto).pack(anchor="nw", pady=(10, 0))
+        self.ui.crear_label(config_frame, "(Opciones de configuración próximamente...)", fuente=self.ui.normal_font, color_fondo=self.ui.color_tarjeta, color_texto=self.ui.color_texto).pack(anchor="nw", pady=(10, 0))
