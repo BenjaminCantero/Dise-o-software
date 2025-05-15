@@ -1,0 +1,15 @@
+# proyecto_gestion_salas/app.py
+import tkinter as tk
+from login import LoginSistema
+from database_setup import initialize_database # To ensure DB is set up once
+
+if __name__ == "__main__":
+    # Initialize the database (create DB file, tables, default users)
+    # This should ideally run once, or check if already initialized.
+    # For simplicity, we call it here. If the DB file exists,
+    # CREATE TABLE IF NOT EXISTS and user insertion checks will prevent duplication.
+    initialize_database() 
+    
+    root = tk.Tk()
+    login_app = LoginSistema(root)
+    root.mainloop()
