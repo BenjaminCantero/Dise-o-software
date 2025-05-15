@@ -93,24 +93,134 @@ class SistemaGestionSalas:
         self.mostrar_inicio()
 
     def configurar_interfaz(self):
-        # Implementar la configuración de la interfaz aquí
-        pass
-
-    def mostrar_inicio(self):
-        # Implementar la lógica para mostrar el inicio
-        pass
-
-    def mostrar_reservas(self):
-        # Implementar la lógica para mostrar reservas
-        pass
-
-    def mostrar_calendario(self):
-        # Implementar la lógica para mostrar el calendario
-        pass
+        # Puedes usar esta función para configurar elementos generales de la interfaz si lo necesitas
+        self.root.configure(bg=self.color_fondo)
+        self.main_frame.configure(bg=self.color_fondo)
+        self.sidebar.configure(bg=self.color_sidebar)
+        self.content_frame.configure(bg=self.color_fondo)
 
     def limpiar_contenido(self):
-        # Implementar la lógica para limpiar el contenido
-        pass
+        # Elimina todos los widgets del frame de contenido principal
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+
+    def mostrar_inicio(self):
+        self.limpiar_contenido()
+        # Título
+        tk.Label(self.content_frame,
+                 text="Bienvenido al Sistema de Gestión de Salas",
+                 font=self.titulo_font,
+                 bg=self.color_fondo,
+                 fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
+
+        # Estadísticas generales
+        total_salas = len(self.salas)
+        salas_disponibles = sum(1 for sala in self.salas if sala[3] == "Disponible")
+        salas_ocupadas = total_salas - salas_disponibles
+        reservas_activas = len(self.reservas)
+
+        stats_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
+        stats_frame.pack(fill="x", pady=(0, 20))
+
+        tk.Label(stats_frame, text=f"Total de Salas: {total_salas}", font=self.normal_font, bg=self.color_fondo, fg=self.color_texto).pack(anchor="w")
+        tk.Label(stats_frame, text=f"Salas Disponibles: {salas_disponibles}", font=self.normal_font, bg=self.color_fondo, fg=self.color_exito).pack(anchor="w")
+        tk.Label(stats_frame, text=f"Salas Ocupadas: {salas_ocupadas}", font=self.normal_font, bg=self.color_fondo, fg=self.color_advertencia).pack(anchor="w")
+        tk.Label(stats_frame, text=f"Reservas Activas: {reservas_activas}", font=self.normal_font, bg=self.color_fondo, fg=self.color_principal).pack(anchor="w")
+
+        # Atajos rápidos
+        shortcuts_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
+        shortcuts_frame.pack(fill="x", pady=(0, 20))
+
+        tk.Label(shortcuts_frame, text="Atajos Rápidos", font=self.subtitulo_font, bg=self.color_fondo, fg=self.color_texto).pack(anchor="w", pady=(0, 10))
+        tk.Button(shortcuts_frame, text="Reservar Sala", font=self.boton_font, bg=self.color_principal, fg="white",
+                  activebackground=self.color_secundario, activeforeground="white", relief="flat",
+                  command=self.mostrar_reservas).pack(side="left", padx=10, ipadx=10)
+        tk.Button(shortcuts_frame, text="Ver Calendario", font=self.boton_font, bg=self.color_principal, fg="white",
+                  activebackground=self.color_secundario, activeforeground="white", relief="flat",
+                  command=self.mostrar_calendario).pack(side="left", padx=10, ipadx=10)
+
+        # Tabla de todas las salas
+        table_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
+        table_frame.pack(fill="both", expand=True, pady=(10, 20))
+
+        tk.Label(table_frame, text="Todas las Salas", font=self.subtitulo_font, bg=self.color_fondo, fg=self.color_texto).pack(anchor="w", pady=(0, 10))
+
+        columns = ("ID", "Nombre", "Capacidad", "Estado")
+        tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=10)
+        tree.pack(fill="both", expand=True, pady=10)
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, anchor="center")
+
+        for sala in self.salas:
+            tree.insert("", "end", values=sala)
+
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+
+    def mostrar_reservas(self):
+        self.limpiar_contenido()
+        tk.Label(self.content_frame, text="Reservas Activas", font=self.titulo_font, bg=self.color_fondo, fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
+
+        columns = ("ID", "Sala", "Responsable", "Fecha", "Hora Inicio", "Hora Término", "Estado")
+        tree = ttk.Treeview(self.content_frame, columns=columns, show="headings", height=15)
+        tree.pack(fill="both", expand=True, pady=10)
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, anchor="center")
+
+        for reserva in self.reservas:
+            tree.insert("", "end", values=reserva)
+
+        scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=tree.yview)
+        tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+
+    def mostrar_calendario(self):
+        self.limpiar_contenido()
+        tk.Label(self.content_frame, text="Calendario de Reservas", font=self.titulo_font, bg=self.color_fondo, fg=self.color_principal).pack(anchor="nw", pady=(0, 20))
+
+        calendar_frame = tk.Frame(self.content_frame, bg=self.color_fondo)
+        calendar_frame.pack(fill="x", pady=(10, 20))
+
+        calendar = Calendar(calendar_frame, selectmode="day")
+        calendar.pack(side="left", padx=10)
+
+        def mostrar_reservas_fecha():
+            fecha = calendar.get_date()
+            self.limpiar_contenido()
+            tk.Label(self.content_frame, text=f"Reservas para la Fecha: {fecha}", font=self.subtitulo_font, bg=self.color_fondo, fg=self.color_principal).pack(anchor="nw", pady=(0, 10))
+
+            columns = ("ID", "Sala", "Responsable", "Hora Inicio", "Hora Término", "Estado")
+            tree = ttk.Treeview(self.content_frame, columns=columns, show="headings", height=10)
+            tree.pack(fill="both", expand=True, pady=10)
+
+            for col in columns:
+                tree.heading(col, text=col)
+                tree.column(col, anchor="center")
+
+            # Filtrar reservas según el rol del usuario
+            if self.role == "admin":
+                reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha]
+            else:
+                reservas_fecha = [reserva for reserva in self.reservas if reserva[3] == fecha and reserva[2] == self.username]
+
+            for reserva in reservas_fecha:
+                tree.insert("", "end", values=(reserva[0], reserva[1], reserva[2], reserva[4], reserva[5], reserva[6]))
+
+            scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=tree.yview)
+            tree.configure(yscroll=scrollbar.set)
+            scrollbar.pack(side="right", fill="y")
+
+            if not reservas_fecha:
+                tk.Label(self.content_frame, text="No hay reservas para esta fecha.", font=self.normal_font, bg=self.color_fondo, fg=self.color_advertencia).pack(anchor="nw", pady=(10, 0))
+
+        tk.Button(calendar_frame, text="Consultar Reservas", font=self.boton_font, bg=self.color_principal, fg="white",
+                  activebackground=self.color_secundario, activeforeground="white", relief="flat",
+                  command=mostrar_reservas_fecha).pack(side="left", padx=10)
 
     def crear_menu(self):
         # Limpiar el menú existente
