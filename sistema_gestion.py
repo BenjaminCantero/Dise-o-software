@@ -1,13 +1,21 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from tkcalendar import Calendar
+from mediator import AppMediator
 
 class SistemaGestionSalas:
-    def __init__(self, root, role, db, username):
+    def __init__(self, root, role, db, username, mediator=None):
         self.root = root
         self.role = role
         self.db = db
         self.username = username
+
+        # Mediator
+        if mediator is None:
+            self.mediator = AppMediator()
+        else:
+            self.mediator = mediator
+        self.mediator.register("main_panel", self)
 
         # Paleta y fuentes
         self.color_fondo = "#f7fafd"
@@ -144,8 +152,7 @@ class SistemaGestionSalas:
             if nombre.get() and capacidad.get().isdigit():
                 self.db.cursor.execute("INSERT INTO salas (nombre, capacidad, estado) VALUES (?, ?, ?)", (nombre.get(), int(capacidad.get()), estado.get()))
                 self.db.conn.commit()
-                self.salas = self.db.obtener_salas()
-                self.mostrar_inicio()
+                self.mediator.notify(self, "sala_actualizada")
                 dialog.destroy()
             else:
                 messagebox.showerror("Error", "Datos inválidos.")
@@ -176,8 +183,7 @@ class SistemaGestionSalas:
             if nombre.get() and capacidad.get().isdigit():
                 self.db.cursor.execute("UPDATE salas SET nombre=?, capacidad=?, estado=? WHERE id=?", (nombre.get(), int(capacidad.get()), estado.get(), valores[0]))
                 self.db.conn.commit()
-                self.salas = self.db.obtener_salas()
-                self.mostrar_inicio()
+                self.mediator.notify(self, "sala_actualizada")
                 dialog.destroy()
             else:
                 messagebox.showerror("Error", "Datos inválidos.")
@@ -193,8 +199,7 @@ class SistemaGestionSalas:
         if confirm:
             self.db.cursor.execute("DELETE FROM salas WHERE id=?", (valores[0],))
             self.db.conn.commit()
-            self.salas = self.db.obtener_salas()
-            self.mostrar_inicio()
+            self.mediator.notify(self, "sala_actualizada")
 
     def mostrar_reservas(self):
         self.limpiar_contenido()
@@ -274,3 +279,11 @@ class SistemaGestionSalas:
         config_frame = tk.Frame(self.content_frame, bg=self.color_tarjeta, bd=2, relief="groove", padx=20, pady=20)
         config_frame.pack(fill="x", pady=(10, 20))
         tk.Label(config_frame, text="(Opciones de configuración próximamente...)", font=self.normal_font, bg=self.color_tarjeta, fg=self.color_texto).pack(anchor="nw", pady=(10, 0))
+
+    def actualizar_salas(self):
+        self.salas = self.db.obtener_salas()
+        self.mostrar_inicio()
+
+    def actualizar_reservas(self):
+        self.reservas = self.db.obtener_reservas(self.role, self.username)
+        self.mostrar_reservas()
