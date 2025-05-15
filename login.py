@@ -18,6 +18,10 @@ class LoginSistema:
         # Inicializar el mediador
         self.mediator = Mediator()
 
+        # Variables de usuario y contraseña
+        self.usuario_var = tk.StringVar()
+        self.contra_var = tk.StringVar()
+
         # Marco principal
         frame = tk.Frame(self.root, bg="#ecf0f1", padx=30, pady=30, relief="raised", bd=2)
         frame.place(relx=0.5, rely=0.5, anchor="center")
@@ -27,12 +31,12 @@ class LoginSistema:
 
         # Usuario
         tk.Label(frame, text="Usuario:", font=("Segoe UI", 12), bg="#ecf0f1", fg="#34495e").pack(anchor="w", pady=(10, 5))
-        self.entry_user = tk.Entry(frame, font=("Segoe UI", 12), relief="flat", bg="#dfe6e9", fg="#2c3e50", insertbackground="#2c3e50")
+        self.entry_user = tk.Entry(frame, textvariable=self.usuario_var, font=("Segoe UI", 12), relief="flat", bg="#dfe6e9", fg="#2c3e50", insertbackground="#2c3e50")
         self.entry_user.pack(fill="x", pady=5, ipady=5)
 
         # Contraseña
         tk.Label(frame, text="Contraseña:", font=("Segoe UI", 12), bg="#ecf0f1", fg="#34495e").pack(anchor="w", pady=(10, 5))
-        self.entry_pass = tk.Entry(frame, font=("Segoe UI", 12), show="*", relief="flat", bg="#dfe6e9", fg="#2c3e50", insertbackground="#2c3e50")
+        self.entry_pass = tk.Entry(frame, textvariable=self.contra_var, font=("Segoe UI", 12), show="*", relief="flat", bg="#dfe6e9", fg="#2c3e50", insertbackground="#2c3e50")
         self.entry_pass.pack(fill="x", pady=5, ipady=5)
 
         # Botón de inicio de sesión
@@ -44,8 +48,8 @@ class LoginSistema:
         tk.Label(self.root, text="© 2025 Gestión de Salas", font=("Segoe UI", 10), bg="#2c3e50", fg="#bdc3c7").pack(side="bottom", pady=10)
 
     def validar_login(self):
-        username = self.entry_user.get()
-        password = self.entry_pass.get()
+        username = self.usuario_var.get()
+        password = self.contra_var.get()
 
         # Validar credenciales
         result = self.db.obtener_usuario(username, password)
