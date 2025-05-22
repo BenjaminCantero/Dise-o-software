@@ -3,6 +3,7 @@ from tkinter import ttk
 from gui.reservas_panel import ReservasPanel
 from gui.salas_panel import SalasPanel
 from gui.admin_panel import AdminPanel
+from gui.dashboard_panel import DashboardPanel
 
 class MainWindow(tk.Frame):
     def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None):
@@ -53,6 +54,8 @@ class MainWindow(tk.Frame):
             admin_btn.pack(fill="x", pady=8, padx=20)
             salas_btn = ttk.Button(nav_frame, text="Salas", style="Sidebar.TButton", command=self.ver_salas)
             salas_btn.pack(fill="x", pady=8, padx=20)
+            dashboard_btn = ttk.Button(nav_frame, text="Dashboard", style="Sidebar.TButton", command=self.ver_dashboard)
+            dashboard_btn.pack(fill="x", pady=8, padx=20)
 
         reservas_btn = ttk.Button(nav_frame, text="Reservas", style="Sidebar.TButton", command=self.ver_reservas)
         reservas_btn.pack(fill="x", pady=8, padx=20)
@@ -96,3 +99,9 @@ class MainWindow(tk.Frame):
             widget.destroy()
         admin_panel = AdminPanel(self.main_frame, user_service=self.user_service, mediator=self.mediator)
         admin_panel.pack(fill="both", expand=True)
+
+    def ver_dashboard(self):
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        dashboard = DashboardPanel(self.main_frame, sala_service=self.sala_service, reserva_service=self.reserva_service, user_service=self.user_service)
+        dashboard.pack(fill="both", expand=True)

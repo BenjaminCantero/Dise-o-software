@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from gui.nueva_reserva_dialog import NuevaReservaDialog
 
 class ReservasPanel(ttk.Frame):
     def __init__(self, parent, reserva_service=None, mediator=None):
@@ -81,9 +82,9 @@ class ReservasPanel(ttk.Frame):
                     self.tree.insert("", "end", values=(reserva.id, reserva.sala, reserva.usuario, reserva.fecha, reserva.hora))
 
     def nueva_reserva(self):
-        # Aquí puedes abrir un diálogo para crear una nueva reserva
-        if self.mediator:
-            self.mediator.notify(self, "nueva_reserva")
+        def refrescar():
+            self.cargar_reservas()
+        NuevaReservaDialog(self, self.reserva_service, on_success=refrescar)
 
     def eliminar_reserva(self):
         # Elimina la reserva seleccionada
