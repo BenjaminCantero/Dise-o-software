@@ -143,6 +143,11 @@ class MainWindow(tk.Frame):
     def salir_sistema(self):
         self.root.destroy()
 
+    def cerrar_sesion(self):
+        self.root.withdraw()  # Oculta la ventana principal
+        from gui.login_window import LoginWindow  # Importa aquí para evitar ciclos
+        LoginWindow(self.root, self.user_service, self.root.quit)  # Muestra login
+
     def seleccionar_seccion(self, seccion):
         for widget in self.main_frame.winfo_children():
             widget.destroy()

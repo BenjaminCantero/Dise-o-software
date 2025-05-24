@@ -116,6 +116,7 @@ class AdminPanel(ttk.Frame):
             if respuesta:
                 user_id = self.tree.item(selected[0])["values"][0]
                 self.user_service.eliminar_usuario(user_id)
+                messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
                 self.cargar_usuarios()
 
     def editar_usuario(self):

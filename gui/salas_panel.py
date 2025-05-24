@@ -115,13 +115,14 @@ class SalasPanel(ttk.Frame):
     def eliminar_sala(self):
         selected = self.tree.selection()
         if selected and self.sala_service:
+            sala_id = self.tree.item(selected[0])["values"][0]
             respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta sala?")
             if respuesta:
-                sala_id = self.tree.item(selected[0])["values"][0]
                 self.sala_service.eliminar_sala(sala_id)
                 self.cargar_salas()
                 if self.mediator:
                     self.mediator.notify(self, "sala_eliminada")
+                messagebox.showinfo("Éxito", "Sala eliminada correctamente")
 
 if __name__ == "__main__":
     import sys

@@ -113,6 +113,7 @@ class ReservasPanel(ttk.Frame):
             if respuesta:
                 reserva_id = self.tree.item(selected[0])["values"][0]
                 self.reserva_service.eliminar_reserva(reserva_id)
+                messagebox.showinfo("Éxito", "Reserva eliminada correctamente")
                 self.cargar_reservas()
                 if self.mediator:
                     self.mediator.notify(self, "reserva_eliminada")

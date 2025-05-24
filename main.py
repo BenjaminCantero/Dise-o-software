@@ -20,7 +20,7 @@ def main():
         app = MainWindow(root, mediator, sala_service=sala_service, reserva_service=reserva_service, user=user, user_service=user_service)
         app.pack(fill="both", expand=True)  # <-- ¡Agrega esta línea!
 
-    login = LoginWindow(root, user_service, on_login)
+    LoginWindow(root, user_service, on_login)
     root.mainloop()
 
 if __name__ == "__main__":
