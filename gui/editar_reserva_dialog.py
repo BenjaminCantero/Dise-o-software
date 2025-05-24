@@ -45,17 +45,16 @@ class EditarReservaDialog(tk.Toplevel):
     def guardar(self):
         error = False
 
-        # Si tienes self.sala_combo y self.usuario_combo, usa esto:
-        # self.sala_combo.configure(background="white")
-        # self.usuario_combo.configure(background="white")
+        self.sala_combo.configure(background="white")
+        self.usuario_combo.configure(background="white")
         self.fecha_entry.configure(background="white")
         self.hora_entry.configure(background="white")
 
         if not self.sala_var.get():
-            # self.sala_combo.configure(background="#ffcccc")
+            self.sala_combo.configure(background="#ffcccc")
             error = True
         if not self.usuario_var.get():
-            # self.usuario_combo.configure(background="#ffcccc")
+            self.usuario_combo.configure(background="#ffcccc")
             error = True
 
         fecha = self.fecha_entry.get().strip()
