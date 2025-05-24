@@ -16,9 +16,22 @@ def main():
     mediator = AppMediator()
 
     def on_login(user):
+        # Elimina cualquier ventana MainWindow anterior
+        for widget in root.winfo_children():
+            widget.destroy()
         root.deiconify()
-        app = MainWindow(root, mediator, sala_service=sala_service, reserva_service=reserva_service, user=user, user_service=user_service)
+        app = MainWindow(
+            root,
+            mediator,
+            sala_service=sala_service,
+            reserva_service=reserva_service,
+            user=user,
+            user_service=user_service,
+            on_login=on_login
+        )
         app.pack(fill="both", expand=True)  # <-- ¡Agrega esta línea!
+        # Guarda el callback para cerrar sesión
+        app.on_login = on_login
 
     LoginWindow(root, user_service, on_login)
     root.mainloop()

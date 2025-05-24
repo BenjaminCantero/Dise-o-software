@@ -4,9 +4,10 @@ from gui.reservas_panel import ReservasPanel
 from gui.salas_panel import SalasPanel
 from gui.admin_panel import AdminPanel
 from gui.dashboard_panel import DashboardPanel
+from gui.mis_reservas_panel import MisReservasPanel
 
 class MainWindow(tk.Frame):
-    def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None):
+    def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None, on_login=None):
         super().__init__(root)
         self.root = root
         self.mediator = mediator
@@ -14,6 +15,7 @@ class MainWindow(tk.Frame):
         self.reserva_service = reserva_service
         self.user = user
         self.user_service = user_service
+        self.on_login = on_login
         self.pack(fill="both", expand=True)
         self.create_widgets()
 
@@ -115,12 +117,15 @@ class MainWindow(tk.Frame):
     def ver_reservas(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        reservas_panel = ReservasPanel(
-            self.main_frame,
-            self.mediator,
-            self.reserva_service,
-            on_volver=lambda: self.seleccionar_seccion("dashboard")
-        )
+        if self.user and self.user.role in ("estudiante", "profesor"):
+            reservas_panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
+        else:
+            reservas_panel = ReservasPanel(
+                self.main_frame,
+                self.mediator,
+                self.reserva_service,
+                on_volver=lambda: self.seleccionar_seccion("dashboard")
+            )
         reservas_panel.pack(fill="both", expand=True)
 
     def ver_admin_panel(self):
@@ -145,8 +150,9 @@ class MainWindow(tk.Frame):
 
     def cerrar_sesion(self):
         self.root.withdraw()  # Oculta la ventana principal
-        from gui.login_window import LoginWindow  # Importa aquí para evitar ciclos
-        LoginWindow(self.root, self.user_service, self.root.quit)  # Muestra login
+        from gui.login_window import LoginWindow
+        LoginWindow(self.root, self.user_service, self.on_login)
+        self.destroy()  # Destruye el frame actual, pero NO root
 
     def seleccionar_seccion(self, seccion):
         for widget in self.main_frame.winfo_children():
@@ -156,7 +162,10 @@ class MainWindow(tk.Frame):
         if seccion == "dashboard":
             panel = DashboardPanel(self.main_frame, self.sala_service)
         elif seccion == "reservas":
-            panel = ReservasPanel(self.main_frame, self.mediator, self.reserva_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
+            if self.user and self.user.role in ("estudiante", "profesor"):
+                panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
+            else:
+                panel = ReservasPanel(self.main_frame, self.mediator, self.reserva_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
         elif seccion == "salas":
             panel = SalasPanel(self.main_frame, self.mediator, self.sala_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
         elif seccion == "usuarios":

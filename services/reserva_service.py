@@ -27,3 +27,6 @@ class ReservaService(Observable):
 
     def contar_reservas(self):
         return len(self.reservas)
+
+    def obtener_reservas_por_usuario(self, usuario):
+        return [r for r in self.reservas if r["usuario"] == usuario]
