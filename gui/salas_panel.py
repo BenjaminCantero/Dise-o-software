@@ -4,10 +4,11 @@ from tkinter import messagebox
 from gui.editar_sala_dialog import EditarSalaDialog
 
 class SalasPanel(ttk.Frame):
-    def __init__(self, parent, sala_service, mediator=None):
+    def __init__(self, parent, mediator, sala_service=None, on_volver=None):
         super().__init__(parent)
-        self.sala_service = sala_service
         self.mediator = mediator
+        self.sala_service = sala_service
+        self.on_volver = on_volver
         self.sala_service.add_observer(self)
         self.create_widgets()
 
@@ -70,7 +71,7 @@ class SalasPanel(ttk.Frame):
         ttk.Button(btn_frame, text="Editar Sala", style="Panel.TButton", command=self.editar_sala, width=18).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Eliminar Sala", style="Panel.TButton", command=self.eliminar_sala, width=18).pack(side="left", padx=8)
 
-        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=lambda: self.master.seleccionar_seccion("dashboard")).pack(pady=10)
+        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=self.on_volver).pack(pady=10)
 
         self.cargar_salas()
 
@@ -121,3 +122,26 @@ class SalasPanel(ttk.Frame):
                 self.cargar_salas()
                 if self.mediator:
                     self.mediator.notify(self, "sala_eliminada")
+
+if __name__ == "__main__":
+    import sys
+    from mediator import Mediator
+    from services.sala_service import SalaService
+
+    app = tk.Tk()
+    app.title("Gestión de Salas")
+    app.geometry("800x600")
+
+    mediator = Mediator()
+    sala_service = SalaService()
+
+    panel = SalasPanel(
+        app,
+        mediator,
+        sala_service,
+        on_volver=lambda: (print("Volver al inicio"), None)[1]
+    )
+    panel.pack(fill="both", expand=True)
+
+    app.protocol("WM_DELETE_WINDOW", app.quit)
+    app.mainloop()

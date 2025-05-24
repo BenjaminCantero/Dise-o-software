@@ -1,4 +1,5 @@
 from core.observable import Observable
+import tkinter.ttk as ttk
 
 class SalaService(Observable):
     def __init__(self):
@@ -30,3 +31,9 @@ class SalaService(Observable):
 
     def contar_disponibles(self):
         return len([s for s in self.salas if s["estado"] == "disponible"])
+
+class DashboardPanel(ttk.Frame):
+    def __init__(self, parent, sala_service):
+        super().__init__(parent)
+        self.sala_service = sala_service
+        # ...

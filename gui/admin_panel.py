@@ -4,10 +4,11 @@ from tkinter import messagebox
 from gui.editar_usuario_dialog import EditarUsuarioDialog
 
 class AdminPanel(ttk.Frame):
-    def __init__(self, parent, user_service=None, mediator=None):
+    def __init__(self, parent, mediator, user_service=None, on_volver=None):
         super().__init__(parent)
-        self.user_service = user_service
         self.mediator = mediator
+        self.user_service = user_service
+        self.on_volver = on_volver
         # Registrar como observer del servicio de usuarios
         if self.user_service:
             self.user_service.add_observer(self)
@@ -92,7 +93,7 @@ class AdminPanel(ttk.Frame):
         ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.eliminar_usuario).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
 
-        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=lambda: self.master.seleccionar_seccion("dashboard")).pack(pady=10)
+        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=self.on_volver).pack(pady=10)
 
         self.cargar_usuarios()
 

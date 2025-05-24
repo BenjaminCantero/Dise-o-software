@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import re
 
 class EditarUsuarioDialog(tk.Toplevel):
     def __init__(self, parent, usuario, on_save=None):
@@ -39,25 +40,32 @@ class EditarUsuarioDialog(tk.Toplevel):
         self.bind("<Return>", lambda event: self.guardar())
         self.nombre_entry.focus_set()
 
+    def es_correo_valido(self, correo):
+        patron = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+        return re.match(patron, correo) is not None
+
     def guardar(self):
         error = False
-
         self.nombre_entry.configure(background="white")
         self.correo_entry.configure(background="white")
 
         if not self.nombre_entry.get().strip():
             self.nombre_entry.configure(background="#ffcccc")
             error = True
-        if not self.correo_entry.get().strip():
+        correo = self.correo_entry.get().strip()
+        if not correo:
             self.correo_entry.configure(background="#ffcccc")
             error = True
+        elif not self.es_correo_valido(correo):
+            self.correo_entry.configure(background="#ffcccc")
+            messagebox.showerror("Error", "El correo no tiene un formato válido")
+            return
 
         if error:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
 
         nombre = self.nombre_entry.get().strip()
-        correo = self.correo_entry.get().strip()
         rol = self.rol_var.get()
         if self.on_save:
             self.on_save(nombre, correo, rol)

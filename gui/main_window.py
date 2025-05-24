@@ -104,19 +104,34 @@ class MainWindow(tk.Frame):
     def ver_salas(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        salas_panel = SalasPanel(self.main_frame, sala_service=self.sala_service, mediator=self.mediator)
+        salas_panel = SalasPanel(
+            self.main_frame,
+            self.mediator,
+            self.sala_service,
+            on_volver=lambda: self.seleccionar_seccion("dashboard")
+        )
         salas_panel.pack(fill="both", expand=True)
 
     def ver_reservas(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        reservas_panel = ReservasPanel(self.main_frame, reserva_service=self.reserva_service, mediator=self.mediator)
+        reservas_panel = ReservasPanel(
+            self.main_frame,
+            self.mediator,
+            self.reserva_service,
+            on_volver=lambda: self.seleccionar_seccion("dashboard")
+        )
         reservas_panel.pack(fill="both", expand=True)
 
     def ver_admin_panel(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        admin_panel = AdminPanel(self.main_frame, user_service=self.user_service, mediator=self.mediator)
+        admin_panel = AdminPanel(
+            self.main_frame,
+            self.mediator,
+            self.user_service,
+            on_volver=lambda: self.seleccionar_seccion("dashboard")
+        )
         admin_panel.pack(fill="both", expand=True)
 
     def ver_dashboard(self):
@@ -127,3 +142,21 @@ class MainWindow(tk.Frame):
 
     def salir_sistema(self):
         self.root.destroy()
+
+    def seleccionar_seccion(self, seccion):
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        panel = None
+
+        if seccion == "dashboard":
+            panel = DashboardPanel(self.main_frame, self.sala_service)
+        elif seccion == "reservas":
+            panel = ReservasPanel(self.main_frame, self.mediator, self.reserva_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
+        elif seccion == "salas":
+            panel = SalasPanel(self.main_frame, self.mediator, self.sala_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
+        elif seccion == "usuarios":
+            panel = AdminPanel(self.main_frame, self.mediator, self.user_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
+        # ...otros paneles si tienes...
+
+        if panel is not None:
+            panel.pack(fill="both", expand=True)

@@ -3,13 +3,14 @@ from tkinter import ttk
 from tkinter import messagebox
 from gui.nueva_reserva_dialog import NuevaReservaDialog
 from gui.editar_reserva_dialog import EditarReservaDialog
+from gui.salas_panel import SalasPanel  # Asegúrate de importar el panel de Salas
 
 class ReservasPanel(ttk.Frame):
-    def __init__(self, parent, reserva_service, mediator=None):
+    def __init__(self, parent, mediator, reserva_service=None, on_volver=None):
         super().__init__(parent)
-        self.reserva_service = reserva_service
         self.mediator = mediator
-        self.reserva_service.add_observer(self)
+        self.reserva_service = reserva_service
+        self.on_volver = on_volver
         self.create_widgets()
 
     #patron observer#
@@ -73,7 +74,7 @@ class ReservasPanel(ttk.Frame):
         ttk.Button(btn_frame, text="Eliminar Reserva", style="Panel.TButton", command=self.eliminar_reserva, width=18).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Editar Reserva", style="Panel.TButton", command=self.editar_reserva, width=18).pack(side="left", padx=8)
 
-        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=lambda: self.master.seleccionar_seccion("dashboard")).pack(pady=10)
+        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=self.on_volver).pack(pady=10)
 
         self.cargar_reservas()
 
@@ -133,3 +134,6 @@ class ReservasPanel(ttk.Frame):
                     self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
                     self.cargar_reservas()
                 EditarReservaDialog(self, reserva, salas, usuarios, on_save=on_save)
+
+        if seccion == "salas":
+            panel = SalasPanel(self.main_frame, self.mediator, self.sala_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
