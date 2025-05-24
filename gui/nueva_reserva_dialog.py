@@ -118,6 +118,11 @@ class NuevaReservaDialog(tk.Toplevel):
             self.on_success(sala, usuario, fecha, hora)
         self.destroy()
 
+        self.sala_var.set("")
+        self.usuario_var.set("")
+        self.fecha_entry.delete(0, tk.END)
+        self.hora_entry.delete(0, tk.END)
+
 if __name__ == "__main__":
     app = ReservaApp(reserva_service=None, mediator=None)
     app.mainloop()

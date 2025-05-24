@@ -16,17 +16,20 @@ class EditarUsuarioDialog(tk.Toplevel):
         tk.Label(frame, text="Nombre:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
         self.nombre_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
         self.nombre_entry.pack(ipady=3)
+        self.nombre_entry.delete(0, tk.END)
         self.nombre_entry.insert(0, usuario["nombre"])
 
         tk.Label(frame, text="Correo:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.correo_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
         self.correo_entry.pack(ipady=3)
+        self.correo_entry.delete(0, tk.END)
         self.correo_entry.insert(0, usuario["correo"])
 
         tk.Label(frame, text="Rol:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.rol_var = tk.StringVar(value=usuario.get("role", "estudiante"))
         rol_combo = ttk.Combobox(frame, textvariable=self.rol_var, values=["admin", "profesor", "estudiante"], state="readonly", width=22)
         rol_combo.pack(ipady=3)
+        self.rol_var.set(usuario["rol"])
 
         btn_frame = tk.Frame(frame, bg="#f4f4f8")
         btn_frame.pack(pady=18)

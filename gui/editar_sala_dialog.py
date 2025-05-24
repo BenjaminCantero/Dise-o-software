@@ -16,12 +16,14 @@ class EditarSalaDialog(tk.Toplevel):
         tk.Label(frame, text="Nombre:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
         self.nombre_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
         self.nombre_entry.pack(ipady=3)
+        self.nombre_entry.delete(0, tk.END)
         self.nombre_entry.insert(0, sala["nombre"])
 
         tk.Label(frame, text="Capacidad:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.capacidad_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
         self.capacidad_entry.pack(ipady=3)
-        self.capacidad_entry.insert(0, sala["capacidad"])
+        self.capacidad_entry.delete(0, tk.END)
+        self.capacidad_entry.insert(0, str(sala["capacidad"]))
 
         tk.Label(frame, text="Estado:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.estado_var = tk.StringVar(value=sala.get("estado", "disponible"))
