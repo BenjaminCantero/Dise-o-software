@@ -30,8 +30,8 @@ class EditarSalaDialog(tk.Toplevel):
 
         btn_frame = tk.Frame(frame, bg="#f4f4f8")
         btn_frame.pack(pady=18)
-        ttk.Button(btn_frame, text="Guardar", command=self.guardar).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Cancelar", command=self.destroy).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Guardar", style="Panel.TButton", command=self.guardar).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Cancelar", style="Panel.TButton", command=self.destroy).pack(side="left", padx=8)
 
         self.bind("<Return>", lambda event: self.guardar())
         self.nombre_entry.focus_set()
@@ -65,6 +65,7 @@ class EditarSalaDialog(tk.Toplevel):
         nombre = self.nombre_entry.get().strip()
         capacidad = int(self.capacidad_entry.get().strip())
         estado = self.estado_var.get()
+        messagebox.showinfo("Éxito", "Sala guardada correctamente")
         if self.on_save:
             self.on_save(nombre, capacidad, estado)
         self.destroy()

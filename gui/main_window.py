@@ -19,6 +19,7 @@ class MainWindow(tk.Frame):
         style = ttk.Style()
         style.configure("Sidebar.TButton", font=("Arial", 12), background="#232946", foreground="#eebbc3")
         style.configure("SidebarActive.TButton", font=("Arial", 12, "bold"), background="#eebbc3", foreground="#232946")
+        style.configure("Panel.TButton", font=("Arial", 12), background="#eebbc3", foreground="#232946")
 
         # Crear barra lateral y botones
         sidebar = ttk.Frame(self)

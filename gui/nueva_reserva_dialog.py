@@ -76,8 +76,8 @@ class NuevaReservaDialog(tk.Toplevel):
 
         btn_frame = tk.Frame(frame, bg="#f4f4f8")
         btn_frame.pack(pady=18)
-        ttk.Button(btn_frame, text="Guardar", command=self.guardar).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Cancelar", command=self.destroy).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Guardar", style="Panel.TButton", command=self.guardar).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Cancelar", style="Panel.TButton", command=self.destroy).pack(side="left", padx=8)
 
         self.bind("<Return>", lambda event: self.guardar())
         self.fecha_entry.focus_set()
@@ -115,8 +115,9 @@ class NuevaReservaDialog(tk.Toplevel):
         fecha = self.fecha_entry.get().strip()
         hora = self.hora_entry.get().strip()
         self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
+        messagebox.showinfo("Éxito", "Reserva guardada correctamente")
         if self.on_success:
-            self.on_success()
+            self.on_success(sala, usuario, fecha, hora)
         self.destroy()
 
 if __name__ == "__main__":
