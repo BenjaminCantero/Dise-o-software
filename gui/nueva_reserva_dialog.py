@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from gui.nueva_reserva_dialog import NuevaReservaDialog
 
 class ReservaApp(tk.Tk):
     def __init__(self, reserva_service, mediator, *args, **kwargs):
@@ -84,14 +83,37 @@ class NuevaReservaDialog(tk.Toplevel):
         self.fecha_entry.focus_set()
 
     def guardar(self):
+        error = False
+
+        # Resetear colores
+        self.sala_combo.configure(background="white")
+        self.usuario_combo.configure(background="white")
+        self.fecha_entry.configure(background="white")
+        self.hora_entry.configure(background="white")
+
+        # Validar campos
+        if not self.sala_var.get():
+            self.sala_combo.configure(background="#ffcccc")
+            error = True
+        if not self.usuario_var.get():
+            self.usuario_combo.configure(background="#ffcccc")
+            error = True
+        if not self.fecha_entry.get().strip():
+            self.fecha_entry.configure(background="#ffcccc")
+            error = True
+        if not self.hora_entry.get().strip():
+            self.hora_entry.configure(background="#ffcccc")
+            error = True
+
+        if error:
+            messagebox.showerror("Error", "Todos los campos son obligatorios")
+            return
+
+        # Guardar la reserva si todo está bien
         sala = self.sala_var.get().strip()
         usuario = self.usuario_var.get().strip()
         fecha = self.fecha_entry.get().strip()
         hora = self.hora_entry.get().strip()
-        if not sala or not usuario or not fecha or not hora:
-            messagebox.showerror("Error", "Todos los campos son obligatorios")
-            return
-        # Aquí deberías crear la reserva usando tu servicio
         self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
         if self.on_success:
             self.on_success()

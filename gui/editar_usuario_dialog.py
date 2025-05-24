@@ -37,12 +37,27 @@ class EditarUsuarioDialog(tk.Toplevel):
         self.nombre_entry.focus_set()
 
     def guardar(self):
+        error = False
+
+        # Resetear colores
+        self.nombre_entry.configure(background="white")
+        self.correo_entry.configure(background="white")
+
+        # Validar campos
+        if not self.nombre_entry.get().strip():
+            self.nombre_entry.configure(background="#ffcccc")
+            error = True
+        if not self.correo_entry.get().strip():
+            self.correo_entry.configure(background="#ffcccc")
+            error = True
+
+        if error:
+            messagebox.showerror("Error", "Todos los campos son obligatorios")
+            return
+
         nombre = self.nombre_entry.get().strip()
         correo = self.correo_entry.get().strip()
         rol = self.rol_var.get()
-        if not nombre or not correo:
-            messagebox.showerror("Error", "Todos los campos son obligatorios")
-            return
         if self.on_save:
             self.on_save(nombre, correo, rol)
         self.destroy()

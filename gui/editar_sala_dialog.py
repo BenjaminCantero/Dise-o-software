@@ -37,17 +37,34 @@ class EditarSalaDialog(tk.Toplevel):
         self.nombre_entry.focus_set()
 
     def guardar(self):
-        nombre = self.nombre_entry.get().strip()
-        capacidad = self.capacidad_entry.get().strip()
-        estado = self.estado_var.get()
-        if not nombre or not capacidad:
+        error = False
+
+        # Resetear colores
+        self.nombre_entry.configure(background="white")
+        self.capacidad_entry.configure(background="white")
+
+        # Validar campos
+        if not self.nombre_entry.get().strip():
+            self.nombre_entry.configure(background="#ffcccc")
+            error = True
+        if not self.capacidad_entry.get().strip():
+            self.capacidad_entry.configure(background="#ffcccc")
+            error = True
+        else:
+            try:
+                int(self.capacidad_entry.get().strip())
+            except ValueError:
+                self.capacidad_entry.configure(background="#ffcccc")
+                messagebox.showerror("Error", "Capacidad debe ser un número")
+                return
+
+        if error:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
-        try:
-            capacidad = int(capacidad)
-        except ValueError:
-            messagebox.showerror("Error", "Capacidad debe ser un número")
-            return
+
+        nombre = self.nombre_entry.get().strip()
+        capacidad = int(self.capacidad_entry.get().strip())
+        estado = self.estado_var.get()
         if self.on_save:
             self.on_save(nombre, capacidad, estado)
         self.destroy()

@@ -42,13 +42,36 @@ class EditarReservaDialog(tk.Toplevel):
         self.fecha_entry.focus_set()
 
     def guardar(self):
-        sala = self.sala_var.get()
-        usuario = self.usuario_var.get()
-        fecha = self.fecha_entry.get().strip()
-        hora = self.hora_entry.get().strip()
-        if not sala or not usuario or not fecha or not hora:
+        error = False
+
+        # Resetear colores
+        self.sala_combo.configure(background="white")
+        self.usuario_combo.configure(background="white")
+        self.fecha_entry.configure(background="white")
+        self.hora_entry.configure(background="white")
+
+        # Validar campos
+        if not self.sala_var.get():
+            self.sala_combo.configure(background="#ffcccc")
+            error = True
+        if not self.usuario_var.get():
+            self.usuario_combo.configure(background="#ffcccc")
+            error = True
+        if not self.fecha_entry.get().strip():
+            self.fecha_entry.configure(background="#ffcccc")
+            error = True
+        if not self.hora_entry.get().strip():
+            self.hora_entry.configure(background="#ffcccc")
+            error = True
+
+        if error:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
+
+        sala = self.sala_var.get().strip()
+        usuario = self.usuario_var.get().strip()
+        fecha = self.fecha_entry.get().strip()
+        hora = self.hora_entry.get().strip()
         if self.on_save:
             self.on_save(sala, usuario, fecha, hora)
         self.destroy()
