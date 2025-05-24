@@ -70,6 +70,8 @@ class SalasPanel(ttk.Frame):
         ttk.Button(btn_frame, text="Editar Sala", style="Panel.TButton", command=self.editar_sala, width=18).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Eliminar Sala", style="Panel.TButton", command=self.eliminar_sala, width=18).pack(side="left", padx=8)
 
+        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=lambda: self.master.seleccionar_seccion("dashboard")).pack(pady=10)
+
         self.cargar_salas()
 
     def cargar_salas(self):

@@ -92,6 +92,8 @@ class AdminPanel(ttk.Frame):
         ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.eliminar_usuario).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
 
+        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=lambda: self.master.seleccionar_seccion("dashboard")).pack(pady=10)
+
         self.cargar_usuarios()
 
     def cargar_usuarios(self):
