@@ -40,22 +40,25 @@ class EditarSalaDialog(tk.Toplevel):
 
     def guardar(self):
         error = False
-
         self.nombre_entry.configure(background="white")
         self.capacidad_entry.configure(background="white")
 
         if not self.nombre_entry.get().strip():
             self.nombre_entry.configure(background="#ffcccc")
             error = True
-        if not self.capacidad_entry.get().strip():
+
+        capacidad_str = self.capacidad_entry.get().strip()
+        if not capacidad_str:
             self.capacidad_entry.configure(background="#ffcccc")
             error = True
         else:
             try:
-                int(self.capacidad_entry.get().strip())
+                capacidad = int(capacidad_str)
+                if capacidad <= 0:
+                    raise ValueError
             except ValueError:
                 self.capacidad_entry.configure(background="#ffcccc")
-                messagebox.showerror("Error", "Capacidad debe ser un número")
+                messagebox.showerror("Error", "La capacidad debe ser un número entero positivo")
                 return
 
         if error:
