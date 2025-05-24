@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime
 
 class ReservaApp(tk.Tk):
     def __init__(self, reserva_service, mediator, *args, **kwargs):
@@ -96,22 +97,23 @@ class NuevaReservaDialog(tk.Toplevel):
         if not self.usuario_var.get():
             self.usuario_combo.configure(background="#ffcccc")
             error = True
-        if not self.fecha_entry.get().strip():
-            self.fecha_entry.configure(background="#ffcccc")
-            error = True
-        if not self.hora_entry.get().strip():
-            self.hora_entry.configure(background="#ffcccc")
-            error = True
 
-        if error:
-            messagebox.showerror("Error", "Todos los campos son obligatorios")
+        fecha = self.fecha_entry.get().strip()
+        hora = self.hora_entry.get().strip()
+
+        if not fecha or not es_fecha_valida(fecha):
+            self.fecha_entry.configure(background="#ffcccc")
+            messagebox.showerror("Error", "La fecha debe tener el formato YYYY-MM-DD")
+            return
+
+        if not hora or not es_hora_valida(hora):
+            self.hora_entry.configure(background="#ffcccc")
+            messagebox.showerror("Error", "La hora debe tener el formato HH:MM (24h)")
             return
 
         # Guardar la reserva si todo está bien
         sala = self.sala_var.get().strip()
         usuario = self.usuario_var.get().strip()
-        fecha = self.fecha_entry.get().strip()
-        hora = self.hora_entry.get().strip()
         self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
         messagebox.showinfo("Éxito", "Reserva guardada correctamente")
         if self.on_success:
@@ -122,6 +124,20 @@ class NuevaReservaDialog(tk.Toplevel):
         self.usuario_var.set("")
         self.fecha_entry.delete(0, tk.END)
         self.hora_entry.delete(0, tk.END)
+
+def es_fecha_valida(fecha_str):
+    try:
+        datetime.strptime(fecha_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+def es_hora_valida(hora_str):
+    try:
+        datetime.strptime(hora_str, "%H:%M")
+        return True
+    except ValueError:
+        return False
 
 if __name__ == "__main__":
     app = ReservaApp(reserva_service=None, mediator=None)

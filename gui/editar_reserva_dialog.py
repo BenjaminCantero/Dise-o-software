@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime
 
 class EditarReservaDialog(tk.Toplevel):
     def __init__(self, parent, reserva, salas, usuarios, on_save=None):
@@ -44,23 +45,31 @@ class EditarReservaDialog(tk.Toplevel):
     def guardar(self):
         error = False
 
-        self.sala_combo.configure(background="white")
-        self.usuario_combo.configure(background="white")
+        # Si tienes self.sala_combo y self.usuario_combo, usa esto:
+        # self.sala_combo.configure(background="white")
+        # self.usuario_combo.configure(background="white")
         self.fecha_entry.configure(background="white")
         self.hora_entry.configure(background="white")
 
         if not self.sala_var.get():
-            self.sala_combo.configure(background="#ffcccc")
+            # self.sala_combo.configure(background="#ffcccc")
             error = True
         if not self.usuario_var.get():
-            self.usuario_combo.configure(background="#ffcccc")
+            # self.usuario_combo.configure(background="#ffcccc")
             error = True
-        if not self.fecha_entry.get().strip():
+
+        fecha = self.fecha_entry.get().strip()
+        hora = self.hora_entry.get().strip()
+
+        if not fecha or not es_fecha_valida(fecha):
             self.fecha_entry.configure(background="#ffcccc")
-            error = True
-        if not self.hora_entry.get().strip():
+            messagebox.showerror("Error", "La fecha debe tener el formato YYYY-MM-DD")
+            return
+
+        if not hora or not es_hora_valida(hora):
             self.hora_entry.configure(background="#ffcccc")
-            error = True
+            messagebox.showerror("Error", "La hora debe tener el formato HH:MM (24h)")
+            return
 
         if error:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
@@ -68,8 +77,20 @@ class EditarReservaDialog(tk.Toplevel):
 
         sala = self.sala_var.get().strip()
         usuario = self.usuario_var.get().strip()
-        fecha = self.fecha_entry.get().strip()
-        hora = self.hora_entry.get().strip()
         if self.on_save:
             self.on_save(sala, usuario, fecha, hora)
         self.destroy()
+
+def es_fecha_valida(fecha_str):
+    try:
+        datetime.strptime(fecha_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+def es_hora_valida(hora_str):
+    try:
+        datetime.strptime(hora_str, "%H:%M")
+        return True
+    except ValueError:
+        return False
