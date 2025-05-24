@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from gui.editar_sala_dialog import EditarSalaDialog
+from gui.nueva_sala_dialog import NuevaSalaDialog
 
 class SalasPanel(ttk.Frame):
     def __init__(self, parent, mediator, sala_service=None, on_volver=None):
@@ -94,8 +95,10 @@ class SalasPanel(ttk.Frame):
                     self.tree.insert("", "end", values=(sala.id, sala.nombre, sala.capacidad, sala.estado))
 
     def nueva_sala(self):
-        if self.mediator:
-            self.mediator.notify(self, "nueva_sala")
+        def on_save(nombre, capacidad):
+            self.sala_service.crear_sala(nombre, capacidad)
+            self.cargar_salas()
+        NuevaSalaDialog(self, on_save=on_save)
 
     def editar_sala(self):
         selected = self.tree.selection()

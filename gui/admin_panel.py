@@ -9,14 +9,12 @@ class AdminPanel(ttk.Frame):
         self.mediator = mediator
         self.user_service = user_service
         self.on_volver = on_volver
-        # Registrar como observer del servicio de usuarios
         if self.user_service:
             self.user_service.add_observer(self)
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
         self.create_widgets()
 
-    # Patrón Observer
     def update(self, event, data):
         if event in ("usuario_creado", "usuario_eliminado", "usuario_editado"):
             self.cargar_usuarios()
@@ -106,8 +104,11 @@ class AdminPanel(ttk.Frame):
                 self.tree.insert("", "end", values=(usuario.username, usuario.role))
 
     def crear_usuario(self):
-        # Aquí puedes abrir un diálogo para crear usuario (puedes implementarlo después)
-        tk.messagebox.showinfo("Crear usuario", "Funcionalidad pendiente de implementar.")
+        def on_save(username, role):
+            nuevo_usuario = self.user_service.crear_usuario(username, role)
+            self.user_service.notify_observers(event="usuario_creado", data=nuevo_usuario)
+            self.cargar_usuarios()
+        EditarUsuarioDialog(self, None, on_save=on_save)
 
     def eliminar_usuario(self):
         selected = self.tree.selection()
@@ -123,12 +124,11 @@ class AdminPanel(ttk.Frame):
         selected = self.tree.selection()
         if selected and self.user_service:
             user_id = self.tree.item(selected[0])["values"][0]
-            usuario = next((u for u in self.user_service.listar_usuarios() if u["id"] == user_id), None)
+            usuario = next((u for u in self.user_service.listar_usuarios() if u.username == user_id), None)
             if usuario:
-                def on_save(nombre, correo, rol):
-                    usuario["nombre"] = nombre
-                    usuario["correo"] = correo
-                    usuario["role"] = rol
+                def on_save(username, role):
+                    usuario.username = username
+                    usuario.role = role
                     self.user_service.notify_observers(event="usuario_editado", data=usuario)
                     self.cargar_usuarios()
                 EditarUsuarioDialog(self, usuario, on_save=on_save)

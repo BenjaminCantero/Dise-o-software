@@ -6,10 +6,12 @@ from gui.editar_reserva_dialog import EditarReservaDialog
 from gui.salas_panel import SalasPanel  # Asegúrate de importar el panel de Salas
 
 class ReservasPanel(ttk.Frame):
-    def __init__(self, parent, mediator, reserva_service=None, on_volver=None):
+    def __init__(self, parent, mediator, reserva_service=None, sala_service=None, user_service=None, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator
         self.reserva_service = reserva_service
+        self.sala_service = sala_service      # <--- AGREGA ESTO
+        self.user_service = user_service      # <--- Y ESTO
         self.on_volver = on_volver
         self.create_widgets()
 
@@ -79,14 +81,14 @@ class ReservasPanel(ttk.Frame):
         self.cargar_reservas()
 
     def cargar_reservas(self):
-        # Limpia la tabla
         for row in self.tree.get_children():
             self.tree.delete(row)
-        # Carga las reservas desde el servicio (si está disponible)
         if self.reserva_service:
             reservas = self.reserva_service.listar_reservas()
             for reserva in reservas:
-                self.tree.insert("", "end", values=(reserva.id, reserva.sala, reserva.usuario, reserva.fecha, reserva.hora))
+                self.tree.insert("", "end", values=(
+                    reserva["id"], reserva["sala"], reserva["usuario"], reserva["fecha"], reserva["hora"]
+                ))
 
     def filtrar_reservas(self):
         filtro = self.search_var.get().strip().lower()
@@ -95,16 +97,16 @@ class ReservasPanel(ttk.Frame):
         if self.reserva_service:
             reservas = self.reserva_service.listar_reservas()
             for reserva in reservas:
-                if filtro in str(reserva.usuario).lower():
-                    self.tree.insert("", "end", values=(reserva.id, reserva.sala, reserva.usuario, reserva.fecha, reserva.hora))
+                if filtro in str(reserva["usuario"]).lower():
+                    self.tree.insert("", "end", values=(
+                        reserva["id"], reserva["sala"], reserva["usuario"], reserva["fecha"], reserva["hora"]
+                    ))
 
     def nueva_reserva(self):
-        def refrescar():
+        def on_save(sala, usuario, fecha, hora):
+            self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
             self.cargar_reservas()
-        # Obtener listas de nombres de salas y usuarios usando el mediator
-        salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
-        usuarios = [u["nombre"] for u in self.mediator.user_service.listar_usuarios()]
-        NuevaReservaDialog(self, self.reserva_service, salas, usuarios, on_success=refrescar)
+        NuevaReservaDialog(self, self.sala_service, self.user_service, on_save=on_save)
 
     def eliminar_reserva(self):
         selected = self.tree.selection()

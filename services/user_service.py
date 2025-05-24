@@ -25,10 +25,11 @@ class UserService(Observable):
         return [User(username, data["role"]) for username, data in self.usuarios.items()]
 
     # Métodos para observer
-    def crear_usuario(self, username, password, role):
-        if username not in self.usuarios:
-            self.usuarios[username] = {"password": password, "role": role}
-            self.notify_observers(event="usuario_creado", data=username)
+    def crear_usuario(self, username, role):
+        self.usuarios[username] = {"password": "default123", "role": role}
+        nuevo_usuario = User(username=username, role=role)
+        self.notify_observers(event="usuario_creado", data=nuevo_usuario)
+        return nuevo_usuario
 
     def eliminar_usuario(self, username):
         if username in self.usuarios:

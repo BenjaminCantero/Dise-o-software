@@ -28,7 +28,7 @@ class MisReservasPanel(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
         fecha_filtro = self.fecha_entry.get().strip()
-        reservas = self.reserva_service.obtener_reservas_por_usuario(self.user["id"])
+        reservas = self.reserva_service.obtener_reservas_por_usuario(self.user.username)
         for reserva in reservas:
             if fecha_filtro and reserva["fecha"] != fecha_filtro:
                 continue
