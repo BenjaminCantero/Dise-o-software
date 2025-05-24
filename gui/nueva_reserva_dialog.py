@@ -1,72 +1,102 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from gui.nueva_reserva_dialog import NuevaReservaDialog
+
+class ReservaApp(tk.Tk):
+    def __init__(self, reserva_service, mediator, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reserva_service = reserva_service
+        self.mediator = mediator
+        self.title("Reservas")
+        self.geometry("800x600")
+        self.configure(bg="#232946")
+
+        # Marco principal con sombra
+        shadow = tk.Frame(self, bg="#1a1a2e")
+        shadow.pack(fill="both", expand=True, padx=10, pady=10)
+        frame = tk.Frame(shadow, bg="#f4f4f8")
+        frame.pack(fill="both", expand=True)
+
+        # Título
+        title = tk.Label(frame, text="Gestión de Reservas", font=("Arial", 24, "bold"), bg="#f4f4f8", fg="#232946")
+        title.pack(pady=(20, 10))
+
+        # Botón de nueva reserva
+        style = ttk.Style()
+        style.configure("NuevaReserva.TButton", font=("Arial", 12, "bold"), background="#eebbc3", foreground="#232946", padding=8)
+        style.map("NuevaReserva.TButton",
+                  background=[("active", "#eebbc3")],
+                  foreground=[("active", "#232946")])
+
+        nueva_reserva_btn = ttk.Button(frame, text="Nueva Reserva", style="NuevaReserva.TButton", command=self.nueva_reserva)
+        nueva_reserva_btn.pack(pady=(0, 20), ipadx=8, ipady=2)
+
+        # Tabla de reservas
+        self.reservas_tree = None
+        self.cargar_reservas()
+
+    def nueva_reserva(self):
+        # Obtén las listas de nombres de salas y usuarios
+        salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
+        usuarios = [u["nombre"] for u in self.mediator.user_service.listar_usuarios()]
+        NuevaReservaDialog(self, self.reserva_service, salas, usuarios, on_success=self.cargar_reservas)
+
+    def cargar_reservas(self):
+        # Implementa la carga de reservas en la tabla
+        pass
 
 class NuevaReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva_service, on_success=None):
+    def __init__(self, parent, reserva_service, salas, usuarios, on_success=None):
         super().__init__(parent)
         self.title("Nueva Reserva")
-        self.geometry("420x370")
+        self.geometry("370x350")
         self.reserva_service = reserva_service
         self.on_success = on_success
         self.configure(bg="#232946")
 
-        # Marco central con sombra
-        shadow = tk.Frame(self, bg="#1a1a2e")
-        shadow.place(relx=0.5, rely=0.5, anchor="center", width=340, height=270)
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
-        frame.place(relx=0.5, rely=0.5, anchor="center", width=330, height=260)
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=340, height=300)
 
-        # Título
-        title = tk.Label(frame, text="Nueva Reserva", font=("Arial", 18, "bold"), bg="#f4f4f8", fg="#232946")
-        title.pack(pady=(18, 10))
+        tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
+        self.sala_var = tk.StringVar()
+        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=salas, state="readonly", width=28)
+        self.sala_combo.pack(ipady=3)
 
-        # Sala
-        sala_label = tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946")
-        sala_label.pack(pady=(5, 0))
-        self.sala_entry = ttk.Entry(frame, width=26, font=("Arial", 11))
-        self.sala_entry.pack(ipady=3)
+        tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.usuario_var = tk.StringVar()
+        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=usuarios, state="readonly", width=28)
+        self.usuario_combo.pack(ipady=3)
 
-        # Usuario
-        usuario_label = tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946")
-        usuario_label.pack(pady=(10, 0))
-        self.usuario_entry = ttk.Entry(frame, width=26, font=("Arial", 11))
-        self.usuario_entry.pack(ipady=3)
-
-        # Fecha
-        fecha_label = tk.Label(frame, text="Fecha (YYYY-MM-DD):", font=("Arial", 12), bg="#f4f4f8", fg="#232946")
-        fecha_label.pack(pady=(10, 0))
-        self.fecha_entry = ttk.Entry(frame, width=26, font=("Arial", 11))
+        tk.Label(frame, text="Fecha (YYYY-MM-DD):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.fecha_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
         self.fecha_entry.pack(ipady=3)
 
-        # Hora
-        hora_label = tk.Label(frame, text="Hora (HH:MM):", font=("Arial", 12), bg="#f4f4f8", fg="#232946")
-        hora_label.pack(pady=(10, 0))
-        self.hora_entry = ttk.Entry(frame, width=26, font=("Arial", 11))
+        tk.Label(frame, text="Hora:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.hora_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
         self.hora_entry.pack(ipady=3)
 
-        # Botón de crear reserva
-        style = ttk.Style()
-        style.configure("Reserva.TButton", font=("Arial", 12, "bold"), background="#eebbc3", foreground="#232946", padding=8)
-        style.map("Reserva.TButton",
-                  background=[("active", "#eebbc3")],
-                  foreground=[("active", "#232946")])
+        btn_frame = tk.Frame(frame, bg="#f4f4f8")
+        btn_frame.pack(pady=18)
+        ttk.Button(btn_frame, text="Guardar", command=self.guardar).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Cancelar", command=self.destroy).pack(side="left", padx=8)
 
-        crear_btn = ttk.Button(frame, text="Crear Reserva", style="Reserva.TButton", command=self.crear_reserva)
-        crear_btn.pack(pady=18, ipadx=8, ipady=2)
+        self.bind("<Return>", lambda event: self.guardar())
+        self.fecha_entry.focus_set()
 
-        self.bind("<Return>", lambda event: self.crear_reserva())
-        self.sala_entry.focus_set()
-
-    def crear_reserva(self):
-        sala = self.sala_entry.get().strip()
-        usuario = self.usuario_entry.get().strip()
+    def guardar(self):
+        sala = self.sala_var.get().strip()
+        usuario = self.usuario_var.get().strip()
         fecha = self.fecha_entry.get().strip()
         hora = self.hora_entry.get().strip()
         if not sala or not usuario or not fecha or not hora:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
-        if self.reserva_service:
-            self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
-            if self.on_success:
-                self.on_success()
-            self.destroy()
+        # Aquí deberías crear la reserva usando tu servicio
+        self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
+        if self.on_success:
+            self.on_success()
+        self.destroy()
+
+if __name__ == "__main__":
+    app = ReservaApp(reserva_service=None, mediator=None)
+    app.mainloop()

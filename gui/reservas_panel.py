@@ -98,7 +98,10 @@ class ReservasPanel(ttk.Frame):
     def nueva_reserva(self):
         def refrescar():
             self.cargar_reservas()
-        NuevaReservaDialog(self, self.reserva_service, on_success=refrescar)
+        # Obtener listas de nombres de salas y usuarios usando el mediator
+        salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
+        usuarios = [u["nombre"] for u in self.mediator.user_service.listar_usuarios()]
+        NuevaReservaDialog(self, self.reserva_service, salas, usuarios, on_success=refrescar)
 
     def eliminar_reserva(self):
         selected = self.tree.selection()
