@@ -3,13 +3,24 @@ from tkinter import ttk
 from gui.nueva_reserva_dialog import NuevaReservaDialog
 
 class ReservasPanel(ttk.Frame):
-    def __init__(self, parent, reserva_service=None, mediator=None):
+    def __init__(self, parent, reserva_service, mediator=None):
         super().__init__(parent)
         self.reserva_service = reserva_service
         self.mediator = mediator
-        self.configure(style="Panel.TFrame")
-        self.pack(fill="both", expand=True)
+        self.reserva_service.add_observer(self)
         self.create_widgets()
+
+    #patron observer#
+    
+    def update(self, event, data):
+        # Se llama automáticamente cuando el servicio notifica un cambio
+        if event in ("reserva_creada", "reserva_eliminada"):
+            self.cargar_reservas()  # Método que refresca la tabla de reservas
+
+    def destroy(self):
+        # Importante: quitar el observer al cerrar el panel
+        self.reserva_service.remove_observer(self)
+        super().destroy()
 
     def create_widgets(self):
         # Estilos coherentes

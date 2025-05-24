@@ -6,9 +6,22 @@ class AdminPanel(ttk.Frame):
         super().__init__(parent)
         self.user_service = user_service
         self.mediator = mediator
+        # Registrar como observer del servicio de usuarios
+        if self.user_service:
+            self.user_service.add_observer(self)
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
         self.create_widgets()
+
+    # Patrón Observer
+    def update(self, event, data):
+        if event in ("usuario_creado", "usuario_eliminado", "usuario_editado"):
+            self.cargar_usuarios()
+
+    def destroy(self):
+        if self.user_service:
+            self.user_service.remove_observer(self)
+        super().destroy()
 
     def create_widgets(self):
         style = ttk.Style()

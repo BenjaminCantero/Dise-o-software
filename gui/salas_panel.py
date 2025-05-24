@@ -2,13 +2,22 @@ import tkinter as tk
 from tkinter import ttk
 
 class SalasPanel(ttk.Frame):
-    def __init__(self, parent, sala_service=None, mediator=None):
+    def __init__(self, parent, sala_service, mediator=None):
         super().__init__(parent)
         self.sala_service = sala_service
         self.mediator = mediator
-        self.configure(style="Panel.TFrame")
-        self.pack(fill="both", expand=True)
+        self.sala_service.add_observer(self)
         self.create_widgets()
+
+    #patron observer#
+
+    def update(self, event, data):
+        if event in ("sala_creada", "sala_eliminada", "sala_editada"):
+            self.cargar_salas()
+
+    def destroy(self):
+        self.sala_service.remove_observer(self)
+        super().destroy()
 
     def create_widgets(self):
         # Estilos coherentes

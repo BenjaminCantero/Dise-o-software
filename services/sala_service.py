@@ -1,5 +1,8 @@
-class SalaService:
+from core.observable import Observable
+
+class SalaService(Observable):
     def __init__(self):
+        super().__init__()
         # Aquí puedes inicializar una lista de salas o conectar con el repositorio
         self.salas = []
 

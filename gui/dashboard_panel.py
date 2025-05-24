@@ -7,8 +7,43 @@ class DashboardPanel(ttk.Frame):
         self.sala_service = sala_service
         self.reserva_service = reserva_service
         self.user_service = user_service
+
+        # Registrar como observer de los servicios
+        if self.sala_service:
+            self.sala_service.add_observer(self)
+        if self.reserva_service:
+            self.reserva_service.add_observer(self)
+        if self.user_service:
+            self.user_service.add_observer(self)
+
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
+        self.create_widgets()
+
+    # Patrón Observer
+    def update(self, event, data):
+        # Si hay cambios en salas, reservas o usuarios, refresca el dashboard
+        if event in (
+            "sala_creada", "sala_eliminada", "sala_editada",
+            "reserva_creada", "reserva_eliminada",
+            "usuario_creado", "usuario_eliminado", "usuario_editado"
+        ):
+            self.refrescar_dashboard()
+
+    def destroy(self):
+        # Quitar el observer al cerrar el panel
+        if self.sala_service:
+            self.sala_service.remove_observer(self)
+        if self.reserva_service:
+            self.reserva_service.remove_observer(self)
+        if self.user_service:
+            self.user_service.remove_observer(self)
+        super().destroy()
+
+    def refrescar_dashboard(self):
+        # Elimina widgets y vuelve a crear el dashboard actualizado
+        for widget in self.winfo_children():
+            widget.destroy()
         self.create_widgets()
 
     def create_widgets(self):
