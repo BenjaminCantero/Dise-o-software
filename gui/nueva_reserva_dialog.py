@@ -114,7 +114,11 @@ class NuevaReservaDialog(tk.Toplevel):
         # Guardar la reserva si todo está bien
         sala = self.sala_var.get().strip()
         usuario = self.usuario_var.get().strip()
-        self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
+        try:
+            self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
+        except Exception as e:
+            messagebox.showerror("Conflicto", str(e))
+            return
         messagebox.showinfo("Éxito", "Reserva guardada correctamente")
         if self.on_success:
             self.on_success(sala, usuario, fecha, hora)

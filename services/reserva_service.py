@@ -10,6 +10,11 @@ class ReservaService(Observable):
         return self.reservas
 
     def crear_reserva(self, sala, usuario, fecha, hora):
+        # Verifica si ya existe una reserva para la misma sala, fecha y hora
+        for r in self.reservas:
+            if r["sala"] == sala and r["fecha"] == fecha and r["hora"] == hora:
+                # Lanza una excepción para que el formulario la capture
+                raise Exception("La sala ya está reservada en ese horario.")
         reserva = {
             "id": len(self.reservas) + 1,
             "sala": sala,
