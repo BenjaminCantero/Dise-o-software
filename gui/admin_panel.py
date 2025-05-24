@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
+from gui.editar_usuario_dialog import EditarUsuarioDialog
 
 class AdminPanel(ttk.Frame):
     def __init__(self, parent, user_service=None, mediator=None):
@@ -88,6 +90,7 @@ class AdminPanel(ttk.Frame):
         btn_frame.pack(pady=10)
         ttk.Button(btn_frame, text="Crear Usuario", style="Panel.TButton", width=18, command=self.crear_usuario).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.eliminar_usuario).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
 
         self.cargar_usuarios()
 
@@ -106,6 +109,22 @@ class AdminPanel(ttk.Frame):
     def eliminar_usuario(self):
         selected = self.tree.selection()
         if selected and self.user_service:
-            username = self.tree.item(selected[0])["values"][0]
-            # Aquí deberías llamar a un método para eliminar el usuario
-            tk.messagebox.showinfo("Eliminar usuario", f"Funcionalidad para eliminar '{username}' pendiente de implementar.")
+            respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar este usuario?")
+            if respuesta:
+                user_id = self.tree.item(selected[0])["values"][0]
+                self.user_service.eliminar_usuario(user_id)
+                self.cargar_usuarios()
+
+    def editar_usuario(self):
+        selected = self.tree.selection()
+        if selected and self.user_service:
+            user_id = self.tree.item(selected[0])["values"][0]
+            usuario = next((u for u in self.user_service.listar_usuarios() if u["id"] == user_id), None)
+            if usuario:
+                def on_save(nombre, correo, rol):
+                    usuario["nombre"] = nombre
+                    usuario["correo"] = correo
+                    usuario["role"] = rol
+                    self.user_service.notify_observers(event="usuario_editado", data=usuario)
+                    self.cargar_usuarios()
+                EditarUsuarioDialog(self, usuario, on_save=on_save)

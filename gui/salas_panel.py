@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
+from gui.editar_sala_dialog import EditarSalaDialog
 
 class SalasPanel(ttk.Frame):
     def __init__(self, parent, sala_service, mediator=None):
@@ -94,15 +96,26 @@ class SalasPanel(ttk.Frame):
 
     def editar_sala(self):
         selected = self.tree.selection()
-        if selected and self.mediator:
+        if selected and self.sala_service:
             sala_id = self.tree.item(selected[0])["values"][0]
-            self.mediator.notify(self, "editar_sala", data=sala_id)
+            sala = next((s for s in self.sala_service.listar_salas() if s["id"] == sala_id), None)
+            if sala:
+                def on_save(nombre, capacidad, estado):
+                    sala["nombre"] = nombre
+                    sala["capacidad"] = capacidad
+                    sala["estado"] = estado
+                    # Aquí deberías notificar a los observers si usas base de datos
+                    self.sala_service.notify_observers(event="sala_editada", data=sala)
+                    self.cargar_salas()
+                EditarSalaDialog(self, sala, on_save=on_save)
 
     def eliminar_sala(self):
         selected = self.tree.selection()
         if selected and self.sala_service:
-            sala_id = self.tree.item(selected[0])["values"][0]
-            self.sala_service.eliminar_sala(sala_id)
-            self.cargar_salas()
-            if self.mediator:
-                self.mediator.notify(self, "sala_eliminada")
+            respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta sala?")
+            if respuesta:
+                sala_id = self.tree.item(selected[0])["values"][0]
+                self.sala_service.eliminar_sala(sala_id)
+                self.cargar_salas()
+                if self.mediator:
+                    self.mediator.notify(self, "sala_eliminada")

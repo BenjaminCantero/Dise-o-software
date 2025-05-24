@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from gui.nueva_reserva_dialog import NuevaReservaDialog
+from gui.editar_reserva_dialog import EditarReservaDialog
 
 class ReservasPanel(ttk.Frame):
     def __init__(self, parent, reserva_service, mediator=None):
@@ -69,6 +71,7 @@ class ReservasPanel(ttk.Frame):
         btn_frame.pack(pady=5)
         ttk.Button(btn_frame, text="Nueva Reserva", style="Panel.TButton", command=self.nueva_reserva, width=18).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Eliminar Reserva", style="Panel.TButton", command=self.eliminar_reserva, width=18).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Editar Reserva", style="Panel.TButton", command=self.editar_reserva, width=18).pack(side="left", padx=8)
 
         self.cargar_reservas()
 
@@ -98,11 +101,30 @@ class ReservasPanel(ttk.Frame):
         NuevaReservaDialog(self, self.reserva_service, on_success=refrescar)
 
     def eliminar_reserva(self):
-        # Elimina la reserva seleccionada
+        selected = self.tree.selection()
+        if selected and self.reserva_service:
+            respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta reserva?")
+            if respuesta:
+                reserva_id = self.tree.item(selected[0])["values"][0]
+                self.reserva_service.eliminar_reserva(reserva_id)
+                self.cargar_reservas()
+                if self.mediator:
+                    self.mediator.notify(self, "reserva_eliminada")
+
+    def editar_reserva(self):
         selected = self.tree.selection()
         if selected and self.reserva_service:
             reserva_id = self.tree.item(selected[0])["values"][0]
-            self.reserva_service.eliminar_reserva(reserva_id)
-            self.cargar_reservas()
-            if self.mediator:
-                self.mediator.notify(self, "reserva_eliminada")
+            reserva = next((r for r in self.reserva_service.listar_reservas() if r["id"] == reserva_id), None)
+            if reserva:
+                # Obtener listas de salas y usuarios para los combobox
+                salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
+                usuarios = [u["nombre"] for u in self.mediator.user_service.listar_usuarios()]
+                def on_save(sala, usuario, fecha, hora):
+                    reserva["sala"] = sala
+                    reserva["usuario"] = usuario
+                    reserva["fecha"] = fecha
+                    reserva["hora"] = hora
+                    self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
+                    self.cargar_reservas()
+                EditarReservaDialog(self, reserva, salas, usuarios, on_save=on_save)
