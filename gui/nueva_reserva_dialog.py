@@ -85,13 +85,11 @@ class NuevaReservaDialog(tk.Toplevel):
     def guardar(self):
         error = False
 
-        # Resetear colores
         self.sala_combo.configure(background="white")
         self.usuario_combo.configure(background="white")
         self.fecha_entry.configure(background="white")
         self.hora_entry.configure(background="white")
 
-        # Validar campos
         if not self.sala_var.get():
             self.sala_combo.configure(background="#ffcccc")
             error = True

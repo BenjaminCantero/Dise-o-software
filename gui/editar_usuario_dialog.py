@@ -39,11 +39,9 @@ class EditarUsuarioDialog(tk.Toplevel):
     def guardar(self):
         error = False
 
-        # Resetear colores
         self.nombre_entry.configure(background="white")
         self.correo_entry.configure(background="white")
 
-        # Validar campos
         if not self.nombre_entry.get().strip():
             self.nombre_entry.configure(background="#ffcccc")
             error = True
@@ -58,7 +56,7 @@ class EditarUsuarioDialog(tk.Toplevel):
         nombre = self.nombre_entry.get().strip()
         correo = self.correo_entry.get().strip()
         rol = self.rol_var.get()
-        messagebox.showinfo("Éxito", "Usuario guardado correctamente")
         if self.on_save:
             self.on_save(nombre, correo, rol)
+        messagebox.showinfo("Éxito", "Usuario guardado correctamente")  # Mensaje de éxito
         self.destroy()

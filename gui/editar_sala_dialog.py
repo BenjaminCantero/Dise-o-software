@@ -39,11 +39,9 @@ class EditarSalaDialog(tk.Toplevel):
     def guardar(self):
         error = False
 
-        # Resetear colores
         self.nombre_entry.configure(background="white")
         self.capacidad_entry.configure(background="white")
 
-        # Validar campos
         if not self.nombre_entry.get().strip():
             self.nombre_entry.configure(background="#ffcccc")
             error = True
