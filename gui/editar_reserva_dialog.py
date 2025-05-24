@@ -78,6 +78,7 @@ class EditarReservaDialog(tk.Toplevel):
         usuario = self.usuario_var.get().strip()
         if self.on_save:
             self.on_save(sala, usuario, fecha, hora)
+            messagebox.showinfo("Éxito", "Reserva editada correctamente")
         self.destroy()
 
 def es_fecha_valida(fecha_str):
