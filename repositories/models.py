@@ -7,7 +7,7 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
-    role = Column(String, default="usuario")  # <--- Agrega esta línea
+    role = Column(String, default="estudiante")  # Puede ser 'admin', 'profesor' o 'estudiante'
     reservas = relationship("Reserva", back_populates="usuario")
 
 class Sala(Base):
