@@ -31,3 +31,6 @@ def eliminar_usuario(db: Session, usuario_id: int):
         db.delete(usuario)
         db.commit()
     return usuario
+
+def buscar_usuario_por_email(db: Session, email: str):
+    return db.query(Usuario).filter(Usuario.email == email).first()
