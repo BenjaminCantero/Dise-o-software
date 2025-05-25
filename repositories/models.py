@@ -4,10 +4,10 @@ from .db import Base
 
 class Usuario(Base):
     __tablename__ = "usuarios"
-
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     username = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
+    reservas = relationship("Reserva", back_populates="usuario")
 
 class Sala(Base):
     __tablename__ = "salas"
@@ -19,12 +19,6 @@ class Sala(Base):
 
 class Reserva(Base):
     __tablename__ = "reservas"
-
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    sala_id = Column(Integer, ForeignKey("salas.id"), nullable=False)
-    fecha_inicio = Column(DateTime, nullable=False)
-    fecha_fin = Column(DateTime, nullable=False)
-
+    id = Column(Integer, primary_key=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     usuario = relationship("Usuario", back_populates="reservas")
-    sala = relationship("Sala", back_populates="reservas")
