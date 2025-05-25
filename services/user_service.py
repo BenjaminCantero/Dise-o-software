@@ -19,7 +19,7 @@ class UserService(Observable):
         }
 
     def autenticar(self, username, password):
-        usuario = user_repository.buscar_usuario_por_email(self.db, username)
+        usuario = user_repository.buscar_usuario_por_username(self.db, username)
         if usuario and usuario.password == password:
             return usuario
         return None

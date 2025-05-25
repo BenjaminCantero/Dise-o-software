@@ -6,9 +6,8 @@ class Usuario(Base):
     __tablename__ = "usuarios"
 
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    reservas = relationship("Reserva", back_populates="usuario")
+    username = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
 
 class Sala(Base):
     __tablename__ = "salas"
