@@ -38,16 +38,18 @@ class UserService(Observable):
         return nuevo_usuario
 
     def eliminar_usuario(self, username):
-        if username in self.usuarios:
-            del self.usuarios[username]
+        db = SessionLocal()
+        usuario_db = db.query(Usuario).filter_by(username=username).first()
+        if usuario_db:
+            db.delete(usuario_db)
+            db.commit()
             self.notify_observers(event="usuario_eliminado", data=username)
+        db.close()
 
-    def editar_usuario(self, username, role, password=None):
+    def editar_usuario(self, username, role):
         db = SessionLocal()
         usuario_db = db.query(Usuario).filter_by(username=username).first()
         if usuario_db:
             usuario_db.role = role
-            if password:
-                usuario_db.password = password
             db.commit()
         db.close()

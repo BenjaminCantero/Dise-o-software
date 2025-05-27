@@ -17,6 +17,7 @@ class Sala(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, unique=True, nullable=False)
     capacidad = Column(Integer, nullable=False)
+    estado = Column(String, nullable=False)  # <-- AGREGA ESTA LÍNEA
     reservas = relationship("Reserva", back_populates="sala")
 
 class Reserva(Base):

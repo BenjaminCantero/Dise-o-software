@@ -19,6 +19,7 @@ class EditarUsuarioDialog(tk.Toplevel):
         self.username_entry.delete(0, tk.END)
         if usuario:
             self.username_entry.insert(0, getattr(usuario, "username", ""))
+            self.username_entry.config(state="disabled")  # <-- agrega esta línea
 
         # Campo para contraseña solo al crear usuario
         self.password_entry = None
@@ -43,18 +44,10 @@ class EditarUsuarioDialog(tk.Toplevel):
     def guardar(self):
         username = self.username_entry.get()
         role = self.role_var.get()
-        # Si es creación, pide contraseña
-        if self.password_entry:
-            password = self.password_entry.get()
-            if not username or not password or not role:
-                messagebox.showerror("Error", "Todos los campos son obligatorios.")
-                return
-            if self.on_save:
-                self.on_save(username, password, role)
-        else:
-            if not username or not role:
-                messagebox.showerror("Error", "Todos los campos son obligatorios.")
-                return
-            if self.on_save:
-                self.on_save(username, role)
+        password = self.password_entry.get() if self.password_entry else None
+        if not username or not role or (self.password_entry and not password):
+            messagebox.showerror("Error", "Todos los campos son obligatorios.")
+            return
+        if self.on_save:
+            self.on_save(username, password, role)
         self.destroy()

@@ -107,11 +107,7 @@ class SalasPanel(ttk.Frame):
             sala = next((s for s in self.sala_service.listar_salas() if s["id"] == sala_id), None)
             if sala:
                 def on_save(nombre, capacidad, estado):
-                    sala["nombre"] = nombre
-                    sala["capacidad"] = capacidad
-                    sala["estado"] = estado
-                    # Aquí deberías notificar a los observers si usas base de datos
-                    self.sala_service.notify_observers(event="sala_editada", data=sala)
+                    self.sala_service.editar_sala(sala_id, nombre, capacidad, estado)
                     self.cargar_salas()
                 EditarSalaDialog(self, sala, on_save=on_save)
 
