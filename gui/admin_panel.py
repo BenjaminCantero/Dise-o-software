@@ -131,8 +131,11 @@ class AdminPanel(ttk.Frame):
             usuario = next((u for u in self.user_service.listar_usuarios() if u.username == user_id), None)
             if usuario:
                 def on_save(username, role):
-                    usuario.username = username
-                    usuario.role = role
-                    self.user_service.notify_observers(event="usuario_editado", data=usuario)
-                    self.cargar_usuarios()
+                    try:
+                        self.user_service.editar_usuario(username, role)
+                        self.user_service.notify_observers(event="usuario_editado", data=usuario)
+                        self.cargar_usuarios()
+                        messagebox.showinfo("Éxito", "Usuario editado correctamente.")
+                    except Exception as e:
+                        messagebox.showerror("Error", f"No se pudo editar el usuario: {e}")
                 EditarUsuarioDialog(self, usuario, on_save=on_save)

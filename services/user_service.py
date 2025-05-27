@@ -42,10 +42,12 @@ class UserService(Observable):
             del self.usuarios[username]
             self.notify_observers(event="usuario_eliminado", data=username)
 
-    def editar_usuario(self, username, password=None, role=None):
-        if username in self.usuarios:
+    def editar_usuario(self, username, role, password=None):
+        db = SessionLocal()
+        usuario_db = db.query(Usuario).filter_by(username=username).first()
+        if usuario_db:
+            usuario_db.role = role
             if password:
-                self.usuarios[username]["password"] = password
-            if role:
-                self.usuarios[username]["role"] = role
-            self.notify_observers(event="usuario_editado", data=username)
+                usuario_db.password = password
+            db.commit()
+        db.close()
