@@ -82,7 +82,7 @@ class SalasPanel(ttk.Frame):
         if self.sala_service:
             salas = self.sala_service.listar_salas()
             for sala in salas:
-                self.tree.insert("", "end", values=(sala.id, sala.nombre, sala.capacidad, sala.estado))
+                self.tree.insert("", "end", values=(sala["id"], sala["nombre"], sala["capacidad"], sala["estado"]))
 
     def filtrar_salas(self):
         filtro = self.search_var.get().strip().lower()
@@ -91,8 +91,8 @@ class SalasPanel(ttk.Frame):
         if self.sala_service:
             salas = self.sala_service.listar_salas()
             for sala in salas:
-                if filtro in str(sala.nombre).lower():
-                    self.tree.insert("", "end", values=(sala.id, sala.nombre, sala.capacidad, sala.estado))
+                if filtro in str(sala["nombre"]).lower():
+                    self.tree.insert("", "end", values=(sala["id"], sala["nombre"], sala["capacidad"], sala["estado"]))
 
     def nueva_sala(self):
         def on_save(nombre, capacidad):

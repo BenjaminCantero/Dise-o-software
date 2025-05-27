@@ -93,6 +93,24 @@ class MainWindow(tk.Frame):
         self.main_frame.pack(side="left", fill="both", expand=True)
         self.mostrar_bienvenida()
 
+        # Botones adicionales en la barra lateral
+        btn_font = ("Arial", 12)
+        btn_bg = "#eebbc3"
+        btn_fg = "#232946"
+
+        self.btn_reservas = tk.Button(
+            sidebar, text="🗓️ Reservas", font=btn_font, bg=btn_bg, fg=btn_fg,
+            relief="flat", command=self.ver_reservas
+        )
+        self.btn_reservas.pack(fill="x", pady=(20, 10), padx=20)
+
+        # Nuevo botón Horario
+        self.btn_horario = tk.Button(
+            sidebar, text="⏰ Horario", font=btn_font, bg=btn_bg, fg=btn_fg,
+            relief="flat", command=self.ver_horario  # Debes crear este método
+        )
+        self.btn_horario.pack(fill="x", pady=(0, 10), padx=20)
+
     def mostrar_bienvenida(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
@@ -121,10 +139,11 @@ class MainWindow(tk.Frame):
             reservas_panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
         else:
             reservas_panel = ReservasPanel(
-                self.main_frame,
-                self.mediator,
-                self.reserva_service,
-                on_volver=lambda: self.seleccionar_seccion("dashboard")
+                parent=self.main_frame,
+                mediator=self.mediator,
+                sala_service=self.sala_service,
+                user_service=self.user_service,
+                reserva_service=self.reserva_service
             )
         reservas_panel.pack(fill="both", expand=True)
 
@@ -174,3 +193,8 @@ class MainWindow(tk.Frame):
 
         if panel is not None:
             panel.pack(fill="both", expand=True)
+
+    def ver_horario(self):
+        # Aquí puedes poner la lógica para mostrar el horario
+        import tkinter.messagebox as msg
+        msg.showinfo("Horario", "Aquí se mostrará el horario.")

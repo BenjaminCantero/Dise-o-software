@@ -1,34 +1,26 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox
-from gui.nueva_reserva_dialog import NuevaReservaDialog
-from gui.editar_reserva_dialog import EditarReservaDialog
-from gui.salas_panel import SalasPanel  # Asegúrate de importar el panel de Salas
+from tkinter import messagebox, simpledialog
 
 class ReservasPanel(ttk.Frame):
-    def __init__(self, parent, mediator, reserva_service=None, sala_service=None, user_service=None, on_volver=None):
+    def __init__(self, parent, mediator, sala_service, user_service, reserva_service, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator
+        self.sala_service = sala_service
+        self.user_service = user_service
         self.reserva_service = reserva_service
-        self.sala_service = sala_service      # <--- AGREGA ESTO
-        self.user_service = user_service      # <--- Y ESTO
         self.on_volver = on_volver
         self.create_widgets()
 
-    #patron observer#
-    
     def update(self, event, data):
-        # Se llama automáticamente cuando el servicio notifica un cambio
         if event in ("reserva_creada", "reserva_eliminada"):
-            self.cargar_reservas()  # Método que refresca la tabla de reservas
+            self.cargar_reservas()
 
     def destroy(self):
-        # Importante: quitar el observer al cerrar el panel
         self.reserva_service.remove_observer(self)
         super().destroy()
 
     def create_widgets(self):
-        # Estilos coherentes
         style = ttk.Style()
         style.configure("Panel.TFrame", background="#f4f4f8")
         style.configure("PanelTitle.TLabel", font=("Arial", 18, "bold"), background="#f4f4f8", foreground="#232946")
@@ -103,10 +95,52 @@ class ReservasPanel(ttk.Frame):
                     ))
 
     def nueva_reserva(self):
-        def on_save(sala, usuario, fecha, hora):
+        # Obtener listas de salas y usuarios
+        salas = [s["nombre"] for s in self.sala_service.listar_salas()]
+        usuarios = [u.nombre for u in self.user_service.listar_usuarios()]
+
+        # Ventana de diálogo simple para ingresar los datos
+        dialog = tk.Toplevel(self)
+        dialog.title("Nueva Reserva")
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        tk.Label(dialog, text="Sala:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+        sala_var = tk.StringVar()
+        sala_cb = ttk.Combobox(dialog, textvariable=sala_var, values=salas, state="readonly")
+        sala_cb.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Label(dialog, text="Usuario:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+        usuario_var = tk.StringVar()
+        usuario_cb = ttk.Combobox(dialog, textvariable=usuario_var, values=usuarios, state="readonly")
+        usuario_cb.grid(row=1, column=1, padx=10, pady=5)
+
+        tk.Label(dialog, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
+        fecha_var = tk.StringVar()
+        tk.Entry(dialog, textvariable=fecha_var).grid(row=2, column=1, padx=10, pady=5)
+
+        tk.Label(dialog, text="Hora (HH:MM):").grid(row=3, column=0, padx=10, pady=5, sticky="e")
+        hora_var = tk.StringVar()
+        tk.Entry(dialog, textvariable=hora_var).grid(row=3, column=1, padx=10, pady=5)
+
+        def guardar():
+            sala = sala_var.get()
+            usuario = usuario_var.get()
+            fecha = fecha_var.get()
+            hora = hora_var.get()
+            if not sala or not usuario or not fecha or not hora:
+                messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
+                return
+            # Crear la reserva usando el servicio
             self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
+            messagebox.showinfo("Éxito", "Reserva creada correctamente.", parent=dialog)
+            dialog.destroy()
             self.cargar_reservas()
-        NuevaReservaDialog(self, self.sala_service, self.user_service, on_save=on_save)
+            if self.mediator:
+                self.mediator.notify(self, "reserva_creada")
+
+        ttk.Button(dialog, text="Guardar", command=guardar).grid(row=4, column=0, columnspan=2, pady=10)
+        dialog.wait_window()
 
     def eliminar_reserva(self):
         selected = self.tree.selection()
@@ -126,9 +160,8 @@ class ReservasPanel(ttk.Frame):
             reserva_id = self.tree.item(selected[0])["values"][0]
             reserva = next((r for r in self.reserva_service.listar_reservas() if r["id"] == reserva_id), None)
             if reserva:
-                # Obtener listas de salas y usuarios para los combobox
                 salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
-                usuarios = [u["nombre"] for u in self.mediator.user_service.listar_usuarios()]
+                usuarios = [u.nombre for u in self.mediator.user_service.listar_usuarios()]
                 def on_save(sala, usuario, fecha, hora):
                     reserva["sala"] = sala
                     reserva["usuario"] = usuario
@@ -136,7 +169,46 @@ class ReservasPanel(ttk.Frame):
                     reserva["hora"] = hora
                     self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
                     self.cargar_reservas()
-                EditarReservaDialog(self, reserva, salas, usuarios, on_save=on_save)
+                # Aquí podrías reutilizar el mismo diálogo de nueva reserva para editar
+                dialog = tk.Toplevel(self)
+                dialog.title("Editar Reserva")
+                dialog.grab_set()
+                dialog.resizable(False, False)
 
-        if seccion == "salas":
-            panel = SalasPanel(self.main_frame, self.mediator, self.sala_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
+                tk.Label(dialog, text="Sala:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+                sala_var = tk.StringVar(value=reserva["sala"])
+                sala_cb = ttk.Combobox(dialog, textvariable=sala_var, values=salas, state="readonly")
+                sala_cb.grid(row=0, column=1, padx=10, pady=5)
+
+                tk.Label(dialog, text="Usuario:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+                usuario_var = tk.StringVar(value=reserva["usuario"])
+                usuario_cb = ttk.Combobox(dialog, textvariable=usuario_var, values=usuarios, state="readonly")
+                usuario_cb.grid(row=1, column=1, padx=10, pady=5)
+
+                tk.Label(dialog, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
+                fecha_var = tk.StringVar(value=reserva["fecha"])
+                tk.Entry(dialog, textvariable=fecha_var).grid(row=2, column=1, padx=10, pady=5)
+
+                tk.Label(dialog, text="Hora (HH:MM):").grid(row=3, column=0, padx=10, pady=5, sticky="e")
+                hora_var = tk.StringVar(value=reserva["hora"])
+                tk.Entry(dialog, textvariable=hora_var).grid(row=3, column=1, padx=10, pady=5)
+
+                def guardar_cambios():
+                    sala = sala_var.get()
+                    usuario = usuario_var.get()
+                    fecha = fecha_var.get()
+                    hora = hora_var.get()
+                    if not sala or not usuario or not fecha or not hora:
+                        messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
+                        return
+                    reserva["sala"] = sala
+                    reserva["usuario"] = usuario
+                    reserva["fecha"] = fecha
+                    reserva["hora"] = hora
+                    self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
+                    messagebox.showinfo("Éxito", "Reserva editada correctamente.", parent=dialog)
+                    dialog.destroy()
+                    self.cargar_reservas()
+
+                ttk.Button(dialog, text="Guardar cambios", command=guardar_cambios).grid(row=4, column=0, columnspan=2, pady=10)
+                dialog.wait_window()
