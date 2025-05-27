@@ -76,7 +76,10 @@ class MainWindow(tk.Frame):
         reservas_btn = ttk.Button(nav_frame, text="📅 Reservas", style="Sidebar.TButton", command=self.ver_reservas)
         reservas_btn.pack(fill="x", pady=8, padx=30)
 
-        # Botón para salir del sistema
+        # Botón Horario entre Reservas y Salir
+        horario_btn = ttk.Button(nav_frame, text="⏰ Horario", style="Sidebar.TButton", command=self.ver_horario)
+        horario_btn.pack(fill="x", pady=8, padx=30)
+
         salir_btn = ttk.Button(nav_frame, text="🚪 Salir", style="Sidebar.TButton", command=self.salir_sistema)
         salir_btn.pack(fill="x", pady=8, padx=30)
 
@@ -92,24 +95,6 @@ class MainWindow(tk.Frame):
         self.main_frame = tk.Frame(self, bg="#f4f4f8")
         self.main_frame.pack(side="left", fill="both", expand=True)
         self.mostrar_bienvenida()
-
-        # Botones adicionales en la barra lateral
-        btn_font = ("Arial", 12)
-        btn_bg = "#eebbc3"
-        btn_fg = "#232946"
-
-        self.btn_reservas = tk.Button(
-            sidebar, text="🗓️ Reservas", font=btn_font, bg=btn_bg, fg=btn_fg,
-            relief="flat", command=self.ver_reservas
-        )
-        self.btn_reservas.pack(fill="x", pady=(20, 10), padx=20)
-
-        # Nuevo botón Horario
-        self.btn_horario = tk.Button(
-            sidebar, text="⏰ Horario", font=btn_font, bg=btn_bg, fg=btn_fg,
-            relief="flat", command=self.ver_horario  # Debes crear este método
-        )
-        self.btn_horario.pack(fill="x", pady=(0, 10), padx=20)
 
     def mostrar_bienvenida(self):
         for widget in self.main_frame.winfo_children():
@@ -195,6 +180,28 @@ class MainWindow(tk.Frame):
             panel.pack(fill="both", expand=True)
 
     def ver_horario(self):
-        # Aquí puedes poner la lógica para mostrar el horario
-        import tkinter.messagebox as msg
-        msg.showinfo("Horario", "Aquí se mostrará el horario.")
+        # Limpia el frame principal
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+
+        # Título
+        titulo = tk.Label(self.main_frame, text="Horario de Salas", font=("Arial", 18, "bold"))
+        titulo.pack(pady=20)
+
+        # Tabla de horarios
+        columns = ("sala", "horario", "profesor")
+        tree = ttk.Treeview(self.main_frame, columns=columns, show="headings")
+        tree.heading("sala", text="Sala")
+        tree.heading("horario", text="Horario")
+        tree.heading("profesor", text="Profesor")
+
+        # Ejemplo de datos (puedes reemplazarlo por datos reales)
+        ejemplo_datos = [
+            ("Sala 101", "08:00 - 10:00", "Prof. García"),
+            ("Sala 102", "10:00 - 12:00", "Prof. López"),
+            ("Sala 103", "12:00 - 14:00", "Prof. Pérez"),
+        ]
+        for fila in ejemplo_datos:
+            tree.insert("", "end", values=fila)
+
+        tree.pack(fill="both", expand=True, padx=40, pady=10)
