@@ -4,27 +4,34 @@ from tkinter import ttk, messagebox
 class EditarUsuarioDialog(tk.Toplevel):
     def __init__(self, parent, usuario, on_save=None):
         super().__init__(parent)
-        self.title("Editar Usuario")
-        self.geometry("350x240")
+        self.title("Editar Usuario" if usuario else "Crear Usuario")
+        self.geometry("350x280")
         self.usuario = usuario
         self.on_save = on_save
         self.configure(bg="#232946")
 
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
-        frame.place(relx=0.5, rely=0.5, anchor="center", width=320, height=180)
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=320, height=220)
 
         tk.Label(frame, text="Nombre:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
-        self.nombre_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
-        self.nombre_entry.pack(ipady=3)
-        self.nombre_entry.delete(0, tk.END)
-        # Al mostrar datos existentes
+        self.username_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
+        self.username_entry.pack(ipady=3)
+        self.username_entry.delete(0, tk.END)
         if usuario:
-            self.nombre_entry.insert(0, getattr(usuario, "username", ""))
+            self.username_entry.insert(0, getattr(usuario, "username", ""))
+            self.username_entry.config(state="disabled")  # <-- agrega esta línea
+
+        # Campo para contraseña solo al crear usuario
+        self.password_entry = None
+        if not usuario:
+            tk.Label(frame, text="Contraseña:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+            self.password_entry = ttk.Entry(frame, width=24, font=("Arial", 11), show="*")
+            self.password_entry.pack(ipady=3)
 
         tk.Label(frame, text="Rol:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.rol_var = tk.StringVar(value=getattr(usuario, "role", "estudiante") if usuario else "estudiante")
-        rol_combo = ttk.Combobox(frame, textvariable=self.rol_var, values=["admin", "profesor", "estudiante"], state="readonly", width=22)
-        rol_combo.pack(ipady=3)
+        self.role_var = tk.StringVar(value=getattr(usuario, "role", "estudiante") if usuario else "estudiante")
+        self.role_combo = ttk.Combobox(frame, textvariable=self.role_var, values=["admin", "profesor", "estudiante"], state="readonly", width=22)
+        self.role_combo.pack(ipady=3)
 
         btn_frame = tk.Frame(frame, bg="#f4f4f8")
         btn_frame.pack(pady=18)
@@ -32,24 +39,15 @@ class EditarUsuarioDialog(tk.Toplevel):
         ttk.Button(btn_frame, text="Cancelar", style="Panel.TButton", command=self.destroy).pack(side="left", padx=8)
 
         self.bind("<Return>", lambda event: self.guardar())
-        self.nombre_entry.focus_set()
+        self.username_entry.focus_set()
 
     def guardar(self):
-        error = False
-        self.nombre_entry.configure(background="white")
-
-        if not self.nombre_entry.get().strip():
-            self.nombre_entry.configure(background="#ffcccc")
-            error = True
-
-        if error:
-            messagebox.showerror("Error", "El nombre es obligatorio")
+        username = self.username_entry.get()
+        role = self.role_var.get()
+        password = self.password_entry.get() if self.password_entry else None
+        if not username or not role or (self.password_entry and not password):
+            messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
-
-        # Al guardar
-        username = self.nombre_entry.get().strip()
-        role = self.rol_var.get()
         if self.on_save:
-            self.on_save(username, role)
-        messagebox.showinfo("Éxito", "Usuario guardado correctamente")
+            self.on_save(username, password, role)
         self.destroy()

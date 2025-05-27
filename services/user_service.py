@@ -1,4 +1,6 @@
 from core.observable import Observable
+from repositories.db import SessionLocal
+from repositories.models import Usuario
 
 class User:
     def __init__(self, username, role):
@@ -8,38 +10,46 @@ class User:
 class UserService(Observable):
     def __init__(self):
         super().__init__()
-        # Usuarios de ejemplo
-        self.usuarios = {
-            "admin": {"password": "admin123", "role": "admin"},
-            "profesor": {"password": "prof123", "role": "profesor"},
-            "estudiante": {"password": "estu123", "role": "estudiante"},
-        }
 
     def autenticar(self, username, password):
-        user = self.usuarios.get(username)
-        if user and user["password"] == password:
-            return User(username, user["role"])
+        db = SessionLocal()
+        user_db = db.query(Usuario).filter_by(username=username, password=password).first()
+        db.close()
+        if user_db:
+            return User(user_db.username, user_db.role)
         return None
 
     def listar_usuarios(self):
-        return [User(username, data["role"]) for username, data in self.usuarios.items()]
+        db = SessionLocal()
+        usuarios_db = db.query(Usuario).all()
+        usuarios = [User(u.username, u.role) for u in usuarios_db]
+        db.close()
+        return usuarios
 
     # Métodos para observer
-    def crear_usuario(self, username, role):
-        self.usuarios[username] = {"password": "default123", "role": role}
-        nuevo_usuario = User(username=username, role=role)
+    def crear_usuario(self, username, password, role):
+        db = SessionLocal()
+        nuevo_usuario = Usuario(username=username, password=password, role=role)
+        db.add(nuevo_usuario)
+        db.commit()
+        db.refresh(nuevo_usuario)
+        db.close()
         self.notify_observers(event="usuario_creado", data=nuevo_usuario)
         return nuevo_usuario
 
     def eliminar_usuario(self, username):
-        if username in self.usuarios:
-            del self.usuarios[username]
+        db = SessionLocal()
+        usuario_db = db.query(Usuario).filter_by(username=username).first()
+        if usuario_db:
+            db.delete(usuario_db)
+            db.commit()
             self.notify_observers(event="usuario_eliminado", data=username)
+        db.close()
 
-    def editar_usuario(self, username, password=None, role=None):
-        if username in self.usuarios:
-            if password:
-                self.usuarios[username]["password"] = password
-            if role:
-                self.usuarios[username]["role"] = role
-            self.notify_observers(event="usuario_editado", data=username)
+    def editar_usuario(self, username, role):
+        db = SessionLocal()
+        usuario_db = db.query(Usuario).filter_by(username=username).first()
+        if usuario_db:
+            usuario_db.role = role
+            db.commit()
+        db.close()

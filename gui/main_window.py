@@ -76,7 +76,10 @@ class MainWindow(tk.Frame):
         reservas_btn = ttk.Button(nav_frame, text="📅 Reservas", style="Sidebar.TButton", command=self.ver_reservas)
         reservas_btn.pack(fill="x", pady=8, padx=30)
 
-        # Botón para salir del sistema
+        # Botón Horario entre Reservas y Salir
+        horario_btn = ttk.Button(nav_frame, text="⏰ Horario", style="Sidebar.TButton", command=self.ver_horario)
+        horario_btn.pack(fill="x", pady=8, padx=30)
+
         salir_btn = ttk.Button(nav_frame, text="🚪 Salir", style="Sidebar.TButton", command=self.salir_sistema)
         salir_btn.pack(fill="x", pady=8, padx=30)
 
@@ -121,10 +124,11 @@ class MainWindow(tk.Frame):
             reservas_panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
         else:
             reservas_panel = ReservasPanel(
-                self.main_frame,
-                self.mediator,
-                self.reserva_service,
-                on_volver=lambda: self.seleccionar_seccion("dashboard")
+                parent=self.main_frame,
+                mediator=self.mediator,
+                sala_service=self.sala_service,
+                user_service=self.user_service,
+                reserva_service=self.reserva_service
             )
         reservas_panel.pack(fill="both", expand=True)
 
@@ -174,3 +178,30 @@ class MainWindow(tk.Frame):
 
         if panel is not None:
             panel.pack(fill="both", expand=True)
+
+    def ver_horario(self):
+        # Limpia el frame principal
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+
+        # Título
+        titulo = tk.Label(self.main_frame, text="Horario de Salas", font=("Arial", 18, "bold"))
+        titulo.pack(pady=20)
+
+        # Tabla de horarios
+        columns = ("sala", "horario", "profesor")
+        tree = ttk.Treeview(self.main_frame, columns=columns, show="headings")
+        tree.heading("sala", text="Sala")
+        tree.heading("horario", text="Horario")
+        tree.heading("profesor", text="Profesor")
+
+        # Ejemplo de datos (puedes reemplazarlo por datos reales)
+        ejemplo_datos = [
+            ("Sala 101", "08:00 - 10:00", "Prof. García"),
+            ("Sala 102", "10:00 - 12:00", "Prof. López"),
+            ("Sala 103", "12:00 - 14:00", "Prof. Pérez"),
+        ]
+        for fila in ejemplo_datos:
+            tree.insert("", "end", values=fila)
+
+        tree.pack(fill="both", expand=True, padx=40, pady=10)

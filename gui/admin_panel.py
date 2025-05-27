@@ -96,18 +96,22 @@ class AdminPanel(ttk.Frame):
         self.cargar_usuarios()
 
     def cargar_usuarios(self):
-        for row in self.tree.get_children():
-            self.tree.delete(row)
         if self.user_service:
+            for row in self.tree.get_children():
+                self.tree.delete(row)
             usuarios = self.user_service.listar_usuarios()
             for usuario in usuarios:
                 self.tree.insert("", "end", values=(usuario.username, usuario.role))
 
     def crear_usuario(self):
-        def on_save(username, role):
-            nuevo_usuario = self.user_service.crear_usuario(username, role)
-            self.user_service.notify_observers(event="usuario_creado", data=nuevo_usuario)
-            self.cargar_usuarios()
+        def on_save(username, password, role):
+            try:
+                self.user_service.crear_usuario(username, password, role)
+                self.user_service.notify_observers(event="usuario_creado", data=username)
+                self.cargar_usuarios()
+                messagebox.showinfo("Éxito", "Usuario creado correctamente.")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo crear el usuario: {e}")
         EditarUsuarioDialog(self, None, on_save=on_save)
 
     def eliminar_usuario(self):
@@ -126,9 +130,12 @@ class AdminPanel(ttk.Frame):
             user_id = self.tree.item(selected[0])["values"][0]
             usuario = next((u for u in self.user_service.listar_usuarios() if u.username == user_id), None)
             if usuario:
-                def on_save(username, role):
-                    usuario.username = username
-                    usuario.role = role
-                    self.user_service.notify_observers(event="usuario_editado", data=usuario)
-                    self.cargar_usuarios()
+                def on_save(username, password, role):  # <-- acepta 3 argumentos
+                    try:
+                        self.user_service.editar_usuario(username, role)  # solo usas username y role
+                        self.user_service.notify_observers(event="usuario_editado", data=username)
+                        self.cargar_usuarios()
+                        messagebox.showinfo("Éxito", "Usuario editado correctamente.")
+                    except Exception as e:
+                        messagebox.showerror("Error", f"No se pudo editar el usuario: {e}")
                 EditarUsuarioDialog(self, usuario, on_save=on_save)
