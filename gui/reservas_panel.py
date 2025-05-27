@@ -1,6 +1,7 @@
+from tkcalendar import DateEntry  # Agrega esta importación
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox, simpledialog
+from tkinter import ttk, messagebox
+from datetime import datetime
 
 class ReservasPanel(ttk.Frame):
     def __init__(self, parent, mediator, sala_service, user_service, reserva_service, on_volver=None):
@@ -95,11 +96,9 @@ class ReservasPanel(ttk.Frame):
                     ))
 
     def nueva_reserva(self):
-        # Obtener listas de salas y usuarios
         salas = [s["nombre"] for s in self.sala_service.listar_salas()]
-        usuarios = [u.nombre for u in self.user_service.listar_usuarios()]
+        usuarios = [u.username for u in self.user_service.listar_usuarios()]
 
-        # Ventana de diálogo simple para ingresar los datos
         dialog = tk.Toplevel(self)
         dialog.title("Nueva Reserva")
         dialog.grab_set()
@@ -115,44 +114,64 @@ class ReservasPanel(ttk.Frame):
         usuario_cb = ttk.Combobox(dialog, textvariable=usuario_var, values=usuarios, state="readonly")
         usuario_cb.grid(row=1, column=1, padx=10, pady=5)
 
-        tk.Label(dialog, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
+        tk.Label(dialog, text="Fecha:").grid(row=2, column=0, padx=10, pady=5, sticky="e")
         fecha_var = tk.StringVar()
-        tk.Entry(dialog, textvariable=fecha_var).grid(row=2, column=1, padx=10, pady=5)
+        fecha_entry = DateEntry(dialog, textvariable=fecha_var, date_pattern="yyyy-mm-dd")
+        fecha_entry.grid(row=2, column=1, padx=10, pady=5)
 
-        tk.Label(dialog, text="Hora (HH:MM):").grid(row=3, column=0, padx=10, pady=5, sticky="e")
-        hora_var = tk.StringVar()
-        tk.Entry(dialog, textvariable=hora_var).grid(row=3, column=1, padx=10, pady=5)
+        tk.Label(dialog, text="Hora (24h):").grid(row=3, column=0, padx=10, pady=5, sticky="e")
+        hora_var = tk.StringVar(value="12")
+        spin_hora = tk.Spinbox(dialog, from_=0, to=23, wrap=True, textvariable=hora_var, width=5, format="%02.0f")
+        spin_hora.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+
+        tk.Label(dialog, text="Minuto:").grid(row=4, column=0, padx=10, pady=5, sticky="e")
+        minuto_var = tk.StringVar(value="00")
+        spin_minuto = tk.Spinbox(dialog, from_=0, to=59, wrap=True, textvariable=minuto_var, width=5, format="%02.0f")
+        spin_minuto.grid(row=4, column=1, padx=10, pady=5, sticky="w")
 
         def guardar():
             sala = sala_var.get()
             usuario = usuario_var.get()
             fecha = fecha_var.get()
             hora = hora_var.get()
-            if not sala or not usuario or not fecha or not hora:
+            minuto = minuto_var.get()
+            if not sala or not usuario or not fecha or not hora or not minuto:
                 messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
                 return
-            # Crear la reserva usando el servicio
-            self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
-            messagebox.showinfo("Éxito", "Reserva creada correctamente.", parent=dialog)
-            dialog.destroy()
-            self.cargar_reservas()
-            if self.mediator:
-                self.mediator.notify(self, "reserva_creada")
-
-        ttk.Button(dialog, text="Guardar", command=guardar).grid(row=4, column=0, columnspan=2, pady=10)
-        dialog.wait_window()
-
-    def eliminar_reserva(self):
-        selected = self.tree.selection()
-        if selected and self.reserva_service:
-            respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta reserva?")
-            if respuesta:
-                reserva_id = self.tree.item(selected[0])["values"][0]
-                self.reserva_service.eliminar_reserva(reserva_id)
-                messagebox.showinfo("Éxito", "Reserva eliminada correctamente")
+            try:
+                fecha_inicio = datetime.strptime(f"{fecha} {hora}:{minuto}", "%Y-%m-%d %H:%M")
+                # Por defecto, la reserva dura 1 hora
+                fecha_fin = fecha_inicio.replace(hour=fecha_inicio.hour + 1)
+            except Exception as e:
+                messagebox.showerror("Error", f"Formato de fecha u hora inválido: {e}", parent=dialog)
+                return
+            try:
+                self.reserva_service.crear_reserva(sala, usuario, fecha_inicio, fecha_fin)
+                messagebox.showinfo("Éxito", "Reserva creada correctamente.", parent=dialog)
+                dialog.destroy()
                 self.cargar_reservas()
                 if self.mediator:
-                    self.mediator.notify(self, "reserva_eliminada")
+                    self.mediator.notify(self, "reserva_creada")
+            except Exception as e:
+                messagebox.showerror("Error", str(e), parent=dialog)
+
+        ttk.Button(dialog, text="Guardar", command=guardar).grid(row=5, column=0, columnspan=2, pady=10)
+
+    def eliminar_reserva(self):
+        seleccion = self.tree.selection()
+        if not seleccion:
+            messagebox.showwarning("Advertencia", "Selecciona una reserva para eliminar.")
+            return
+        item = self.tree.item(seleccion[0])
+        reserva_id = item["values"][0]
+        confirm = messagebox.askyesno("Confirmar", "¿Estás seguro de que deseas eliminar la reserva seleccionada?")
+        if confirm:
+            try:
+                self.reserva_service.eliminar_reserva(reserva_id)
+                messagebox.showinfo("Éxito", "Reserva eliminada correctamente.")
+                self.cargar_reservas()
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
 
     def editar_reserva(self):
         selected = self.tree.selection()
@@ -160,8 +179,8 @@ class ReservasPanel(ttk.Frame):
             reserva_id = self.tree.item(selected[0])["values"][0]
             reserva = next((r for r in self.reserva_service.listar_reservas() if r["id"] == reserva_id), None)
             if reserva:
-                salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
-                usuarios = [u.nombre for u in self.mediator.user_service.listar_usuarios()]
+                salas = [s["nombre"] for s in self.sala_service.listar_salas()]
+                usuarios = [u.username for u in self.user_service.listar_usuarios()]
                 def on_save(sala, usuario, fecha, hora):
                     reserva["sala"] = sala
                     reserva["usuario"] = usuario
@@ -201,14 +220,19 @@ class ReservasPanel(ttk.Frame):
                     if not sala or not usuario or not fecha or not hora:
                         messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
                         return
-                    reserva["sala"] = sala
-                    reserva["usuario"] = usuario
-                    reserva["fecha"] = fecha
-                    reserva["hora"] = hora
-                    self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
-                    messagebox.showinfo("Éxito", "Reserva editada correctamente.", parent=dialog)
-                    dialog.destroy()
-                    self.cargar_reservas()
+                    try:
+                        fecha_inicio = datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M")
+                        fecha_fin = fecha_inicio.replace(hour=fecha_inicio.hour + 1)
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Formato de fecha u hora inválido: {e}", parent=dialog)
+                        return
+                    try:
+                        self.reserva_service.editar_reserva(reserva["id"], sala, usuario, fecha_inicio, fecha_fin)
+                        messagebox.showinfo("Éxito", "Reserva editada correctamente.", parent=dialog)
+                        dialog.destroy()
+                        self.cargar_reservas()
+                    except Exception as e:
+                        messagebox.showerror("Error", str(e), parent=dialog)
 
                 ttk.Button(dialog, text="Guardar cambios", command=guardar_cambios).grid(row=4, column=0, columnspan=2, pady=10)
                 dialog.wait_window()

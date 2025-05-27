@@ -51,4 +51,4 @@ class DashboardPanel(ttk.Frame):
     def __init__(self, parent, sala_service):
         super().__init__(parent)
         self.sala_service = sala_service
-        # ...
+        salas = [s["nombre"] for s in self.sala_service.listar_salas()]
