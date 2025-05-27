@@ -14,17 +14,17 @@ class EditarUsuarioDialog(tk.Toplevel):
         frame.place(relx=0.5, rely=0.5, anchor="center", width=320, height=180)
 
         tk.Label(frame, text="Nombre:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
-        self.nombre_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
-        self.nombre_entry.pack(ipady=3)
-        self.nombre_entry.delete(0, tk.END)
+        self.username_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
+        self.username_entry.pack(ipady=3)
+        self.username_entry.delete(0, tk.END)
         # Al mostrar datos existentes
         if usuario:
-            self.nombre_entry.insert(0, getattr(usuario, "username", ""))
+            self.username_entry.insert(0, getattr(usuario, "username", ""))
 
         tk.Label(frame, text="Rol:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.rol_var = tk.StringVar(value=getattr(usuario, "role", "estudiante") if usuario else "estudiante")
-        rol_combo = ttk.Combobox(frame, textvariable=self.rol_var, values=["admin", "profesor", "estudiante"], state="readonly", width=22)
-        rol_combo.pack(ipady=3)
+        self.role_var = tk.StringVar(value=getattr(usuario, "role", "estudiante") if usuario else "estudiante")
+        self.role_combo = ttk.Combobox(frame, textvariable=self.role_var, values=["admin", "profesor", "estudiante"], state="readonly", width=22)
+        self.role_combo.pack(ipady=3)
 
         btn_frame = tk.Frame(frame, bg="#f4f4f8")
         btn_frame.pack(pady=18)
@@ -32,23 +32,14 @@ class EditarUsuarioDialog(tk.Toplevel):
         ttk.Button(btn_frame, text="Cancelar", style="Panel.TButton", command=self.destroy).pack(side="left", padx=8)
 
         self.bind("<Return>", lambda event: self.guardar())
-        self.nombre_entry.focus_set()
+        self.username_entry.focus_set()
 
     def guardar(self):
-        error = False
-        self.nombre_entry.configure(background="white")
-
-        if not self.nombre_entry.get().strip():
-            self.nombre_entry.configure(background="#ffcccc")
-            error = True
-
-        if error:
-            messagebox.showerror("Error", "El nombre es obligatorio")
+        username = self.username_entry.get()
+        role = self.role_var.get()
+        if not username or not role:
+            messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
-
-        # Al guardar
-        username = self.nombre_entry.get().strip()
-        role = self.rol_var.get()
         if self.on_save:
             self.on_save(username, role)
         messagebox.showinfo("Éxito", "Usuario guardado correctamente")

@@ -104,10 +104,14 @@ class AdminPanel(ttk.Frame):
                 self.tree.insert("", "end", values=(usuario.username, usuario.role))
 
     def crear_usuario(self):
-        def on_save(username, role):
-            nuevo_usuario = self.user_service.crear_usuario(username, role)
-            self.user_service.notify_observers(event="usuario_creado", data=nuevo_usuario)
-            self.cargar_usuarios()
+        def on_save(username, password, role):
+            try:
+                self.user_service.crear_usuario(username, password, role)
+                self.user_service.notify_observers(event="usuario_creado", data=username)
+                self.cargar_usuarios()
+                messagebox.showinfo("Éxito", "Usuario creado correctamente.")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo crear el usuario: {e}")
         EditarUsuarioDialog(self, None, on_save=on_save)
 
     def eliminar_usuario(self):
