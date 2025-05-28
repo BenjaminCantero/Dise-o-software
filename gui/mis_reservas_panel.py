@@ -1,5 +1,7 @@
+from tkcalendar import DateEntry
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import ttk, messagebox
+import sqlite3
 
 class MisReservasPanel(ttk.Frame):
     def __init__(self, parent, reserva_service, user):
@@ -75,24 +77,66 @@ class MisReservasPanel(ttk.Frame):
         reserva = self.tree.item(seleccion[0])["values"]
         respuesta = messagebox.askyesno("Confirmar", "¿Seguro que deseas cancelar esta reserva?")
         if respuesta:
-            self.reserva_service.cancelar_reserva(self.user["id"], reserva[1], reserva[2])  # Ajusta según tu modelo
+            self.reserva_service.cancelar_reserva(self.user.id, reserva[1], reserva[2])
             messagebox.showinfo("Éxito", "Reserva cancelada.")
             self.cargar_reservas()
 
     def crear_reserva(self):
-        sala = simpledialog.askstring("Crear reserva", "Ingrese la sala:")
-        if not sala:
-            return
-        fecha = simpledialog.askstring("Crear reserva", "Ingrese la fecha (YYYY-MM-DD):")
-        if not fecha:
-            return
-        hora = simpledialog.askstring("Crear reserva", "Ingrese la hora (HH:MM):")
-        if not hora:
-            return
+        ventana = tk.Toplevel(self)
+        ventana.title("Crear reserva")
+        ventana.grab_set()
 
-        try:
-            self.reserva_service.crear_reserva(self.user["id"], sala, fecha, hora)
-            messagebox.showinfo("Éxito", "Reserva creada correctamente.")
-            self.cargar_reservas()
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo crear la reserva:\n{e}")
+        # --- Consulta las salas disponibles desde la base de datos ---
+        conn = sqlite3.connect("test.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, nombre FROM salas")  # Trae id y nombre
+        salas = cursor.fetchall()
+        conn.close()
+
+        sala_nombres = [row[1] for row in salas]
+
+        tk.Label(ventana, text="Sala:").grid(row=0, column=0, padx=10, pady=5)
+        sala_cb = ttk.Combobox(ventana, values=sala_nombres, state="readonly")
+        if sala_nombres:
+            sala_cb.set(sala_nombres[0])
+        sala_cb.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Label(ventana, text="Fecha:").grid(row=1, column=0, padx=10, pady=5)
+        fecha_entry = DateEntry(ventana, date_pattern="yyyy-mm-dd")
+        fecha_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        tk.Label(ventana, text="Hora:").grid(row=2, column=0, padx=10, pady=5)
+        horas = [f"{h:02d}" for h in range(8, 22)]
+        minutos = ["00", "15", "30", "45"]
+        hora_cb = ttk.Combobox(ventana, values=horas, width=3, state="readonly")
+        hora_cb.set(horas[0])
+        hora_cb.grid(row=2, column=1, sticky="w", padx=(10,0), pady=5)
+        min_cb = ttk.Combobox(ventana, values=minutos, width=3, state="readonly")
+        min_cb.set(minutos[0])
+        min_cb.grid(row=2, column=1, sticky="e", padx=(0,10), pady=5)
+
+        def confirmar():
+            sala_nombre = sala_cb.get()
+            fecha = fecha_entry.get()
+            hora = f"{hora_cb.get()}:{min_cb.get()}"
+            if not sala_nombre:
+                messagebox.showwarning("Faltan datos", "Seleccione la sala.")
+                return
+            # Busca el id de la sala seleccionada
+            sala_id = None
+            for row in salas:
+                if row[1] == sala_nombre:
+                    sala_id = row[0]
+                    break
+            if sala_id is None:
+                messagebox.showerror("Error", "No se encontró el ID de la sala seleccionada.")
+                return
+            try:
+                self.reserva_service.crear_reserva(self.user.id, sala_id, fecha, hora)
+                messagebox.showinfo("Éxito", "Reserva creada correctamente.")
+                self.cargar_reservas()
+                ventana.destroy()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo crear la reserva:\n{e}")
+
+        ttk.Button(ventana, text="Confirmar", command=confirmar).grid(row=3, column=0, columnspan=2, pady=10)
