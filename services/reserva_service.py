@@ -1,6 +1,7 @@
 from core.observable import Observable
 from repositories.db import SessionLocal
 from repositories.models import Reserva, Usuario, Sala
+from repositories.reserva_repository import obtener_reservas_por_usuario
 
 class ReservaService(Observable):
     def __init__(self):
@@ -72,7 +73,9 @@ class ReservaService(Observable):
         return len(self.reservas)
 
     def obtener_reservas_por_usuario(self, username):
-        return [reserva for reserva in self.reservas if reserva["usuario"] == username]
+        # Devuelve solo las reservas del usuario
+        todas = self.listar_reservas()
+        return [r for r in todas if r.get("usuario") == username]
 
     def editar_reserva(self, reserva_id, sala_nombre, usuario_username, fecha_inicio, fecha_fin):
         db = SessionLocal()

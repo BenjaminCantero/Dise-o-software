@@ -5,6 +5,7 @@ from gui.salas_panel import SalasPanel
 from gui.admin_panel import AdminPanel
 from gui.dashboard_panel import DashboardPanel
 from gui.mis_reservas_panel import MisReservasPanel
+from gui.horario_panel import HorarioPanel
 
 class MainWindow(tk.Frame):
     def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None, on_login=None):
@@ -180,28 +181,15 @@ class MainWindow(tk.Frame):
             panel.pack(fill="both", expand=True)
 
     def ver_horario(self):
-        # Limpia el frame principal
         for widget in self.main_frame.winfo_children():
             widget.destroy()
+        panel = HorarioPanel(self.main_frame, reserva_service=self.reserva_service, user=self.user)
+        panel.pack(fill="both", expand=True)
 
-        # Título
-        titulo = tk.Label(self.main_frame, text="Horario de Salas", font=("Arial", 18, "bold"))
-        titulo.pack(pady=20)
-
-        # Tabla de horarios
-        columns = ("sala", "horario", "profesor")
-        tree = ttk.Treeview(self.main_frame, columns=columns, show="headings")
-        tree.heading("sala", text="Sala")
-        tree.heading("horario", text="Horario")
-        tree.heading("profesor", text="Profesor")
-
-        # Ejemplo de datos (puedes reemplazarlo por datos reales)
-        ejemplo_datos = [
-            ("Sala 101", "08:00 - 10:00", "Prof. García"),
-            ("Sala 102", "10:00 - 12:00", "Prof. López"),
-            ("Sala 103", "12:00 - 14:00", "Prof. Pérez"),
-        ]
-        for fila in ejemplo_datos:
-            tree.insert("", "end", values=fila)
-
-        tree.pack(fill="both", expand=True, padx=40, pady=10)
+    def ver_mis_reservas(self):
+        # Elimina el panel actual si es necesario
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        # Crea el panel de reservas del usuario actual
+        panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
+        panel.pack(fill="both", expand=True)

@@ -6,10 +6,24 @@ class MisReservasPanel(ttk.Frame):
         super().__init__(parent)
         self.reserva_service = reserva_service
         self.user = user
+        # Registrar como observer
+        if self.reserva_service:
+            self.reserva_service.add_observer(self)
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
         self.create_widgets()
         self.cargar_reservas()
+
+    def update(self, event, data):
+        # Actualiza solo si el evento es relevante
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
+            self.cargar_reservas()
+
+    def destroy(self):
+        # Quitar el observer al cerrar el panel
+        if self.reserva_service:
+            self.reserva_service.remove_observer(self)
+        super().destroy()
 
     def create_widgets(self):
         style = ttk.Style()
@@ -59,11 +73,8 @@ class MisReservasPanel(ttk.Frame):
     def cargar_reservas(self):
         for row in self.tree.get_children():
             self.tree.delete(row)
-        fecha_filtro = self.fecha_entry.get().strip()
         reservas = self.reserva_service.obtener_reservas_por_usuario(self.user.username)
         for reserva in reservas:
-            if fecha_filtro and reserva["fecha"] != fecha_filtro:
-                continue
             self.tree.insert("", "end", values=(reserva["sala"], reserva["fecha"], reserva["hora"], reserva["estado"]))
 
     def limpiar_filtro(self):
