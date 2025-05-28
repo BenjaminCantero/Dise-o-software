@@ -19,7 +19,8 @@ class ReservaService(Observable):
                     "sala": r.sala.nombre if r.sala else "",
                     "usuario": r.usuario.username if r.usuario else "",
                     "fecha": r.fecha_inicio.strftime("%Y-%m-%d"),
-                    "hora": r.fecha_inicio.strftime("%H:%M")
+                    "hora": r.fecha_inicio.strftime("%H:%M"),
+                    "estado": r.estado if hasattr(r, "estado") else "N/A"  # <--- Añade esta línea
                 })
             return resultado
         finally:
