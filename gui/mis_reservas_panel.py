@@ -15,12 +15,10 @@ class MisReservasPanel(ttk.Frame):
         self.cargar_reservas()
 
     def update(self, event, data):
-        # Actualiza solo si el evento es relevante
         if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
             self.cargar_reservas()
 
     def destroy(self):
-        # Quitar el observer al cerrar el panel
         if self.reserva_service:
             self.reserva_service.remove_observer(self)
         super().destroy()
@@ -52,18 +50,39 @@ class MisReservasPanel(ttk.Frame):
         ttk.Button(filtro_frame, text="Buscar", style="Panel.TButton", command=self.cargar_reservas).pack(side="left", padx=5)
         ttk.Button(filtro_frame, text="Limpiar", style="Panel.TButton", command=self.limpiar_filtro).pack(side="left", padx=5)
 
-        # Tabla de reservas
+        # Tabla de reservas mejorada
         table_frame = ttk.Frame(self, style="Panel.TFrame")
-        table_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        table_frame.pack(fill="both", expand=True, padx=30, pady=20)
         columns = ("Sala", "Fecha", "Hora", "Estado")
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=10)
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, anchor="center", width=120)
+        self.tree = ttk.Treeview(
+            table_frame,
+            columns=columns,
+            show="headings",
+            height=12,
+            style="Custom.Treeview"
+        )
+        # Mejorar cabeceras y proporciones
+        self.tree.heading("Sala", text="Sala")
+        self.tree.heading("Fecha", text="Fecha")
+        self.tree.heading("Hora", text="Hora")
+        self.tree.heading("Estado", text="Estado")
+        self.tree.column("Sala", anchor="center", width=180, minwidth=120, stretch=True)
+        self.tree.column("Fecha", anchor="center", width=120, minwidth=90, stretch=True)
+        self.tree.column("Hora", anchor="center", width=120, minwidth=90, stretch=True)
+        self.tree.column("Estado", anchor="center", width=120, minwidth=90, stretch=True)
+
+        # Scrollbar vertical y horizontal
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscroll=vsb.set)
+        hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscroll=vsb.set, xscroll=hsb.set)
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
+        hsb.pack(side="bottom", fill="x")
+
+        # Alternar color de filas para mejor visualización
+        style.configure("Custom.Treeview", font=("Arial", 12), rowheight=28, background="#f4f4f8", fieldbackground="#f4f4f8")
+        style.map("Custom.Treeview", background=[("selected", "#eebbc3")])
+        style.configure("Custom.Treeview.Heading", font=("Arial", 13, "bold"), background="#eebbc3", foreground="#232946")
 
         # Botón de cancelar reserva
         btn_frame = ttk.Frame(self, style="Panel.TFrame")
@@ -74,8 +93,12 @@ class MisReservasPanel(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
         reservas = self.reserva_service.obtener_reservas_por_usuario(self.user.username)
-        for reserva in reservas:
-            self.tree.insert("", "end", values=(reserva["sala"], reserva["fecha"], reserva["hora"], reserva["estado"]))
+        for i, reserva in enumerate(reservas):
+            tags = ("evenrow",) if i % 2 == 0 else ("oddrow",)
+            self.tree.insert("", "end", values=(reserva["sala"], reserva["fecha"], reserva["hora"], reserva["estado"]), tags=tags)
+        # Colores alternos para filas
+        self.tree.tag_configure("evenrow", background="#f4f4f8")
+        self.tree.tag_configure("oddrow", background="#e6e6ef")
 
     def limpiar_filtro(self):
         self.fecha_entry.delete(0, tk.END)
