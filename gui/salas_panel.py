@@ -98,7 +98,7 @@ class SalasPanel(ttk.Frame):
         def on_save(nombre, capacidad):
             self.sala_service.crear_sala(nombre, capacidad)
             self.cargar_salas()
-        NuevaSalaDialog(self, on_save=on_save)
+        NuevaSalaDialog(self, sala_service=self.sala_service, on_success=on_save)
 
     def editar_sala(self):
         selected = self.tree.selection()
@@ -123,25 +123,3 @@ class SalasPanel(ttk.Frame):
                     self.mediator.notify(self, "sala_eliminada")
                 messagebox.showinfo("Éxito", "Sala eliminada correctamente")
 
-if __name__ == "__main__":
-    import sys
-    from mediator import Mediator
-    from services.sala_service import SalaService
-
-    app = tk.Tk()
-    app.title("Gestión de Salas")
-    app.geometry("800x600")
-
-    mediator = Mediator()
-    sala_service = SalaService()
-
-    panel = SalasPanel(
-        app,
-        mediator,
-        sala_service,
-        on_volver=lambda: (print("Volver al inicio"), None)[1]
-    )
-    panel.pack(fill="both", expand=True)
-
-    app.protocol("WM_DELETE_WINDOW", app.quit)
-    app.mainloop()
