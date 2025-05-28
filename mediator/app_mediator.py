@@ -1,4 +1,6 @@
-class AppMediator:
+from core.singleton import SingletonMeta
+
+class AppMediator(metaclass=SingletonMeta):
     """
     Mediador para coordinar la comunicación entre los diferentes componentes de la aplicación.
     Permite registrar componentes y notificar eventos entre ellos de forma desacoplada.
