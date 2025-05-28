@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 
 class MisReservasPanel(ttk.Frame):
     def __init__(self, parent, reserva_service, user):
@@ -22,7 +22,40 @@ class MisReservasPanel(ttk.Frame):
             self.tree.heading(col, text=col)
         self.tree.pack(fill="both", expand=True, pady=10)
 
-        ttk.Button(self, text="Cancelar reserva seleccionada", command=self.cancelar_reserva).pack(pady=5)
+        # Frame para los botones centrados
+        botones_frame = ttk.Frame(self)
+        botones_frame.pack(pady=15)
+
+        style = ttk.Style()
+        style.configure("Custom.TButton",
+            borderwidth=1,
+            relief="solid",
+            foreground="#1a1a2e",
+            background="#fff",
+            font=("Arial", 10, "bold")
+        )
+        style.map("Custom.TButton",
+            background=[("active", "#f8e1ea")],
+            bordercolor=[("!active", "#e3bfc7"), ("active", "#e3bfc7")]
+        )
+
+        cancelar_btn = ttk.Button(
+            botones_frame,
+            text="Cancelar reserva seleccionada",
+            command=self.cancelar_reserva,
+            width=25,
+            style="Custom.TButton"
+        )
+        cancelar_btn.pack(side="left", padx=10)
+
+        crear_btn = ttk.Button(
+            botones_frame,
+            text="Crear reserva",
+            command=self.crear_reserva,
+            width=15,
+            style="Custom.TButton"
+        )
+        crear_btn.pack(side="left", padx=10)
 
     def cargar_reservas(self):
         for row in self.tree.get_children():
@@ -45,3 +78,21 @@ class MisReservasPanel(ttk.Frame):
             self.reserva_service.cancelar_reserva(self.user["id"], reserva[1], reserva[2])  # Ajusta según tu modelo
             messagebox.showinfo("Éxito", "Reserva cancelada.")
             self.cargar_reservas()
+
+    def crear_reserva(self):
+        sala = simpledialog.askstring("Crear reserva", "Ingrese la sala:")
+        if not sala:
+            return
+        fecha = simpledialog.askstring("Crear reserva", "Ingrese la fecha (YYYY-MM-DD):")
+        if not fecha:
+            return
+        hora = simpledialog.askstring("Crear reserva", "Ingrese la hora (HH:MM):")
+        if not hora:
+            return
+
+        try:
+            self.reserva_service.crear_reserva(self.user["id"], sala, fecha, hora)
+            messagebox.showinfo("Éxito", "Reserva creada correctamente.")
+            self.cargar_reservas()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo crear la reserva:\n{e}")
