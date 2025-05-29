@@ -5,6 +5,7 @@ from gui.salas_panel import SalasPanel
 from gui.admin_panel import AdminPanel
 from gui.dashboard_panel import DashboardPanel
 from gui.mis_reservas_panel import MisReservasPanel
+from gui.horario_panel import HorarioPanel
 
 class MainWindow(tk.Frame):
     def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None, on_login=None):
@@ -34,29 +35,29 @@ class MainWindow(tk.Frame):
         menubar.add_cascade(label="Reservas", menu=reservas_menu)
         reservas_menu.add_command(label="Ver reservas", command=self.ver_reservas)
 
-        # Barra lateral mejorada y moderna
-        sidebar = tk.Frame(self, width=240, bg="#232946")
+        # Barra lateral moderna
+        sidebar = tk.Frame(self, width=250, bg="#232946")
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
         # Logo y nombre del sistema
         logo_frame = tk.Frame(sidebar, bg="#232946")
-        logo_frame.pack(pady=(30, 10))
-        logo_icon = tk.Label(logo_frame, text="🏢", font=("Arial", 38), bg="#232946", fg="#eebbc3")
+        logo_frame.pack(pady=(35, 12))
+        logo_icon = tk.Label(logo_frame, text="🏢", font=("Arial", 44), bg="#232946", fg="#eebbc3")
         logo_icon.pack()
-        logo_label = tk.Label(logo_frame, text="Smart-Rooms", font=("Arial", 20, "bold"), bg="#232946", fg="#eebbc3")
+        logo_label = tk.Label(logo_frame, text="Smart-Rooms", font=("Arial", 22, "bold"), bg="#232946", fg="#eebbc3")
         logo_label.pack()
 
         # Línea decorativa
-        tk.Frame(sidebar, bg="#eebbc3", height=2).pack(fill="x", padx=30, pady=(10, 20))
+        tk.Frame(sidebar, bg="#eebbc3", height=2).pack(fill="x", padx=30, pady=(12, 22))
 
         # Botones de navegación con iconos y estilos
         style = ttk.Style()
         style.configure("Sidebar.TButton",
-                        font=("Arial", 13, "bold"),
+                        font=("Arial", 14, "bold"),
                         foreground="#232946",
                         background="#eebbc3",
-                        padding=10,
+                        padding=12,
                         borderwidth=0)
         style.map("Sidebar.TButton",
                   background=[("active", "#eebbc3")],
@@ -76,7 +77,9 @@ class MainWindow(tk.Frame):
         reservas_btn = ttk.Button(nav_frame, text="📅 Reservas", style="Sidebar.TButton", command=self.ver_reservas)
         reservas_btn.pack(fill="x", pady=8, padx=30)
 
-        # Botón para salir del sistema
+        horario_btn = ttk.Button(nav_frame, text="⏰ Horario", style="Sidebar.TButton", command=self.ver_horario)
+        horario_btn.pack(fill="x", pady=8, padx=30)
+
         salir_btn = ttk.Button(nav_frame, text="🚪 Salir", style="Sidebar.TButton", command=self.salir_sistema)
         salir_btn.pack(fill="x", pady=8, padx=30)
 
@@ -98,10 +101,26 @@ class MainWindow(tk.Frame):
             widget.destroy()
         bienvenida_frame = tk.Frame(self.main_frame, bg="#f4f4f8")
         bienvenida_frame.pack(expand=True)
-        label = tk.Label(bienvenida_frame, text="Bienvenido a Smart-Rooms", font=("Arial", 26, "bold"), bg="#f4f4f8", fg="#232946")
-        label.pack(pady=40)
-        subtitulo = tk.Label(bienvenida_frame, text="Gestiona salas y reservas de manera inteligente.", font=("Arial", 15), bg="#f4f4f8", fg="#232946")
+        label = tk.Label(
+            bienvenida_frame,
+            text="Bienvenido a Smart-Rooms",
+            font=("Arial", 28, "bold"),
+            bg="#f4f4f8",
+            fg="#232946"
+        )
+        label.pack(pady=30)
+        subtitulo = tk.Label(
+            bienvenida_frame,
+            text="Smart-Rooms es una plataforma para la gestión inteligente de salas y reservas.\n"
+                 "Permite a estudiantes, profesores y administradores reservar espacios,\n"
+                 "consultar horarios y administrar recursos de manera eficiente y sencilla.",
+            font=("Arial", 15),
+            bg="#f4f4f8",
+            fg="#232946",
+            justify="center"
+        )
         subtitulo.pack(pady=10)
+        # Puedes agregar aquí más detalles, imágenes o instrucciones si lo deseas
 
     def ver_salas(self):
         for widget in self.main_frame.winfo_children():
@@ -121,10 +140,11 @@ class MainWindow(tk.Frame):
             reservas_panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
         else:
             reservas_panel = ReservasPanel(
-                self.main_frame,
-                self.mediator,
-                self.reserva_service,
-                on_volver=lambda: self.seleccionar_seccion("dashboard")
+                parent=self.main_frame,
+                mediator=self.mediator,
+                sala_service=self.sala_service,
+                user_service=self.user_service,
+                reserva_service=self.reserva_service
             )
         reservas_panel.pack(fill="both", expand=True)
 
@@ -174,3 +194,17 @@ class MainWindow(tk.Frame):
 
         if panel is not None:
             panel.pack(fill="both", expand=True)
+
+    def ver_horario(self):
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        panel = HorarioPanel(self.main_frame, reserva_service=self.reserva_service, user=self.user)
+        panel.pack(fill="both", expand=True)
+
+    def ver_mis_reservas(self):
+        # Elimina el panel actual si es necesario
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        # Crea el panel de reservas del usuario actual
+        panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
+        panel.pack(fill="both", expand=True)

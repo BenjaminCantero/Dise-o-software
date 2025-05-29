@@ -8,15 +8,16 @@ from services.reserva_service import ReservaService
 
 def main():
     root = tk.Tk()
-    root.withdraw()  # Oculta la ventana principal hasta que se loguee
+    root.withdraw()
+    root.state('zoomed')  # Pantalla completa al iniciar
 
     user_service = UserService()
-    sala_service = SalaService()         # <--- Instancia real
-    reserva_service = ReservaService()   # <--- Instancia real
+    sala_service = SalaService()         
+    reserva_service = ReservaService()   
     mediator = AppMediator()
 
     def on_login(user):
-        # Elimina cualquier ventana MainWindow anterior
+        
         for widget in root.winfo_children():
             widget.destroy()
         root.deiconify()
@@ -29,8 +30,8 @@ def main():
             user_service=user_service,
             on_login=on_login
         )
-        app.pack(fill="both", expand=True)  # <-- ¡Agrega esta línea!
-        # Guarda el callback para cerrar sesión
+        app.pack(fill="both", expand=True) 
+        
         app.on_login = on_login
 
     LoginWindow(root, user_service, on_login)
