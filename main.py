@@ -9,7 +9,7 @@ from services.reserva_service import ReservaService
 def main():
     root = tk.Tk()
     root.withdraw()
-    root.state('zoomed')  # Pantalla completa al iniciar
+    root.state('zoomed') 
 
     user_service = UserService()
     sala_service = SalaService()         
