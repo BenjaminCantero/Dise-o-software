@@ -31,3 +31,4 @@ class Reserva(Base):
 
     usuario = relationship("Usuario", back_populates="reservas")
     sala = relationship("Sala", back_populates="reservas")
+

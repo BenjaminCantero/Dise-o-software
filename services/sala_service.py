@@ -17,9 +17,9 @@ class SalaService(Observable):
         db.close()
         return salas
 
-    def crear_sala(self, nombre, capacidad):
+    def crear_sala(self, nombre, capacidad, estado="disponible"):
         db = SessionLocal()
-        nueva_sala = Sala(nombre=nombre, capacidad=capacidad, estado="disponible")
+        nueva_sala = Sala(nombre=nombre, capacidad=capacidad, estado=estado)
         db.add(nueva_sala)
         db.commit()
         db.refresh(nueva_sala)
