@@ -1,11 +1,13 @@
+# services/sala_service.py
 from repositories.db import SessionLocal
 from repositories.models import Sala
 from core.observable import Observable
-import tkinter.ttk as ttk
+from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
 
-class SalaService(Observable):
+class SalaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
     def __init__(self):
-        super().__init__()
+        super().__init__() # Inicialización de Observable
+        print("SalaService Singleton Inicializado") # Demuestra que __init__ se llama una vez
 
     def listar_salas(self):
         db = SessionLocal()
@@ -46,9 +48,3 @@ class SalaService(Observable):
             db.commit()
             self.notify_observers(event="sala_eliminada", data=sala_id)
         db.close()
-
-class DashboardPanel(ttk.Frame):
-    def __init__(self, parent, sala_service):
-        super().__init__(parent)
-        self.sala_service = sala_service
-        salas = [s["nombre"] for s in self.sala_service.listar_salas()]
