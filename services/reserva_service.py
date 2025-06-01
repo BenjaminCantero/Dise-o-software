@@ -1,12 +1,13 @@
+# services/reserva_service.py
 from core.observable import Observable
+from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
 from repositories.db import SessionLocal
 from repositories.models import Reserva, Usuario, Sala
-from repositories.reserva_repository import obtener_reservas_por_usuario
 
-class ReservaService(Observable):
+class ReservaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
     def __init__(self):
         super().__init__()
-        self.reservas = []
+        print("ReservaService Singleton Inicializado") # Demuestra que __init__ se llama una vez
 
     def listar_reservas(self):
         db = SessionLocal()
@@ -20,7 +21,7 @@ class ReservaService(Observable):
                     "usuario": r.usuario.username if r.usuario else "",
                     "fecha": r.fecha_inicio.strftime("%Y-%m-%d"),
                     "hora": r.fecha_inicio.strftime("%H:%M"),
-                    "estado": r.estado if hasattr(r, "estado") else "N/A"  # <--- Añade esta línea
+                    "estado": r.estado if hasattr(r, "estado") else "N/A"
                 })
             return resultado
         finally:
@@ -31,15 +32,16 @@ class ReservaService(Observable):
         try:
             usuario = db.query(Usuario).filter_by(username=usuario_username).first()
             sala = db.query(Sala).filter_by(nombre=sala_nombre).first()
+
             if not usuario or not sala:
                 raise Exception("Usuario o sala no encontrados.")
 
-            # Verifica si ya existe una reserva para la misma sala y horario
             existe = db.query(Reserva).filter(
                 Reserva.sala_id == sala.id,
                 Reserva.fecha_inicio < fecha_fin,
                 Reserva.fecha_fin > fecha_inicio
             ).first()
+
             if existe:
                 raise Exception("La sala ya está reservada en ese horario.")
 
@@ -71,10 +73,14 @@ class ReservaService(Observable):
             db.close()
 
     def contar_reservas(self):
-        return len(self.reservas)
+        db = SessionLocal()
+        try:
+            count = db.query(Reserva).count()
+            return count
+        finally:
+            db.close()
 
     def obtener_reservas_por_usuario(self, username):
-        # Devuelve solo las reservas del usuario
         todas = self.listar_reservas()
         return [r for r in todas if r.get("usuario") == username]
 
@@ -84,13 +90,16 @@ class ReservaService(Observable):
             reserva = db.query(Reserva).filter_by(id=reserva_id).first()
             usuario = db.query(Usuario).filter_by(username=usuario_username).first()
             sala = db.query(Sala).filter_by(nombre=sala_nombre).first()
+
             if not reserva or not usuario or not sala:
                 raise Exception("Reserva, usuario o sala no encontrados.")
+
             reserva.usuario_id = usuario.id
             reserva.sala_id = sala.id
             reserva.fecha_inicio = fecha_inicio
             reserva.fecha_fin = fecha_fin
             db.commit()
             self.notify_observers(event="reserva_editada", data=reserva)
+            return reserva
         finally:
             db.close()
