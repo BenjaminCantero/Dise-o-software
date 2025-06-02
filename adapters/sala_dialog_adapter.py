@@ -10,5 +10,4 @@ class SalaDialogAdapter:
         return {
             "nombre": self.dialog.nombre_input.get(),
             "capacidad": int(self.dialog.capacidad_input.get()) if hasattr(self.dialog, "capacidad_input") else None,
-            "ubicacion": self.dialog.ubicacion_input.get() if hasattr(self.dialog, "ubicacion_input") else None,
         }

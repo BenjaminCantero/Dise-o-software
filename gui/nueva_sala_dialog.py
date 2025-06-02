@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from adapters.sala_dialog_adapter import SalaDialogAdapter
 
 class NuevaSalaDialog(tk.Toplevel):
     def __init__(self, parent, sala_service, on_success=None):
@@ -42,27 +43,39 @@ class NuevaSalaDialog(tk.Toplevel):
         self.nombre_entry.focus_set()
 
     def guardar(self):
-        nombre = self.nombre_entry.get().strip()
-        capacidad = self.capacidad_entry.get().strip()
-        estado = self.estado_var.get().strip()
+        adapter = SalaDialogAdapter(self)
+        data = adapter.get_data()
 
-        if not nombre:
+        if not data["nombre"]:
             messagebox.showerror("Error", "El nombre de la sala es obligatorio.")
             return
-        if not capacidad.isdigit() or int(capacidad) <= 0:
+        if data["capacidad"] is None or not isinstance(data["capacidad"], int) or data["capacidad"] <= 0:
             messagebox.showerror("Error", "La capacidad debe ser un número positivo.")
             return
-        if not estado:
+        if not self.estado_var.get():
             messagebox.showerror("Error", "Debe seleccionar un estado.")
             return
 
         try:
-            self.sala_service.crear_sala(nombre, int(capacidad), estado)
+            self.sala_service.crear_sala(data["nombre"], data["capacidad"], self.estado_var.get())
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return
 
         messagebox.showinfo("Éxito", "Sala creada correctamente.")
         if self.on_success:
-            self.on_success(nombre, capacidad, estado)
+            self.on_success(data["nombre"], data["capacidad"], self.estado_var.get())
         self.destroy()
+
+    @property
+    def nombre_input(self):
+        return self.nombre_entry
+
+    @property
+    def capacidad_input(self):
+        return self.capacidad_entry
+
+    @property
+    def ubicacion_input(self):
+        # Si tienes un campo de ubicación, retorna el widget aquí. Si no, retorna None.
+        return None
