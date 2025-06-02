@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from adapters.reserva_dialog_adapter import ReservaDialogAdapter
 
 class ReservaApp(tk.Tk):
     def __init__(self, reserva_service, mediator, *args, **kwargs):
@@ -94,20 +95,18 @@ class NuevaReservaDialog(tk.Toplevel):
         self.fecha_entry.focus_set()
 
     def guardar(self):
-        sala = self.sala_var.get()
-        usuario = self.usuario_var.get()
-        fecha = self.fecha_entry.get().strip()
-        hora = self.hora_entry.get().strip()
+        adapter = ReservaDialogAdapter(self)
+        data = adapter.get_data()
 
         # Validaciones básicas
-        if not sala or not usuario or not fecha or not hora:
+        if not data["sala"] or not data["usuario"] or not data["fecha"] or not data["hora"]:
             messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
 
-        # Puedes agregar validaciones de formato aquí si lo deseas
-
         try:
-            self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
+            self.reserva_service.crear_reserva(
+                data["sala"], data["usuario"], data["fecha"], data["hora"]
+            )
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return
@@ -121,6 +120,22 @@ class NuevaReservaDialog(tk.Toplevel):
         self.usuario_var.set("")
         self.fecha_entry.delete(0, tk.END)
         self.hora_entry.delete(0, tk.END)
+
+    @property
+    def sala_input(self):
+        return self.sala_combo
+
+    @property
+    def usuario_input(self):
+        return self.usuario_combo
+
+    @property
+    def fecha_input(self):
+        return self.fecha_entry
+
+    @property
+    def hora_input(self):
+        return self.hora_entry
 
 def es_fecha_valida(fecha_str):
     try:
