@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from adapters.usuario_dialog_adapter import UsuarioDialogAdapter
 
 class EditarUsuarioDialog(tk.Toplevel):
     def __init__(self, parent, usuario, on_save=None):
@@ -42,12 +43,21 @@ class EditarUsuarioDialog(tk.Toplevel):
         self.username_entry.focus_set()
 
     def guardar(self):
-        username = self.username_entry.get()
-        role = self.role_var.get()
+        adapter = UsuarioDialogAdapter(self)
+        data = adapter.get_data()
         password = self.password_entry.get() if self.password_entry else None
-        if not username or not role or (self.password_entry and not password):
+
+        if not data["username"] or not data["role"] or (self.password_entry and not password):
             messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
         if self.on_save:
-            self.on_save(username, password, role)
+            self.on_save(data["username"], password, data["role"])
         self.destroy()
+
+    @property
+    def username_input(self):
+        return self.username_entry
+
+    @property
+    def role_input(self):
+        return self.role_combo
