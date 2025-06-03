@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
+from builders.reserva_builder import ReservaBuilder
 
 class ReservaApp(tk.Tk):
     def __init__(self, reserva_service, mediator, *args, **kwargs):
@@ -45,6 +46,25 @@ class ReservaApp(tk.Tk):
     def cargar_reservas(self):
         # Implementa la carga de reservas en la tabla
         pass
+
+    def crear_reserva(self):
+        usuario = self.obtener_usuario_seleccionado()  # objeto o id
+        sala = self.obtener_sala_seleccionada()        # objeto o id
+        fecha_inicio = self.obtener_fecha_inicio()
+        fecha_fin = self.obtener_fecha_fin()
+
+        builder = ReservaBuilder()
+        reserva = (
+            builder
+            .set_usuario(usuario)
+            .set_sala(sala)
+            .set_fecha_inicio(fecha_inicio)
+            .set_fecha_fin(fecha_fin)
+            .build()
+        )
+
+        # Ahora puedes pasar la reserva al servicio o repositorio
+        self.reserva_service.agregar_reserva(reserva)
 
 class NuevaReservaDialog(tk.Toplevel):
     def __init__(self, parent, reserva_service, salas, usuarios, on_save=None):
