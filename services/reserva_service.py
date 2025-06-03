@@ -3,6 +3,7 @@ from core.observable import Observable
 from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
 from repositories.db import SessionLocal
 from repositories.models import Reserva, Usuario, Sala
+from builders.reserva_builder import ReservaBuilder
 
 class ReservaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
     def __init__(self):
@@ -103,3 +104,15 @@ class ReservaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑA
             return reserva
         finally:
             db.close()
+
+    def agregar_reserva(self, usuario, sala, fecha_inicio, fecha_fin):
+        builder = ReservaBuilder()
+        reserva = (
+            builder
+            .set_usuario(usuario)
+            .set_sala(sala)
+            .set_fecha_inicio(fecha_inicio)
+            .set_fecha_fin(fecha_fin)
+            .build()
+        )
+        self.repositorio.guardar(reserva)
