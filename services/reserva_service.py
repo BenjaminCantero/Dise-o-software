@@ -1,14 +1,13 @@
 # services/reserva_service.py
 from core.observable import Observable
-from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
+from core.singleton import SingletonMeta
 from repositories.db import SessionLocal
 from repositories.models import Reserva, Usuario, Sala
 from builders.reserva_builder import ReservaBuilder
 
-class ReservaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
+class ReservaService(Observable, metaclass=SingletonMeta):
     def __init__(self):
         super().__init__()
-        print("ReservaService Singleton Inicializado") # Demuestra que __init__ se llama una vez
 
     def listar_reservas(self):
         db = SessionLocal()
