@@ -14,12 +14,23 @@ class AdminPanel(ttk.Frame):
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
         self.create_widgets()
+        # --- PATRÓN MEDIATOR: Registrar el panel ---
+        if self.mediator:
+            self.mediator.register("admin_panel", self)
 
     def update(self, event, data):
         if event in ("usuario_creado", "usuario_eliminado", "usuario_editado"):
             self.cargar_usuarios()
 
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("usuario_creado", "usuario_eliminado", "usuario_editado"):
+            self.cargar_usuarios()
+
     def destroy(self):
+        # --- PATRÓN MEDIATOR: Desregistrar el panel ---
+        if self.mediator:
+            self.mediator.unregister("admin_panel")
         if self.user_service:
             self.user_service.remove_observer(self)
         super().destroy()
@@ -110,6 +121,9 @@ class AdminPanel(ttk.Frame):
                 self.user_service.notify_observers(event="usuario_creado", data=username)
                 self.cargar_usuarios()
                 messagebox.showinfo("Éxito", "Usuario creado correctamente.")
+                # --- PATRÓN MEDIATOR: Notificar evento ---
+                if self.mediator:
+                    self.mediator.notify(self, "usuario_creado", username)
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo crear el usuario: {e}")
         EditarUsuarioDialog(self, None, on_save=on_save)
@@ -123,6 +137,9 @@ class AdminPanel(ttk.Frame):
                 self.user_service.eliminar_usuario(user_id)
                 messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
                 self.cargar_usuarios()
+                # --- PATRÓN MEDIATOR: Notificar evento ---
+                if self.mediator:
+                    self.mediator.notify(self, "usuario_eliminado", user_id)
 
     def editar_usuario(self):
         selected = self.tree.selection()
@@ -136,6 +153,9 @@ class AdminPanel(ttk.Frame):
                         self.user_service.notify_observers(event="usuario_editado", data=username)
                         self.cargar_usuarios()
                         messagebox.showinfo("Éxito", "Usuario editado correctamente.")
+                        # --- PATRÓN MEDIATOR: Notificar evento ---
+                        if self.mediator:
+                            self.mediator.notify(self, "usuario_editado", username)
                     except Exception as e:
                         messagebox.showerror("Error", f"No se pudo editar el usuario: {e}")
                 EditarUsuarioDialog(self, usuario, on_save=on_save)
