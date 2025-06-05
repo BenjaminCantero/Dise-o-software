@@ -4,6 +4,7 @@ from core.singleton import SingletonMeta
 from repositories.db import SessionLocal
 from repositories.models import Reserva, Usuario, Sala
 from builders.reserva_builder import ReservaBuilder
+from decorators.notificacion_reserva import ReservaNotificada  # Decorator importado
 
 class ReservaService(Observable, metaclass=SingletonMeta):
     def __init__(self):
@@ -114,4 +115,6 @@ class ReservaService(Observable, metaclass=SingletonMeta):
             .set_fecha_fin(fecha_fin)
             .build()
         )
-        self.repositorio.guardar(reserva)
+        # --- Uso del patrón Decorator ---
+        reserva_decorada = ReservaNotificada(reserva)
+        reserva_decorada.confirmar()
