@@ -12,13 +12,29 @@ class ReservasPanel(ttk.Frame):
         self.reserva_service = reserva_service
         self.on_volver = on_volver
         self.create_widgets()
+        # --- PATRÓN MEDIATOR: Registrar el panel ---
+        if self.mediator:
+            self.mediator.register("reservas_panel", self)
+        # --- PATRÓN OBSERVER: Registrar como observador ---
+        if self.reserva_service:
+            self.reserva_service.add_observer(self)
 
     def update(self, event, data):
         if event in ("reserva_creada", "reserva_eliminada"):
             self.cargar_reservas()
 
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
+            self.cargar_reservas()
+
     def destroy(self):
-        self.reserva_service.remove_observer(self)
+        # --- PATRÓN MEDIATOR: Desregistrar el panel ---
+        if self.mediator:
+            self.mediator.unregister("reservas_panel")
+        # --- PATRÓN OBSERVER: Quitar como observador ---
+        if self.reserva_service:
+            self.reserva_service.remove_observer(self)
         super().destroy()
 
     def create_widgets(self):
@@ -150,6 +166,7 @@ class ReservasPanel(ttk.Frame):
                 messagebox.showinfo("Éxito", "Reserva creada correctamente.", parent=dialog)
                 dialog.destroy()
                 self.cargar_reservas()
+                # --- PATRÓN MEDIATOR: Notificar evento ---
                 if self.mediator:
                     self.mediator.notify(self, "reserva_creada")
             except Exception as e:
@@ -170,6 +187,9 @@ class ReservasPanel(ttk.Frame):
                 self.reserva_service.eliminar_reserva(reserva_id)
                 messagebox.showinfo("Éxito", "Reserva eliminada correctamente.")
                 self.cargar_reservas()
+                # --- PATRÓN MEDIATOR: Notificar evento ---
+                if self.mediator:
+                    self.mediator.notify(self, "reserva_eliminada", data=reserva_id)
             except Exception as e:
                 messagebox.showerror("Error", str(e))
 
@@ -188,6 +208,9 @@ class ReservasPanel(ttk.Frame):
                     reserva["hora"] = hora
                     self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
                     self.cargar_reservas()
+                    # --- PATRÓN MEDIATOR: Notificar evento ---
+                    if self.mediator:
+                        self.mediator.notify(self, "reserva_editada", data=reserva)
                 # Aquí podrías reutilizar el mismo diálogo de nueva reserva para editar
                 dialog = tk.Toplevel(self)
                 dialog.title("Editar Reserva")
@@ -231,6 +254,9 @@ class ReservasPanel(ttk.Frame):
                         messagebox.showinfo("Éxito", "Reserva editada correctamente.", parent=dialog)
                         dialog.destroy()
                         self.cargar_reservas()
+                        # --- PATRÓN MEDIATOR: Notificar evento ---
+                        if self.mediator:
+                            self.mediator.notify(self, "reserva_editada", data=reserva)
                     except Exception as e:
                         messagebox.showerror("Error", str(e), parent=dialog)
 
