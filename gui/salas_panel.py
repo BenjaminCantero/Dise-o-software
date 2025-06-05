@@ -12,6 +12,9 @@ class SalasPanel(ttk.Frame):
         self.on_volver = on_volver
         self.sala_service.add_observer(self)
         self.create_widgets()
+        # --- PATRÓN MEDIATOR: Registrar el panel ---
+        if self.mediator:
+            self.mediator.register("salas_panel", self)
 
     #patron observer#
 
@@ -19,7 +22,15 @@ class SalasPanel(ttk.Frame):
         if event in ("sala_creada", "sala_eliminada", "sala_editada"):
             self.cargar_salas()
 
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("sala_creada", "sala_eliminada", "sala_editada"):
+            self.cargar_salas()
+
     def destroy(self):
+        # --- PATRÓN MEDIATOR: Desregistrar el panel ---
+        if self.mediator:
+            self.mediator.unregister("salas_panel")
         self.sala_service.remove_observer(self)
         super().destroy()
 
@@ -98,6 +109,9 @@ class SalasPanel(ttk.Frame):
         def on_save(nombre, capacidad):
             self.sala_service.crear_sala(nombre, capacidad)
             self.cargar_salas()
+            # --- PATRÓN MEDIATOR: Notificar evento ---
+            if self.mediator:
+                self.mediator.notify(self, "sala_creada")
         NuevaSalaDialog(self, sala_service=self.sala_service, on_success=on_save)
 
     def editar_sala(self):
@@ -109,6 +123,9 @@ class SalasPanel(ttk.Frame):
                 def on_save(nombre, capacidad, estado):
                     self.sala_service.editar_sala(sala_id, nombre, capacidad, estado)
                     self.cargar_salas()
+                    # --- PATRÓN MEDIATOR: Notificar evento ---
+                    if self.mediator:
+                        self.mediator.notify(self, "sala_editada")
                 EditarSalaDialog(self, sala, on_save=on_save)
 
     def eliminar_sala(self):
@@ -119,6 +136,7 @@ class SalasPanel(ttk.Frame):
             if respuesta:
                 self.sala_service.eliminar_sala(sala_id)
                 self.cargar_salas()
+                # --- PATRÓN MEDIATOR: Notificar evento ---
                 if self.mediator:
                     self.mediator.notify(self, "sala_eliminada")
                 messagebox.showinfo("Éxito", "Sala eliminada correctamente")
