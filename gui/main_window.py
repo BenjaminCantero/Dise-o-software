@@ -19,6 +19,21 @@ class MainWindow(tk.Frame):
         self.on_login = on_login
         self.pack(fill="both", expand=True)
         self.create_widgets()
+        # --- PATRÓN MEDIATOR: Registrar el componente ---
+        if self.mediator:
+            self.mediator.register("main_window", self)
+
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada", "sala_creada", "sala_eliminada", "sala_editada"):
+            # Aquí podrías refrescar paneles, mostrar mensajes, etc.
+            self.mostrar_bienvenida()
+
+    def destroy(self):
+        # --- PATRÓN MEDIATOR: Desregistrar el componente ---
+        if self.mediator:
+            self.mediator.unregister("main_window")
+        super().destroy()
 
     def create_widgets(self):
         # Menú principal
