@@ -1,4 +1,3 @@
-# decorators/notificacion_reserva.py
 class ReservaNotificada:
     def __init__(self, reserva):
         self._reserva = reserva

@@ -1,5 +1,7 @@
 from gui.nueva_reserva_dialog import NuevaReservaDialog
 from gui.editar_reserva_dialog import EditarReservaDialog
+from gui.nueva_sala_dialog import NuevaSalaDialog
+from gui.editar_sala_dialog import EditarSalaDialog
 
 class DialogFactory:
     """
@@ -10,7 +12,8 @@ class DialogFactory:
         self._dialog_map = {
             "nueva_reserva": NuevaReservaDialog,
             "editar_reserva": EditarReservaDialog,
-            # Agrega aquí más diálogos si los tienes
+            "nueva_sala": NuevaSalaDialog,
+            "editar_sala": EditarSalaDialog,
         }
 
     def create_dialog(self, dialog_type, *args, **kwargs):

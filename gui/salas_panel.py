@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from gui.editar_sala_dialog import EditarSalaDialog
 from gui.nueva_sala_dialog import NuevaSalaDialog
+from factories.dialog_factory import DialogFactory  # Importa la fábrica
 
 class SalasPanel(ttk.Frame):
     def __init__(self, parent, mediator, sala_service=None, on_volver=None):
@@ -11,6 +12,7 @@ class SalasPanel(ttk.Frame):
         self.sala_service = sala_service
         self.on_volver = on_volver
         self.sala_service.add_observer(self)
+        self.dialog_factory = DialogFactory()  # Instancia la fábrica
         self.create_widgets()
         # --- PATRÓN MEDIATOR: Registrar el panel ---
         if self.mediator:
@@ -112,7 +114,7 @@ class SalasPanel(ttk.Frame):
             # --- PATRÓN MEDIATOR: Notificar evento ---
             if self.mediator:
                 self.mediator.notify(self, "sala_creada")
-        NuevaSalaDialog(self, sala_service=self.sala_service, on_success=on_save)
+        self.dialog_factory.create_dialog("nueva_sala", self, sala_service=self.sala_service, on_success=on_save)
 
     def editar_sala(self):
         selected = self.tree.selection()
@@ -126,7 +128,7 @@ class SalasPanel(ttk.Frame):
                     # --- PATRÓN MEDIATOR: Notificar evento ---
                     if self.mediator:
                         self.mediator.notify(self, "sala_editada")
-                EditarSalaDialog(self, sala, on_save=on_save)
+                self.dialog_factory.create_dialog("editar_sala", self, sala, on_save=on_save)
 
     def eliminar_sala(self):
         selected = self.tree.selection()
