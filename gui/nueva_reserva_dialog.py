@@ -13,6 +13,10 @@ class ReservaApp(tk.Tk):
         self.geometry("800x600")
         self.configure(bg="#232946")
 
+        # --- PATRÓN MEDIATOR: Registrar el componente ---
+        if self.mediator:
+            self.mediator.register("reserva_app", self)
+
         # Marco principal con sombra
         shadow = tk.Frame(self, bg="#1a1a2e")
         shadow.pack(fill="both", expand=True, padx=10, pady=10)
@@ -37,11 +41,22 @@ class ReservaApp(tk.Tk):
         self.reservas_tree = None
         self.cargar_reservas()
 
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
+            self.cargar_reservas()
+
+    def destroy(self):
+        # --- PATRÓN MEDIATOR: Desregistrar el componente ---
+        if self.mediator:
+            self.mediator.unregister("reserva_app")
+        super().destroy()
+
     def nueva_reserva(self):
         # Obtén las listas de nombres de salas y usuarios
         salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
         usuarios = [u["nombre"] for u in self.mediator.user_service.listar_usuarios()]
-        NuevaReservaDialog(self, self.reserva_service, salas, usuarios, on_save=self.cargar_reservas)
+        NuevaReservaDialog(self, self.reserva_service, salas, usuarios, on_save=self.cargar_reservas, mediator=self.mediator)
 
     def cargar_reservas(self):
         # Implementa la carga de reservas en la tabla
@@ -67,13 +82,18 @@ class ReservaApp(tk.Tk):
         self.reserva_service.agregar_reserva(reserva)
 
 class NuevaReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva_service, salas, usuarios, on_save=None):
+    def __init__(self, parent, reserva_service, salas, usuarios, on_save=None, mediator=None):
         super().__init__(parent)
         self.title("Nueva Reserva")
         self.geometry("400x350")
         self.reserva_service = reserva_service
         self.on_save = on_save
+        self.mediator = mediator  # --- PATRÓN MEDIATOR: Guardar referencia ---
         self.configure(bg="#232946")
+
+        # --- PATRÓN MEDIATOR: Registrar el diálogo ---
+        if self.mediator:
+            self.mediator.register("nueva_reserva_dialog", self)
 
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
         frame.place(relx=0.5, rely=0.5, anchor="center", width=360, height=300)
@@ -114,6 +134,18 @@ class NuevaReservaDialog(tk.Toplevel):
 
         self.fecha_entry.focus_set()
 
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
+            # Aquí podrías actualizar campos o cerrar el diálogo si lo deseas
+            pass
+
+    def destroy(self):
+        # --- PATRÓN MEDIATOR: Desregistrar el diálogo ---
+        if self.mediator:
+            self.mediator.unregister("nueva_reserva_dialog")
+        super().destroy()
+
     def guardar(self):
         adapter = ReservaDialogAdapter(self)
         data = adapter.get_data()
@@ -134,6 +166,9 @@ class NuevaReservaDialog(tk.Toplevel):
         messagebox.showinfo("Éxito", "Reserva creada correctamente.")
         if self.on_save:
             self.on_save()
+        # --- PATRÓN MEDIATOR: Notificar evento ---
+        if self.mediator:
+            self.mediator.notify(self, "reserva_creada", data)
         self.destroy()
 
         self.sala_var.set("")
