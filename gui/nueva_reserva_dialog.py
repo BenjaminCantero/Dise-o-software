@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
 from builders.reserva_builder import ReservaBuilder
+from commands.cancel_reserva_command import CreateReservaCommand  # Importa el comando
 
 class ReservaApp(tk.Tk):
     def __init__(self, reserva_service, mediator, *args, **kwargs):
@@ -156,9 +157,14 @@ class NuevaReservaDialog(tk.Toplevel):
             return
 
         try:
-            self.reserva_service.crear_reserva(
-                data["sala"], data["usuario"], data["fecha"], data["hora"]
-            )
+            reserva_data = {
+                "sala_nombre": data["sala"],
+                "usuario_username": data["usuario"],
+                "fecha_inicio": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M"),
+                "fecha_fin": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M").replace(hour=(datetime.strptime(data['hora'], "%H:%M").hour + 1) % 24)
+            }
+            command = CreateReservaCommand(self.reserva_service, reserva_data)
+            command.execute()
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return

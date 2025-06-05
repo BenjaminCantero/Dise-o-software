@@ -2,6 +2,7 @@ from tkcalendar import DateEntry  # Agrega esta importación
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from commands.cancel_reserva_command import CreateReservaCommand, CancelReservaCommand, EditReservaCommand  # Importa los comandos
 
 class ReservasPanel(ttk.Frame):
     def __init__(self, parent, mediator, sala_service, user_service, reserva_service, on_volver=None):
@@ -156,13 +157,19 @@ class ReservasPanel(ttk.Frame):
                 return
             try:
                 fecha_inicio = datetime.strptime(f"{fecha} {hora}:{minuto}", "%Y-%m-%d %H:%M")
-                # Por defecto, la reserva dura 1 hora
-                fecha_fin = fecha_inicio.replace(hour=fecha_inicio.hour + 1)
+                fecha_fin = fecha_inicio.replace(hour=(fecha_inicio.hour + 1) % 24)
             except Exception as e:
                 messagebox.showerror("Error", f"Formato de fecha u hora inválido: {e}", parent=dialog)
                 return
             try:
-                self.reserva_service.crear_reserva(sala, usuario, fecha_inicio, fecha_fin)
+                reserva_data = {
+                    "sala_nombre": sala,
+                    "usuario_username": usuario,
+                    "fecha_inicio": fecha_inicio,
+                    "fecha_fin": fecha_fin
+                }
+                command = CreateReservaCommand(self.reserva_service, reserva_data)
+                command.execute()
                 messagebox.showinfo("Éxito", "Reserva creada correctamente.", parent=dialog)
                 dialog.destroy()
                 self.cargar_reservas()
@@ -184,7 +191,8 @@ class ReservasPanel(ttk.Frame):
         confirm = messagebox.askyesno("Confirmar", "¿Estás seguro de que deseas eliminar la reserva seleccionada?")
         if confirm:
             try:
-                self.reserva_service.eliminar_reserva(reserva_id)
+                command = CancelReservaCommand(self.reserva_service, reserva_id)
+                command.execute()
                 messagebox.showinfo("Éxito", "Reserva eliminada correctamente.")
                 self.cargar_reservas()
                 # --- PATRÓN MEDIATOR: Notificar evento ---
@@ -202,15 +210,24 @@ class ReservasPanel(ttk.Frame):
                 salas = [s["nombre"] for s in self.sala_service.listar_salas()]
                 usuarios = [u.username for u in self.user_service.listar_usuarios()]
                 def on_save(sala, usuario, fecha, hora):
-                    reserva["sala"] = sala
-                    reserva["usuario"] = usuario
-                    reserva["fecha"] = fecha
-                    reserva["hora"] = hora
-                    self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
-                    self.cargar_reservas()
-                    # --- PATRÓN MEDIATOR: Notificar evento ---
-                    if self.mediator:
-                        self.mediator.notify(self, "reserva_editada", data=reserva)
+                    try:
+                        fecha_inicio = datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M")
+                        fecha_fin = fecha_inicio.replace(hour=(fecha_inicio.hour + 1) % 24)
+                        new_data = {
+                            "sala_nombre": sala,
+                            "usuario_username": usuario,
+                            "fecha_inicio": fecha_inicio,
+                            "fecha_fin": fecha_fin
+                        }
+                        command = EditReservaCommand(self.reserva_service, reserva["id"], new_data)
+                        command.execute()
+                        self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
+                        self.cargar_reservas()
+                        # --- PATRÓN MEDIATOR: Notificar evento ---
+                        if self.mediator:
+                            self.mediator.notify(self, "reserva_editada", data=reserva)
+                    except Exception as e:
+                        messagebox.showerror("Error", str(e))
                 # Aquí podrías reutilizar el mismo diálogo de nueva reserva para editar
                 dialog = tk.Toplevel(self)
                 dialog.title("Editar Reserva")
@@ -243,22 +260,9 @@ class ReservasPanel(ttk.Frame):
                     if not sala or not usuario or not fecha or not hora:
                         messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
                         return
-                    try:
-                        fecha_inicio = datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M")
-                        fecha_fin = fecha_inicio.replace(hour=fecha_inicio.hour + 1)
-                    except Exception as e:
-                        messagebox.showerror("Error", f"Formato de fecha u hora inválido: {e}", parent=dialog)
-                        return
-                    try:
-                        self.reserva_service.editar_reserva(reserva["id"], sala, usuario, fecha_inicio, fecha_fin)
-                        messagebox.showinfo("Éxito", "Reserva editada correctamente.", parent=dialog)
-                        dialog.destroy()
-                        self.cargar_reservas()
-                        # --- PATRÓN MEDIATOR: Notificar evento ---
-                        if self.mediator:
-                            self.mediator.notify(self, "reserva_editada", data=reserva)
-                    except Exception as e:
-                        messagebox.showerror("Error", str(e), parent=dialog)
+                    on_save(sala, usuario, fecha, hora)
+                    messagebox.showinfo("Éxito", "Reserva editada correctamente.", parent=dialog)
+                    dialog.destroy()
 
                 ttk.Button(dialog, text="Guardar cambios", command=guardar_cambios).grid(row=4, column=0, columnspan=2, pady=10)
                 dialog.wait_window()

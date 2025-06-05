@@ -3,14 +3,16 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
 from builders.reserva_builder import ReservaBuilder
+from commands.cancel_reserva_command import EditReservaCommand  # Importa el comando
 
 class EditarReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva, salas, usuarios, on_save=None):
+    def __init__(self, parent, reserva, salas, usuarios, reserva_service=None, on_save=None):
         super().__init__(parent)
         self.title("Editar Reserva")
         self.geometry("370x350")
         self.reserva = reserva
         self.on_save = on_save
+        self.reserva_service = reserva_service  # Asegúrate de recibir el servicio
         self.configure(bg="#232946")
 
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
@@ -77,9 +79,15 @@ class EditarReservaDialog(tk.Toplevel):
             return
 
         try:
-            self.reserva_service.editar_reserva(
-                self.reserva["id"], data["sala"], data["usuario"], data["fecha"], data["hora"]
-            )
+            # Usar el patrón Command para editar la reserva
+            new_data = {
+                "sala_nombre": data["sala"],
+                "usuario_username": data["usuario"],
+                "fecha_inicio": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M"),
+                "fecha_fin": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M").replace(hour=(datetime.strptime(data['hora'], "%H:%M").hour + 1) % 24)
+            }
+            command = EditReservaCommand(self.reserva_service, self.reserva["id"], new_data)
+            command.execute()
         except Exception as e:
             messagebox.showerror("Conflicto", str(e))
             return

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from commands.cancel_reserva_command import CancelReservaCommand  # Importa el comando
 
 class MisReservasPanel(ttk.Frame):
     def __init__(self, parent, reserva_service, user):
@@ -112,7 +113,21 @@ class MisReservasPanel(ttk.Frame):
         reserva = self.tree.item(seleccion[0])["values"]
         respuesta = messagebox.askyesno("Confirmar", "¿Seguro que deseas cancelar esta reserva?")
         if respuesta:
-            # Ajusta el método según tu modelo de reserva (puede que necesites el ID de la reserva)
-            self.reserva_service.cancelar_reserva(self.user.username, reserva[1], reserva[2])
-            messagebox.showinfo("Éxito", "Reserva cancelada.")
-            self.cargar_reservas()
+            # Busca la reserva por usuario, sala, fecha y hora para obtener el ID
+            reservas_usuario = self.reserva_service.obtener_reservas_por_usuario(self.user.username)
+            reserva_id = None
+            for r in reservas_usuario:
+                if (
+                    r["sala"] == reserva[0]
+                    and r["fecha"] == reserva[1]
+                    and r["hora"] == reserva[2]
+                ):
+                    reserva_id = r["id"]
+                    break
+            if reserva_id is not None:
+                command = CancelReservaCommand(self.reserva_service, reserva_id)
+                command.execute()
+                messagebox.showinfo("Éxito", "Reserva cancelada.")
+                self.cargar_reservas()
+            else:
+                messagebox.showerror("Error", "No se pudo encontrar la reserva para cancelar.")
