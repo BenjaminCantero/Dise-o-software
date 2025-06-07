@@ -159,7 +159,8 @@ class MainWindow(tk.Frame):
                 mediator=self.mediator,
                 sala_service=self.sala_service,
                 user_service=self.user_service,
-                reserva_service=self.reserva_service
+                reserva_service=self.reserva_service,
+                on_volver=self.mostrar_bienvenida 
             )
         reservas_panel.pack(fill="both", expand=True)
 
