@@ -1,6 +1,5 @@
 from repositories.models import Reserva
 
-# builders/reserva_builder.py
 class ReservaBuilder:
     def __init__(self):
         self._usuario = None

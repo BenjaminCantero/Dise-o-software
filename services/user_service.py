@@ -3,6 +3,7 @@ from core.observable import Observable
 from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
 from repositories.db import SessionLocal
 from repositories.models import Usuario
+from builders.usuario_builder import UsuarioBuilder
 
 class User:
     def __init__(self, username, role):
@@ -11,9 +12,7 @@ class User:
 
 class UserService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
     def __init__(self):
-        super().__init__() # Inicialización de Observable
-        print("UserService Singleton Inicializado") # Demuestra que __init__ se llama una vez
-        # Lógica de inicialización original de UserService
+        super().__init__() 
 
     def autenticar(self, username, password):
         db = SessionLocal()
@@ -32,7 +31,13 @@ class UserService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADID
 
     def crear_usuario(self, username, password, role):
         db = SessionLocal()
-        nuevo_usuario = Usuario(username=username, password=password, role=role)
+        nuevo_usuario = (
+            UsuarioBuilder()
+                .set_username(username)
+                .set_password(password)
+                .set_role(role)
+                .build()
+        )
         db.add(nuevo_usuario)
         db.commit()
         db.refresh(nuevo_usuario)

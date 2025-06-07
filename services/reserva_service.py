@@ -46,12 +46,14 @@ class ReservaService(Observable, metaclass=SingletonMeta):
             if existe:
                 raise Exception("La sala ya está reservada en ese horario.")
 
-            nueva_reserva = Reserva(
-                usuario_id=usuario.id,
-                sala_id=sala.id,
-                fecha_inicio=fecha_inicio,
-                fecha_fin=fecha_fin
-            )
+            nueva_reserva = (
+                ReservaBuilder()
+                    .set_usuario(usuario)
+                    .set_sala(sala)
+                    .set_fecha_inicio(fecha_inicio)
+                    .set_fecha_fin(fecha_fin)
+                    .build()
+                )
             db.add(nueva_reserva)
             db.commit()
             db.refresh(nueva_reserva)

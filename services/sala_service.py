@@ -3,7 +3,7 @@ from repositories.db import SessionLocal
 from repositories.models import Sala
 from core.observable import Observable
 from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
-
+from builders.sala_builder import SalaBuilder
 class SalaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
     def __init__(self):
         super().__init__() # Inicialización de Observable
@@ -21,7 +21,13 @@ class SalaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADID
 
     def crear_sala(self, nombre, capacidad, estado="disponible"):
         db = SessionLocal()
-        nueva_sala = Sala(nombre=nombre, capacidad=capacidad, estado=estado)
+        nueva_sala = (
+            SalaBuilder()
+                .set_nombre(nombre)
+                .set_capacidad(capacidad)
+                .set_estado(estado)
+                .build()
+        )
         db.add(nueva_sala)
         db.commit()
         db.refresh(nueva_sala)
