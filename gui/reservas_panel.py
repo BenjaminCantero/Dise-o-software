@@ -224,11 +224,13 @@ class ReservasPanel(ttk.Frame):
                         }
                         command = EditReservaCommand(self.reserva_service, reserva["id"], new_data)
                         command.execute()
-                        self.reserva_service.notify_observers(event="reserva_editada", data=reserva)
+                        # Obtener la reserva actualizada como dict
+                        reserva_actualizada = self.reserva_service.obtener_reserva_por_id(reserva["id"])
+                        self.reserva_service.notify_observers(event="reserva_editada", data=reserva_actualizada)
                         self.cargar_reservas()
                         # --- PATRÓN MEDIATOR: Notificar evento ---
                         if self.mediator:
-                            self.mediator.notify(self, "reserva_editada", data=reserva)
+                            self.mediator.notify(self, "reserva_editada", data=reserva_actualizada)
                     except Exception as e:
                         messagebox.showerror("Error", str(e))
                 # Aquí podrías reutilizar el mismo diálogo de nueva reserva para editar

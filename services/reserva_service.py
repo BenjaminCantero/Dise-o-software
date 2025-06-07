@@ -102,7 +102,16 @@ class ReservaService(Observable, metaclass=SingletonMeta):
             reserva.fecha_inicio = fecha_inicio
             reserva.fecha_fin = fecha_fin
             db.commit()
-            self.notify_observers(event="reserva_editada", data=reserva)
+            # Notificar con un diccionario, no con el objeto
+            reserva_dict = {
+                "id": reserva.id,
+                "sala": sala.nombre,
+                "usuario": usuario.username,
+                "fecha": reserva.fecha_inicio.strftime("%Y-%m-%d"),
+                "hora": reserva.fecha_inicio.strftime("%H:%M"),
+                "estado": reserva.estado if hasattr(reserva, "estado") else "N/A"
+            }
+            self.notify_observers(event="reserva_editada", data=reserva_dict)
             return reserva
         finally:
             db.close()
@@ -120,3 +129,20 @@ class ReservaService(Observable, metaclass=SingletonMeta):
         # --- Uso del patrón Decorator ---
         reserva_decorada = ReservaNotificada(reserva)
         reserva_decorada.confirmar()
+
+    def obtener_reserva_por_id(self, reserva_id):
+        db = SessionLocal()
+        try:
+            reserva = db.query(Reserva).filter_by(id=reserva_id).first()
+            if reserva:
+                return {
+                    "id": reserva.id,
+                    "sala": reserva.sala.nombre if reserva.sala else "",
+                    "usuario": reserva.usuario.username if reserva.usuario else "",
+                    "fecha": reserva.fecha_inicio.strftime("%Y-%m-%d"),
+                    "hora": reserva.fecha_inicio.strftime("%H:%M"),
+                    "estado": reserva.estado if hasattr(reserva, "estado") else "N/A"
+                }
+            return None
+        finally:
+            db.close()

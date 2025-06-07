@@ -49,10 +49,10 @@ class EditReservaCommand(Command):
         old_reserva = self.reserva_service.obtener_reserva_por_id(self.reserva_id)
         if old_reserva:
             self._old_data = {
-                "sala_nombre": old_reserva.sala.nombre,
-                "usuario_username": old_reserva.usuario.username,
-                "fecha_inicio": old_reserva.fecha_inicio,
-                "fecha_fin": old_reserva.fecha_fin
+                "sala_nombre": old_reserva["sala"],
+                "usuario_username": old_reserva["usuario"],
+                "fecha_inicio": old_reserva["fecha"],
+                "fecha_fin": f"{old_reserva['fecha']} {old_reserva['hora']}"
             }
         self.reserva_service.editar_reserva(self.reserva_id, **self.new_data)
 
