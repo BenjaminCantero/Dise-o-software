@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, validator, root_validator
 from typing import Optional
 from datetime import datetime
 from services.sala_service import SalaService
@@ -17,33 +17,36 @@ class SalaIn(BaseModel):
     capacidad: int
     estado: str = "disponible"
 
+    @validator('capacidad')
+    def validate_capacidad(cls, value):
+        if value <= 0:
+            raise ValueError("La capacidad debe ser mayor a 0")
+        return value
+
+class SalaOut(SalaIn):
+    id: int
+
 @app.get("/")
 def read_root():
     return {"message": "API de Diseño de Software funcionando"}
 
-@app.get("/salas")
+@app.get("/salas", response_model=list[SalaOut])
 def get_salas():
-    return {"salas": sala_service.listar_salas()}
+    return sala_service.listar_salas()
 
-@app.post("/salas")
+@app.post("/salas", response_model=SalaOut, status_code=201)
 def create_sala(sala: SalaIn):
     nueva = sala_service.crear_sala(
         nombre=sala.nombre,
         capacidad=sala.capacidad,
         estado=sala.estado
     )
-    return {
-        "id": nueva.id,
-        "nombre": nueva.nombre,
-        "capacidad": nueva.capacidad,
-        "estado": nueva.estado
-    }
+    return nueva
 
 @app.put("/salas/{sala_id}")
 def update_sala(sala_id: int, sala: SalaIn):
-    # Verifica si la sala existe
     salas = sala_service.listar_salas()
-    if not any(s["id"] == sala_id for s in salas):
+    if not any(getattr(s, "id", s.get("id")) == sala_id for s in salas):
         raise HTTPException(status_code=404, detail="Sala no encontrada")
     sala_service.editar_sala(
         sala_id=sala_id,
@@ -56,7 +59,7 @@ def update_sala(sala_id: int, sala: SalaIn):
 @app.delete("/salas/{sala_id}")
 def delete_sala(sala_id: int):
     salas = sala_service.listar_salas()
-    if not any(s["id"] == sala_id for s in salas):
+    if not any(getattr(s, "id", s.get("id")) == sala_id for s in salas):
         raise HTTPException(status_code=404, detail="Sala no encontrada")
     sala_service.eliminar_sala(sala_id)
     return {"message": "Sala eliminada correctamente"}
@@ -68,19 +71,38 @@ class ReservaIn(BaseModel):
     fecha_inicio: datetime
     fecha_fin: datetime
 
-@app.get("/reservas")
-def get_reservas():
-    return {"reservas": reserva_service.listar_reservas()}
+    @root_validator
+    def validate_fechas(cls, values):
+        fecha_inicio = values.get('fecha_inicio')
+        fecha_fin = values.get('fecha_fin')
+        if fecha_inicio is None or fecha_fin is None:
+            raise ValueError("Las fechas no pueden ser nulas")
+        if fecha_inicio >= fecha_fin:
+            raise ValueError("La fecha de inicio debe ser anterior a la fecha de fin")
+        return values
 
-@app.get("/reservas/{reserva_id}")
+class ReservaOut(ReservaIn):
+    id: int
+
+@app.get("/reservas", response_model=list[ReservaOut])
+def get_reservas():
+    return reserva_service.listar_reservas()
+
+@app.get("/reservas/{reserva_id}", response_model=ReservaOut)
 def get_reserva(reserva_id: int):
     reserva = reserva_service.obtener_reserva_por_id(reserva_id)
     if not reserva:
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
     return reserva
 
-@app.post("/reservas")
+@app.post("/reservas", response_model=ReservaOut, status_code=201)
 def create_reserva(reserva: ReservaIn):
+    salas = sala_service.listar_salas()
+    if not any(getattr(s, "nombre", s.get("nombre")) == reserva.sala_nombre for s in salas):
+        raise HTTPException(status_code=404, detail="Sala no encontrada")
+    usuarios = user_service.listar_usuarios()
+    if not any(getattr(u, "username", u.get("username")) == reserva.usuario_username for u in usuarios):
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
     try:
         nueva = reserva_service.crear_reserva(
             sala_nombre=reserva.sala_nombre,
@@ -88,9 +110,11 @@ def create_reserva(reserva: ReservaIn):
             fecha_inicio=reserva.fecha_inicio,
             fecha_fin=reserva.fecha_fin
         )
-        return {"id": nueva.id}
-    except Exception as e:
+        return nueva
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @app.put("/reservas/{reserva_id}")
 def update_reserva(reserva_id: int, reserva: ReservaIn):
@@ -103,16 +127,20 @@ def update_reserva(reserva_id: int, reserva: ReservaIn):
             fecha_fin=reserva.fecha_fin
         )
         return {"message": "Reserva actualizada correctamente"}
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @app.delete("/reservas/{reserva_id}")
 def delete_reserva(reserva_id: int):
     try:
         reserva_service.eliminar_reserva(reserva_id)
         return {"message": "Reserva eliminada correctamente"}
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 # Esquema para crear/editar usuario
 class UserIn(BaseModel):
@@ -123,12 +151,16 @@ class UserIn(BaseModel):
 class UserEdit(BaseModel):
     role: str
 
-@app.get("/usuarios")
+class UserOut(BaseModel):
+    username: str
+    role: str
+
+@app.get("/usuarios", response_model=list[UserOut])
 def get_usuarios():
     usuarios = user_service.listar_usuarios()
-    return {"usuarios": [{"username": u.username, "role": u.role} for u in usuarios]}
+    return [{"username": u.username, "role": u.role} for u in usuarios]
 
-@app.post("/usuarios")
+@app.post("/usuarios", response_model=UserOut, status_code=201)
 def create_usuario(usuario: UserIn):
     nuevo = user_service.crear_usuario(
         username=usuario.username,
