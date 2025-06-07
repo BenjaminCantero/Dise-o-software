@@ -20,6 +20,7 @@ def main():
         for widget in root.winfo_children():
             widget.destroy()
         root.deiconify()
+        root.state("zoomed") # Maximiza la ventana principal
         app = MainWindow(
             root,
             mediator,
