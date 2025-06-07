@@ -118,7 +118,10 @@ class SalasPanel(ttk.Frame):
 
     def editar_sala(self):
         selected = self.tree.selection()
-        if selected and self.sala_service:
+        if not selected:
+            messagebox.showwarning("Advertencia", "Selecciona una sala para editar.")
+            return
+        if self.sala_service:
             sala_id = self.tree.item(selected[0])["values"][0]
             sala = next((s for s in self.sala_service.listar_salas() if s["id"] == sala_id), None)
             if sala:
@@ -132,7 +135,10 @@ class SalasPanel(ttk.Frame):
 
     def eliminar_sala(self):
         selected = self.tree.selection()
-        if selected and self.sala_service:
+        if not selected:
+            messagebox.showwarning("Advertencia", "Selecciona una sala para eliminar.")
+            return
+        if self.sala_service:
             sala_id = self.tree.item(selected[0])["values"][0]
             respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta sala?")
             if respuesta:

@@ -1,6 +1,6 @@
 # services/sala_service.py
 from repositories.db import SessionLocal
-from repositories.models import Sala
+from repositories.models import Sala, Reserva
 from core.observable import Observable
 from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
 from builders.sala_builder import SalaBuilder
@@ -47,6 +47,12 @@ class SalaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADID
 
     def eliminar_sala(self, sala_id):
         db = SessionLocal()
+        # Elimina primero las reservas asociadas a la sala
+        reservas = db.query(Reserva).filter_by(sala_id=sala_id).all()
+        for reserva in reservas:
+            db.delete(reserva)
+        db.commit()
+        # Ahora elimina la sala
         sala = db.query(Sala).filter_by(id=sala_id).first()
         if sala:
             db.delete(sala)
