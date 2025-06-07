@@ -88,7 +88,7 @@ class MisReservasPanel(ttk.Frame):
         # Botón de cancelar reserva
         btn_frame = ttk.Frame(self, style="Panel.TFrame")
         btn_frame.pack(pady=10)
-        ttk.Button(btn_frame, text="Cancelar reserva seleccionada", style="Panel.TButton", command=self.cancelar_reserva, width=28).pack()
+        ttk.Button(btn_frame, text="Cancelar reserva seleccionada", style="Panel.TButton", command=self.eliminar_reserva, width=28).pack()
 
     def cargar_reservas(self):
         for row in self.tree.get_children():
@@ -105,7 +105,7 @@ class MisReservasPanel(ttk.Frame):
         self.fecha_entry.delete(0, tk.END)
         self.cargar_reservas()
 
-    def cancelar_reserva(self):
+    def eliminar_reserva(self):
         seleccion = self.tree.selection()
         if not seleccion:
             messagebox.showwarning("Atención", "Selecciona una reserva para cancelar.")

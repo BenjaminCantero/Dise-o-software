@@ -158,13 +158,13 @@ class ReservasPanel(ttk.Frame):
             if not sala or not usuario or not fecha or not hora or not minuto:
                 messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
                 return
+            # Validar que hora y minuto sean números
+            if not (hora.isdigit() and minuto.isdigit()):
+                messagebox.showerror("Error", "Por favor, ingrese valores numéricos en hora y minuto.", parent=dialog)
+                return
             try:
                 fecha_inicio = datetime.strptime(f"{fecha} {hora}:{minuto}", "%Y-%m-%d %H:%M")
                 fecha_fin = fecha_inicio.replace(hour=(fecha_inicio.hour + 1) % 24)
-            except Exception as e:
-                messagebox.showerror("Error", f"Formato de fecha u hora inválido: {e}", parent=dialog)
-                return
-            try:
                 reserva_data = {
                     "sala_nombre": sala,
                     "usuario_username": usuario,
@@ -179,8 +179,8 @@ class ReservasPanel(ttk.Frame):
                 # --- PATRÓN MEDIATOR: Notificar evento ---
                 if self.mediator:
                     self.mediator.notify(self, "reserva_creada")
-            except Exception as e:
-                messagebox.showerror("Error", str(e), parent=dialog)
+            except Exception:
+                messagebox.showerror("Error", "Por favor, ingrese valores correctos.", parent=dialog)
 
         ttk.Button(dialog, text="Guardar", command=guardar).grid(row=5, column=0, columnspan=2, pady=10)
 
