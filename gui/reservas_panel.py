@@ -21,7 +21,10 @@ class ReservasPanel(ttk.Frame):
             self.reserva_service.add_observer(self)
 
     def update(self, event, data):
-        if event in ("reserva_creada", "reserva_eliminada"):
+        if event == "reserva_editada":
+            messagebox.showinfo("Éxito", "La reserva ha sido modificada con éxito.")
+            self.cargar_reservas()
+        elif event in ("reserva_creada", "reserva_eliminada"):
             self.cargar_reservas()
 
     # --- PATRÓN MEDIATOR: Método para recibir eventos ---
@@ -224,13 +227,7 @@ class ReservasPanel(ttk.Frame):
                         }
                         command = EditReservaCommand(self.reserva_service, reserva["id"], new_data)
                         command.execute()
-                        # Obtener la reserva actualizada como dict
-                        reserva_actualizada = self.reserva_service.obtener_reserva_por_id(reserva["id"])
-                        self.reserva_service.notify_observers(event="reserva_editada", data=reserva_actualizada)
                         self.cargar_reservas()
-                        # --- PATRÓN MEDIATOR: Notificar evento ---
-                        if self.mediator:
-                            self.mediator.notify(self, "reserva_editada", data=reserva_actualizada)
                     except Exception as e:
                         messagebox.showerror("Error", str(e))
                 # Aquí podrías reutilizar el mismo diálogo de nueva reserva para editar
@@ -266,7 +263,6 @@ class ReservasPanel(ttk.Frame):
                         messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
                         return
                     on_save(sala, usuario, fecha, hora)
-                    messagebox.showinfo("Éxito", "Reserva editada correctamente.", parent=dialog)
                     dialog.destroy()
 
                 ttk.Button(dialog, text="Guardar cambios", command=guardar_cambios).grid(row=4, column=0, columnspan=2, pady=10)
