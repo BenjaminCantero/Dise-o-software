@@ -40,40 +40,34 @@ class EditarSalaDialog(tk.Toplevel):
         self.nombre_entry.focus_set()
 
     def guardar(self):
-        adapter = SalaDialogAdapter(self)
-        data = adapter.get_data()
+        nombre = self.nombre_entry.get().strip()
+        capacidad_str = self.capacidad_entry.get().strip()
+        estado = self.estado_var.get().strip()
 
-        # Validaciones
         self.nombre_entry.configure(background="white")
         self.capacidad_entry.configure(background="white")
         error = False
 
-        if not data["nombre"].strip():
+        if not nombre:
             self.nombre_entry.configure(background="#ffcccc")
             error = True
 
-        if data["capacidad"] is None or not isinstance(data["capacidad"], int) or data["capacidad"] <= 0:
+        if not capacidad_str.isdigit() or int(capacidad_str) <= 0:
             self.capacidad_entry.configure(background="#ffcccc")
-            messagebox.showerror("Error", "La capacidad debe ser un número entero positivo")
+            messagebox.showerror("Error", "Ingrese una capacidad válida (número entero positivo).")
             return
 
         if error:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
 
-        estado = self.estado_var.get()
         try:
-            # Aquí deberías llamar a tu servicio para editar la sala, por ejemplo:
-            # self.sala_service.editar_sala(self.sala["id"], data["nombre"], data["capacidad"], estado)
-            pass
+            if self.on_save:
+                self.on_save(nombre, int(capacidad_str), estado)
+            messagebox.showinfo("Éxito", "Sala modificada correctamente.")  # <--- Mensaje de éxito
+            self.destroy()
         except Exception as e:
             messagebox.showerror("Error", str(e))
-            return
-
-        messagebox.showinfo("Éxito", "Sala guardada correctamente")
-        if self.on_save:
-            self.on_save(data["nombre"], data["capacidad"], estado)
-        self.destroy()
 
     @property
     def nombre_input(self):
