@@ -228,9 +228,8 @@ class ReservasPanel(ttk.Frame):
                         command = EditReservaCommand(self.reserva_service, reserva["id"], new_data)
                         command.execute()
                         self.cargar_reservas()
-                    except Exception as e:
-                        messagebox.showerror("Error", str(e))
-                # Aquí podrías reutilizar el mismo diálogo de nueva reserva para editar
+                    except Exception:
+                        messagebox.showerror("Error", "Por favor, ingrese valores correctos.", parent=dialog)
                 dialog = tk.Toplevel(self)
                 dialog.title("Editar Reserva")
                 dialog.grab_set()
@@ -262,8 +261,11 @@ class ReservasPanel(ttk.Frame):
                     if not sala or not usuario or not fecha or not hora:
                         messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
                         return
-                    on_save(sala, usuario, fecha, hora)
-                    dialog.destroy()
+                    try:
+                        on_save(sala, usuario, fecha, hora)
+                        dialog.destroy()
+                    except Exception:
+                        messagebox.showerror("Error", "Por favor, ingrese valores correctos.", parent=dialog)
 
                 ttk.Button(dialog, text="Guardar cambios", command=guardar_cambios).grid(row=4, column=0, columnspan=2, pady=10)
                 dialog.wait_window()
