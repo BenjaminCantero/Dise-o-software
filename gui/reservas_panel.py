@@ -202,9 +202,12 @@ class ReservasPanel(ttk.Frame):
                 messagebox.showerror("Error", str(e))
 
     def editar_reserva(self):
-        selected = self.tree.selection()
-        if selected and self.reserva_service:
-            reserva_id = self.tree.item(selected[0])["values"][0]
+        seleccion = self.tree.selection()
+        if not seleccion:
+            messagebox.showwarning("Advertencia", "Selecciona una reserva para editar.")
+            return
+        if self.reserva_service:
+            reserva_id = self.tree.item(seleccion[0])["values"][0]
             reserva = next((r for r in self.reserva_service.listar_reservas() if r["id"] == reserva_id), None)
             if reserva:
                 salas = [s["nombre"] for s in self.sala_service.listar_salas()]

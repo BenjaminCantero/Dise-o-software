@@ -7,7 +7,6 @@ from builders.sala_builder import SalaBuilder
 class SalaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
     def __init__(self):
         super().__init__() # Inicialización de Observable
-        print("SalaService Singleton Inicializado") # Demuestra que __init__ se llama una vez
 
     def listar_salas(self):
         db = SessionLocal()
