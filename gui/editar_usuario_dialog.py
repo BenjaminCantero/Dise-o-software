@@ -45,13 +45,17 @@ class EditarUsuarioDialog(tk.Toplevel):
     def guardar(self):
         adapter = UsuarioDialogAdapter(self)
         data = adapter.get_data()
-        password = self.password_entry.get() if self.password_entry else None
+        password = self.password_entry.get().strip() if self.password_entry else None
 
-        if not data["username"] or not data["role"] or (self.password_entry and not password):
+        if (
+            not data["username"].strip()
+            or not data["role"].strip()
+            or (self.password_entry and not password)
+        ):
             messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
         if self.on_save:
-            self.on_save(data["username"], password, data["role"])
+            self.on_save(data["username"].strip(), password, data["role"].strip())
         self.destroy()
 
     @property

@@ -9,5 +9,5 @@ class UsuarioDialogAdapter:
     def get_data(self):
         return {
             "username": self.dialog.username_input.get(),
-            "role": self.dialog.rol_input.get() if hasattr(self.dialog, "rol_input") else None,
+            "role": self.dialog.role_combo.get() if hasattr(self.dialog, "role_combo") else None,
         }
