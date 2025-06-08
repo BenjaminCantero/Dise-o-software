@@ -4,7 +4,6 @@ from gui.reservas_panel import ReservasPanel
 from gui.salas_panel import SalasPanel
 from gui.admin_panel import AdminPanel
 from gui.dashboard_panel import DashboardPanel
-from gui.mis_reservas_panel import MisReservasPanel
 from gui.horario_panel import HorarioPanel
 
 class MainWindow(tk.Frame):
@@ -151,17 +150,15 @@ class MainWindow(tk.Frame):
     def ver_reservas(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        if self.user and self.user.role in ("estudiante", "profesor"):
-            reservas_panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
-        else:
-            reservas_panel = ReservasPanel(
-                parent=self.main_frame,
-                mediator=self.mediator,
-                sala_service=self.sala_service,
-                user_service=self.user_service,
-                reserva_service=self.reserva_service,
-                on_volver=self.mostrar_bienvenida 
-            )
+        reservas_panel = ReservasPanel(
+            parent=self.main_frame,
+            mediator=self.mediator,
+            sala_service=self.sala_service,
+            user_service=self.user_service,
+            reserva_service=self.reserva_service,
+            user=self.user,  # <-- pasa el usuario actual
+            on_volver=self.mostrar_bienvenida 
+        )
         reservas_panel.pack(fill="both", expand=True)
 
     def ver_admin_panel(self):
@@ -198,10 +195,16 @@ class MainWindow(tk.Frame):
         if seccion == "dashboard":
             panel = DashboardPanel(self.main_frame, self.sala_service)
         elif seccion == "reservas":
-            if self.user and self.user.role in ("estudiante", "profesor"):
-                panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
-            else:
-                panel = ReservasPanel(self.main_frame, self.mediator, self.reserva_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
+            # Usa solo ReservasPanel para todos los roles
+            panel = ReservasPanel(
+                parent=self.main_frame,
+                mediator=self.mediator,
+                sala_service=self.sala_service,
+                user_service=self.user_service,
+                reserva_service=self.reserva_service,
+                user=self.user,
+                on_volver=lambda: self.seleccionar_seccion("dashboard")
+            )
         elif seccion == "salas":
             panel = SalasPanel(self.main_frame, self.mediator, self.sala_service, on_volver=lambda: self.seleccionar_seccion("dashboard"))
         elif seccion == "usuarios":
@@ -221,6 +224,14 @@ class MainWindow(tk.Frame):
         # Elimina el panel actual si es necesario
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        # Crea el panel de reservas del usuario actual
-        panel = MisReservasPanel(self.main_frame, self.reserva_service, self.user)
+        # Usa ReservasPanel para mostrar solo las reservas del usuario actual
+        panel = ReservasPanel(
+            parent=self.main_frame,
+            mediator=self.mediator,
+            sala_service=self.sala_service,
+            user_service=self.user_service,
+            reserva_service=self.reserva_service,
+            user=self.user,
+            on_volver=self.mostrar_bienvenida
+        )
         panel.pack(fill="both", expand=True)
