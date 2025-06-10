@@ -10,6 +10,9 @@ from datetime import datetime
 from services.sala_service import SalaService
 from services.reserva_service import ReservaService
 from services.user_service import UserService
+from api.routes.salas import router as salas_router
+from api.routes.reservas import router as reservas_router
+from api.routes.usuarios import router as usuarios_router
 
 app = FastAPI()
 sala_service = SalaService()
@@ -34,6 +37,10 @@ class SalaOut(SalaIn):
 @app.get("/")
 def read_root():
     return {"message": "API de Diseño de Software funcionando"}
+
+app.include_router(salas_router)
+app.include_router(reservas_router)
+app.include_router(usuarios_router)
 
 @app.get("/salas", response_model=list[SalaOut])
 def get_salas():

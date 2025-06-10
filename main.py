@@ -1,3 +1,18 @@
+from fastapi import FastAPI
+from api.routes.salas import router as salas_router
+from api.routes.reservas import router as reservas_router
+from api.routes.usuarios import router as usuarios_router
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "API de Diseño de Software funcionando"}
+
+app.include_router(salas_router)
+app.include_router(reservas_router)
+app.include_router(usuarios_router)
+
 import tkinter as tk
 from gui.main_window import MainWindow
 from gui.login_window import LoginWindow
