@@ -23,30 +23,24 @@ def adapt_reserva(reserva):
 
     # Si no, busca por ID
     if sala_nombre is None and hasattr(reserva, "sala_id"):
-        print("DEBUG buscando sala por id:", reserva.sala_id)
         sala = sala_service.obtener_sala_por_id(reserva.sala_id)
-        print("DEBUG sala encontrada:", sala)
         if sala:
             sala_nombre = getattr(sala, "nombre", None) if not isinstance(sala, dict) else sala.get("nombre")
+        else:
+            raise HTTPException(status_code=500, detail="Sala no encontrada al adaptar reserva")
     if usuario_username is None and hasattr(reserva, "usuario_id"):
-        print("DEBUG buscando usuario por id:", reserva.usuario_id)
         usuario = user_service.obtener_usuario_por_id(reserva.usuario_id)
-        print("DEBUG usuario encontrado:", usuario)
         if usuario:
             usuario_username = getattr(usuario, "username", None) if not isinstance(usuario, dict) else usuario.get("username")
+        else:
+            raise HTTPException(status_code=500, detail="Usuario no encontrado al adaptar reserva")
 
     # Si es dict, usa las claves directas
     if isinstance(reserva, dict):
         sala_nombre = reserva.get("sala_nombre") or reserva.get("sala") or sala_nombre
         usuario_username = reserva.get("usuario_username") or reserva.get("usuario") or usuario_username
 
-    # Imprime los valores antes de retornar
-    print("DEBUG FINAL: sala_nombre =", sala_nombre, "usuario_username =", usuario_username)
-    print("DEBUG FECHAS:", getattr(reserva, "fecha_inicio", None), getattr(reserva, "fecha_fin", None))
-
-    # Validación final
     if not sala_nombre or not usuario_username:
-        print("ERROR: Faltan campos obligatorios", sala_nombre, usuario_username)
         raise HTTPException(status_code=500, detail="Error adaptando reserva: faltan campos obligatorios")
 
     return {
@@ -76,26 +70,22 @@ def get_reserva(reserva_id: int):
 
 @router.post("/", response_model=ReservaOut, status_code=201)
 def create_reserva(reserva: ReservaIn):
-    # Validar sala existente
     salas = sala_service.listar_salas()
     if not any(
         (getattr(s, "nombre", None) or (s.get("nombre") if isinstance(s, dict) else None)) == reserva.sala_nombre
         for s in salas
     ):
         raise HTTPException(status_code=404, detail="Sala no encontrada")
-    # Validar usuario existente
     usuarios = user_service.listar_usuarios()
     if not any(
         (getattr(u, "username", None) or (u.get("username") if isinstance(u, dict) else None)) == reserva.usuario_username
         for u in usuarios
     ):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    # Validar fechas no nulas y orden correcto
     if reserva.fecha_inicio is None or reserva.fecha_fin is None:
         raise HTTPException(status_code=400, detail="Las fechas no pueden ser nulas")
     if reserva.fecha_inicio >= reserva.fecha_fin:
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
-    # Validar que la sala esté disponible en ese horario
     reservas_existentes = reserva_service.listar_reservas()
     for r in reservas_existentes:
         r_sala_nombre = r.get("sala_nombre") if isinstance(r, dict) else getattr(r, "sala_nombre", None)
@@ -106,7 +96,6 @@ def create_reserva(reserva: ReservaIn):
         if r_sala_nombre == reserva.sala_nombre:
             if not (fecha_fin <= r_fecha_inicio or fecha_inicio >= r_fecha_fin):
                 raise HTTPException(status_code=400, detail="La sala ya está reservada en ese horario")
-    # (Opcional) Validar que el usuario no tenga otra reserva en ese horario
     for r in reservas_existentes:
         r_usuario_username = r.get("usuario_username") if isinstance(r, dict) else getattr(r, "usuario_username", None)
         r_fecha_inicio = to_naive(r.get("fecha_inicio") if isinstance(r, dict) else getattr(r, "fecha_inicio", None))
@@ -116,7 +105,6 @@ def create_reserva(reserva: ReservaIn):
         if r_usuario_username == reserva.usuario_username:
             if not (fecha_fin <= r_fecha_inicio or fecha_inicio >= r_fecha_fin):
                 raise HTTPException(status_code=400, detail="El usuario ya tiene una reserva en ese horario")
-    # Crear reserva
     try:
         nueva = reserva_service.crear_reserva(
             sala_nombre=reserva.sala_nombre,
@@ -132,26 +120,22 @@ def create_reserva(reserva: ReservaIn):
 
 @router.put("/{reserva_id}", response_model=list[ReservaOut])
 def update_reserva(reserva_id: int, reserva: ReservaIn):
-    # Validar sala existente
     salas = sala_service.listar_salas()
     if not any(
         (getattr(s, "nombre", None) or (s.get("nombre") if isinstance(s, dict) else None)) == reserva.sala_nombre
         for s in salas
     ):
         raise HTTPException(status_code=404, detail="Sala no encontrada")
-    # Validar usuario existente
     usuarios = user_service.listar_usuarios()
     if not any(
         (getattr(u, "username", None) or (u.get("username") if isinstance(u, dict) else None)) == reserva.usuario_username
         for u in usuarios
     ):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    # Validar fechas no nulas y orden correcto
     if reserva.fecha_inicio is None or reserva.fecha_fin is None:
         raise HTTPException(status_code=400, detail="Las fechas no pueden ser nulas")
     if reserva.fecha_inicio >= reserva.fecha_fin:
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
-    # Validar que la sala esté disponible en ese horario (ignorando la reserva actual)
     reservas_existentes = reserva_service.listar_reservas()
     for r in reservas_existentes:
         r_id = r.get("id") if isinstance(r, dict) else getattr(r, "id", None)
@@ -163,7 +147,6 @@ def update_reserva(reserva_id: int, reserva: ReservaIn):
         if r_id != reserva_id and r_sala_nombre == reserva.sala_nombre:
             if not (fecha_fin <= r_fecha_inicio or fecha_inicio >= r_fecha_fin):
                 raise HTTPException(status_code=400, detail="La sala ya está reservada en ese horario")
-    # Validar que el usuario no tenga otra reserva en ese horario (ignorando la reserva actual)
     for r in reservas_existentes:
         r_id = r.get("id") if isinstance(r, dict) else getattr(r, "id", None)
         r_usuario_username = r.get("usuario_username") if isinstance(r, dict) else getattr(r, "usuario_username", None)
@@ -174,7 +157,6 @@ def update_reserva(reserva_id: int, reserva: ReservaIn):
         if r_id != reserva_id and r_usuario_username == reserva.usuario_username:
             if not (fecha_fin <= r_fecha_inicio or fecha_inicio >= r_fecha_fin):
                 raise HTTPException(status_code=400, detail="El usuario ya tiene una reserva en ese horario")
-    # Editar reserva
     try:
         reserva_service.editar_reserva(
             reserva_id=reserva_id,
@@ -198,6 +180,5 @@ def delete_reserva(reserva_id: int):
         return [adapt_reserva(r) for r in reservas]
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        print(f"Error al eliminar reserva: {e}")  # <-- Esto te mostrará el error real en consola
+    except Exception:
         raise HTTPException(status_code=500, detail="Error interno del servidor")

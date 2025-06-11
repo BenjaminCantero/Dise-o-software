@@ -4,6 +4,8 @@ from repositories.models import Sala, Reserva
 from core.observable import Observable
 from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
 from builders.sala_builder import SalaBuilder
+from sqlalchemy.orm import joinedload
+
 class SalaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
     def __init__(self):
         super().__init__() # Inicialización de Observable
@@ -59,3 +61,11 @@ class SalaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADID
             db.commit()
             self.notify_observers(event="sala_eliminada", data=sala_id)
         db.close()
+
+    def obtener_sala_por_id(self, sala_id: int):
+        db = SessionLocal()
+        try:
+            sala = db.query(Sala).filter(Sala.id == sala_id).first()
+            return sala
+        finally:
+            db.close()
