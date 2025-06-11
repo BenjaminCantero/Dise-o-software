@@ -4,7 +4,27 @@ from services.sala_service import SalaService
 from services.user_service import UserService
 from api.schemas.reserva import ReservaIn, ReservaOut
 
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
+
+def adapt_reserva(reserva):
+    if "sala_nombre" in reserva:
+        return reserva
+    fecha = reserva.get("fecha")
+    hora = reserva.get("hora")
+    # Si tienes duración, úsala, si no, suma 1 hora por defecto
+    if fecha and hora:
+        fecha_inicio = datetime.fromisoformat(f"{fecha}T{hora}")
+        fecha_fin = fecha_inicio + timedelta(hours=1)
+    else:
+        fecha_inicio = reserva.get("fecha_inicio")
+        fecha_fin = reserva.get("fecha_fin")
+    return {
+        "id": reserva.get("id"),
+        "sala_nombre": reserva.get("sala") or reserva.get("sala_nombre"),
+        "usuario_username": reserva.get("usuario") or reserva.get("usuario_username"),
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+    }
 
 def to_naive(dt):
     if dt is not None and hasattr(dt, 'tzinfo') and dt.tzinfo is not None:
@@ -18,14 +38,15 @@ user_service = UserService()
 
 @router.get("/", response_model=list[ReservaOut])
 def get_reservas():
-    return reserva_service.listar_reservas()
+    reservas = reserva_service.listar_reservas()
+    return [adapt_reserva(r) for r in reservas]
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
 def get_reserva(reserva_id: int):
     reserva = reserva_service.obtener_reserva_por_id(reserva_id)
     if not reserva:
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
-    return reserva
+    return adapt_reserva(reserva)
 
 @router.post("/", response_model=ReservaOut, status_code=201)
 def create_reserva(reserva: ReservaIn):
