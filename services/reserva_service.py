@@ -18,10 +18,10 @@ class ReservaService(Observable, metaclass=SingletonMeta):
             for r in reservas:
                 resultado.append({
                     "id": r.id,
-                    "sala": r.sala.nombre if r.sala else "",
-                    "usuario": r.usuario.username if r.usuario else "",
-                    "fecha": r.fecha_inicio.strftime("%Y-%m-%d"),
-                    "hora": r.fecha_inicio.strftime("%H:%M"),
+                    "sala_nombre": r.sala.nombre if r.sala else "",
+                    "usuario_username": r.usuario.username if r.usuario else "",
+                    "fecha_inicio": r.fecha_inicio,
+                    "fecha_fin": r.fecha_fin,
                     "estado": r.estado if hasattr(r, "estado") else "N/A"
                 })
             return resultado
@@ -71,7 +71,8 @@ class ReservaService(Observable, metaclass=SingletonMeta):
                 db.commit()
                 self.notify_observers(event="reserva_eliminada", data=reserva_id)
             else:
-                raise Exception("Reserva no encontrada.")
+                print(f"Reserva con id {reserva_id} no encontrada para eliminar.")  # Debug
+                raise ValueError("Reserva no encontrada.")
         finally:
             db.close()
 

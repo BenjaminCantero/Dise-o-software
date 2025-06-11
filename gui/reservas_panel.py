@@ -1,8 +1,8 @@
-from tkcalendar import DateEntry  # Agrega esta importación
+from tkcalendar import DateEntry
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from commands.cancel_reserva_command import CreateReservaCommand, CancelReservaCommand, EditReservaCommand  # Importa los comandos
+from commands.cancel_reserva_command import CreateReservaCommand, CancelReservaCommand, EditReservaCommand
 
 class ReservasPanel(ttk.Frame):
     def __init__(self, parent, mediator, sala_service, user_service, reserva_service, user, on_volver=None):
@@ -14,10 +14,8 @@ class ReservasPanel(ttk.Frame):
         self.user = user
         self.on_volver = on_volver
         self.create_widgets()
-        # --- PATRÓN MEDIATOR: Registrar el panel ---
         if self.mediator:
             self.mediator.register("reservas_panel", self)
-        # --- PATRÓN OBSERVER: Registrar como observador ---
         if self.reserva_service:
             self.reserva_service.add_observer(self)
 
@@ -28,16 +26,13 @@ class ReservasPanel(ttk.Frame):
         elif event in ("reserva_creada", "reserva_eliminada"):
             self.cargar_reservas()
 
-    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
     def on_event(self, sender, event, data):
         if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
             self.cargar_reservas()
 
     def destroy(self):
-        # --- PATRÓN MEDIATOR: Desregistrar el panel ---
         if self.mediator:
             self.mediator.unregister("reservas_panel")
-        # --- PATRÓN OBSERVER: Quitar como observador ---
         if self.reserva_service:
             self.reserva_service.remove_observer(self)
         super().destroy()
@@ -52,7 +47,6 @@ class ReservasPanel(ttk.Frame):
                   background=[("active", "#eebbc3")],
                   foreground=[("active", "#232946")])
 
-        # Marco superior con título e icono
         top_frame = ttk.Frame(self, style="Panel.TFrame")
         top_frame.pack(fill="x", pady=(10, 0), padx=10)
         icon = ttk.Label(top_frame, text="📅", style="PanelIcon.TLabel")
@@ -60,7 +54,6 @@ class ReservasPanel(ttk.Frame):
         label = ttk.Label(top_frame, text="Gestión de Reservas", style="PanelTitle.TLabel")
         label.pack(side="left")
 
-        # Filtro de búsqueda
         filter_frame = ttk.Frame(self, style="Panel.TFrame")
         filter_frame.pack(fill="x", padx=10, pady=(10, 0))
         ttk.Label(filter_frame, text="Buscar por usuario:", background="#f4f4f8", foreground="#232946", font=("Arial", 11)).pack(side="left")
@@ -70,20 +63,18 @@ class ReservasPanel(ttk.Frame):
         ttk.Button(filter_frame, text="Buscar", style="Panel.TButton", command=self.filtrar_reservas).pack(side="left", padx=5)
         ttk.Button(filter_frame, text="Limpiar", style="Panel.TButton", command=self.cargar_reservas).pack(side="left", padx=5)
 
-        # Tabla de reservas con scrollbar
         table_frame = ttk.Frame(self, style="Panel.TFrame")
         table_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        columns = ("id", "sala", "usuario", "fecha", "hora")
+        columns = ("id", "sala_nombre", "usuario_username", "fecha_inicio", "fecha_fin")
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=12)
-        for col, ancho in zip(columns, [50, 120, 120, 100, 80]):
-            self.tree.heading(col, text=col.capitalize())
+        for col, ancho in zip(columns, [50, 120, 120, 140, 140]):
+            self.tree.heading(col, text=col.replace("_", " ").capitalize())
             self.tree.column(col, width=ancho, anchor="center")
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscroll=vsb.set)
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
-        # Botones de acción
         btn_frame = ttk.Frame(self, style="Panel.TFrame")
         btn_frame.pack(pady=5)
         ttk.Button(btn_frame, text="Nueva Reserva", style="Panel.TButton", command=self.nueva_reserva, width=18).pack(side="left", padx=8)
@@ -99,15 +90,16 @@ class ReservasPanel(ttk.Frame):
             self.tree.delete(row)
         if self.reserva_service:
             reservas = self.reserva_service.listar_reservas()
-            # Filtrado por rol
             if hasattr(self, "user") and hasattr(self.user, "role"):
                 if self.user.role in ("estudiante", "profesor"):
-                    # Solo sus reservas
-                    reservas = [r for r in reservas if r["usuario"] == self.user.username]
-                # Si es admin, ve todas
+                    reservas = [r for r in reservas if r["usuario_username"] == self.user.username]
             for reserva in reservas:
                 self.tree.insert("", "end", values=(
-                    reserva["id"], reserva["sala"], reserva["usuario"], reserva["fecha"], reserva["hora"]
+                    reserva["id"],
+                    reserva["sala_nombre"],
+                    reserva["usuario_username"],
+                    str(reserva["fecha_inicio"])[:16],
+                    str(reserva["fecha_fin"])[:16]
                 ))
 
     def filtrar_reservas(self):
@@ -117,9 +109,13 @@ class ReservasPanel(ttk.Frame):
         if self.reserva_service:
             reservas = self.reserva_service.listar_reservas()
             for reserva in reservas:
-                if filtro in str(reserva["usuario"]).lower():
+                if filtro in str(reserva["usuario_username"]).lower():
                     self.tree.insert("", "end", values=(
-                        reserva["id"], reserva["sala"], reserva["usuario"], reserva["fecha"], reserva["hora"]
+                        reserva["id"],
+                        reserva["sala_nombre"],
+                        reserva["usuario_username"],
+                        str(reserva["fecha_inicio"])[:16],
+                        str(reserva["fecha_fin"])[:16]
                     ))
 
     def nueva_reserva(self):
@@ -137,13 +133,11 @@ class ReservasPanel(ttk.Frame):
 
         ttk.Label(frm, text="Crear Nueva Reserva", style="PanelTitle.TLabel").grid(row=0, column=0, columnspan=2, pady=(0, 18))
 
-        # Sala
         ttk.Label(frm, text="Sala:", style="PanelTitle.TLabel").grid(row=1, column=0, padx=8, pady=6, sticky="e")
         sala_var = tk.StringVar()
         sala_cb = ttk.Combobox(frm, textvariable=sala_var, values=salas, state="readonly", font=("Arial", 12))
         sala_cb.grid(row=1, column=1, padx=8, pady=6, sticky="w")
 
-        # Usuario (solo admin)
         if hasattr(self.user, "role") and self.user.role == "admin":
             ttk.Label(frm, text="Usuario:", style="PanelTitle.TLabel").grid(row=2, column=0, padx=8, pady=6, sticky="e")
             usuario_var = tk.StringVar()
@@ -152,25 +146,21 @@ class ReservasPanel(ttk.Frame):
         else:
             usuario_var = tk.StringVar(value=self.user.username)
 
-        # Fecha
         ttk.Label(frm, text="Fecha:", style="PanelTitle.TLabel").grid(row=3, column=0, padx=8, pady=6, sticky="e")
         fecha_var = tk.StringVar()
         fecha_entry = DateEntry(frm, textvariable=fecha_var, date_pattern="yyyy-mm-dd", font=("Arial", 12))
         fecha_entry.grid(row=3, column=1, padx=8, pady=6, sticky="w")
 
-        # Hora
         ttk.Label(frm, text="Hora (24h):", style="PanelTitle.TLabel").grid(row=4, column=0, padx=8, pady=6, sticky="e")
         hora_var = tk.StringVar(value="12")
         spin_hora = ttk.Spinbox(frm, from_=0, to=23, wrap=True, textvariable=hora_var, width=5, font=("Arial", 12), format="%02.0f")
         spin_hora.grid(row=4, column=1, padx=8, pady=6, sticky="w")
 
-        # Minuto
         ttk.Label(frm, text="Minuto:", style="PanelTitle.TLabel").grid(row=5, column=0, padx=8, pady=6, sticky="e")
         minuto_var = tk.StringVar(value="00")
         spin_minuto = ttk.Spinbox(frm, from_=0, to=59, wrap=True, textvariable=minuto_var, width=5, font=("Arial", 12), format="%02.0f")
         spin_minuto.grid(row=5, column=1, padx=8, pady=6, sticky="w")
 
-        # Botón guardar
         def guardar():
             sala = sala_var.get()
             usuario = usuario_var.get()
@@ -204,7 +194,6 @@ class ReservasPanel(ttk.Frame):
 
         ttk.Button(frm, text="Guardar", style="Panel.TButton", command=guardar).grid(row=6, column=0, columnspan=2, pady=18)
 
-        # Centrar el formulario
         dialog.update_idletasks()
         w = dialog.winfo_width()
         h = dialog.winfo_height()
@@ -226,7 +215,6 @@ class ReservasPanel(ttk.Frame):
                 command.execute()
                 messagebox.showinfo("Éxito", "Reserva eliminada correctamente.")
                 self.cargar_reservas()
-                # --- PATRÓN MEDIATOR: Notificar evento ---
                 if self.mediator:
                     self.mediator.notify(self, "reserva_eliminada", data=reserva_id)
             except Exception as e:
@@ -264,25 +252,24 @@ class ReservasPanel(ttk.Frame):
                 dialog.resizable(False, False)
 
                 tk.Label(dialog, text="Sala:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-                sala_var = tk.StringVar(value=reserva["sala"])
+                sala_var = tk.StringVar(value=reserva["sala_nombre"])
                 sala_cb = ttk.Combobox(dialog, textvariable=sala_var, values=salas, state="readonly")
                 sala_cb.grid(row=0, column=1, padx=10, pady=5)
 
-                # Solo admin puede editar el usuario, los demás no pueden cambiarlo
                 if hasattr(self.user, "role") and self.user.role == "admin":
                     tk.Label(dialog, text="Usuario:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
-                    usuario_var = tk.StringVar(value=reserva["usuario"])
+                    usuario_var = tk.StringVar(value=reserva["usuario_username"])
                     usuario_cb = ttk.Combobox(dialog, textvariable=usuario_var, values=usuarios, state="readonly")
                     usuario_cb.grid(row=1, column=1, padx=10, pady=5)
                 else:
-                    usuario_var = tk.StringVar(value=reserva["usuario"])
+                    usuario_var = tk.StringVar(value=reserva["usuario_username"])
 
                 tk.Label(dialog, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
-                fecha_var = tk.StringVar(value=reserva["fecha"])
+                fecha_var = tk.StringVar(value=str(reserva["fecha_inicio"])[:10])
                 tk.Entry(dialog, textvariable=fecha_var).grid(row=2, column=1, padx=10, pady=5)
 
                 tk.Label(dialog, text="Hora (HH:MM):").grid(row=3, column=0, padx=10, pady=5, sticky="e")
-                hora_var = tk.StringVar(value=reserva["hora"])
+                hora_var = tk.StringVar(value=str(reserva["fecha_inicio"])[11:16])
                 tk.Entry(dialog, textvariable=hora_var).grid(row=3, column=1, padx=10, pady=5)
 
                 def guardar_cambios():
