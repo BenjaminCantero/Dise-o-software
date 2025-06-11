@@ -151,31 +151,48 @@ class ReservasPanel(ttk.Frame):
         fecha_entry = DateEntry(frm, textvariable=fecha_var, date_pattern="yyyy-mm-dd", font=("Arial", 12))
         fecha_entry.grid(row=3, column=1, padx=8, pady=6, sticky="w")
 
-        ttk.Label(frm, text="Hora (24h):", style="PanelTitle.TLabel").grid(row=4, column=0, padx=8, pady=6, sticky="e")
-        hora_var = tk.StringVar(value="12")
-        spin_hora = ttk.Spinbox(frm, from_=0, to=23, wrap=True, textvariable=hora_var, width=5, font=("Arial", 12), format="%02.0f")
-        spin_hora.grid(row=4, column=1, padx=8, pady=6, sticky="w")
+        # Hora de inicio
+        ttk.Label(frm, text="Hora inicio (24h):", style="PanelTitle.TLabel").grid(row=4, column=0, padx=8, pady=6, sticky="e")
+        hora_ini_var = tk.StringVar(value="12")
+        spin_hora_ini = ttk.Spinbox(frm, from_=0, to=23, wrap=True, textvariable=hora_ini_var, width=5, font=("Arial", 12), format="%02.0f")
+        spin_hora_ini.grid(row=4, column=1, padx=8, pady=6, sticky="w")
 
-        ttk.Label(frm, text="Minuto:", style="PanelTitle.TLabel").grid(row=5, column=0, padx=8, pady=6, sticky="e")
-        minuto_var = tk.StringVar(value="00")
-        spin_minuto = ttk.Spinbox(frm, from_=0, to=59, wrap=True, textvariable=minuto_var, width=5, font=("Arial", 12), format="%02.0f")
-        spin_minuto.grid(row=5, column=1, padx=8, pady=6, sticky="w")
+        ttk.Label(frm, text="Minuto inicio:", style="PanelTitle.TLabel").grid(row=5, column=0, padx=8, pady=6, sticky="e")
+        minuto_ini_var = tk.StringVar(value="00")
+        spin_minuto_ini = ttk.Spinbox(frm, from_=0, to=59, wrap=True, textvariable=minuto_ini_var, width=5, font=("Arial", 12), format="%02.0f")
+        spin_minuto_ini.grid(row=5, column=1, padx=8, pady=6, sticky="w")
+
+        # Hora de fin
+        ttk.Label(frm, text="Hora fin (24h):", style="PanelTitle.TLabel").grid(row=6, column=0, padx=8, pady=6, sticky="e")
+        hora_fin_var = tk.StringVar(value="13")
+        spin_hora_fin = ttk.Spinbox(frm, from_=0, to=23, wrap=True, textvariable=hora_fin_var, width=5, font=("Arial", 12), format="%02.0f")
+        spin_hora_fin.grid(row=6, column=1, padx=8, pady=6, sticky="w")
+
+        ttk.Label(frm, text="Minuto fin:", style="PanelTitle.TLabel").grid(row=7, column=0, padx=8, pady=6, sticky="e")
+        minuto_fin_var = tk.StringVar(value="00")
+        spin_minuto_fin = ttk.Spinbox(frm, from_=0, to=59, wrap=True, textvariable=minuto_fin_var, width=5, font=("Arial", 12), format="%02.0f")
+        spin_minuto_fin.grid(row=7, column=1, padx=8, pady=6, sticky="w")
 
         def guardar():
             sala = sala_var.get()
             usuario = usuario_var.get()
             fecha = fecha_var.get()
-            hora = hora_var.get()
-            minuto = minuto_var.get()
-            if not sala or not usuario or not fecha or not hora or not minuto:
+            hora_ini = hora_ini_var.get()
+            minuto_ini = minuto_ini_var.get()
+            hora_fin = hora_fin_var.get()
+            minuto_fin = minuto_fin_var.get()
+            if not sala or not usuario or not fecha or not hora_ini or not minuto_ini or not hora_fin or not minuto_fin:
                 messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
                 return
-            if not (hora.isdigit() and minuto.isdigit()):
+            if not (hora_ini.isdigit() and minuto_ini.isdigit() and hora_fin.isdigit() and minuto_fin.isdigit()):
                 messagebox.showerror("Error", "Por favor, ingrese valores numéricos en hora y minuto.", parent=dialog)
                 return
             try:
-                fecha_inicio = datetime.strptime(f"{fecha} {hora}:{minuto}", "%Y-%m-%d %H:%M")
-                fecha_fin = fecha_inicio.replace(hour=(fecha_inicio.hour + 1) % 24)
+                fecha_inicio = datetime.strptime(f"{fecha} {hora_ini}:{minuto_ini}", "%Y-%m-%d %H:%M")
+                fecha_fin = datetime.strptime(f"{fecha} {hora_fin}:{minuto_fin}", "%Y-%m-%d %H:%M")
+                if fecha_fin <= fecha_inicio:
+                    messagebox.showerror("Error", "La hora de fin debe ser posterior a la de inicio.", parent=dialog)
+                    return
                 reserva_data = {
                     "sala_nombre": sala,
                     "usuario_username": usuario,
@@ -192,7 +209,7 @@ class ReservasPanel(ttk.Frame):
             except Exception:
                 messagebox.showerror("Error", "Por favor, ingrese valores correctos.", parent=dialog)
 
-        ttk.Button(frm, text="Guardar", style="Panel.TButton", command=guardar).grid(row=6, column=0, columnspan=2, pady=18)
+        ttk.Button(frm, text="Guardar", style="Panel.TButton", command=guardar).grid(row=8, column=0, columnspan=2, pady=18)
 
         dialog.update_idletasks()
         w = dialog.winfo_width()
