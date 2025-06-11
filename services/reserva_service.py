@@ -58,7 +58,15 @@ class ReservaService(Observable, metaclass=SingletonMeta):
             db.commit()
             db.refresh(nueva_reserva)
             self.notify_observers(event="reserva_creada", data=nueva_reserva)
-            return nueva_reserva
+            # Devuelve un dict con los datos completos ANTES de cerrar la sesión
+            reserva_dict = {
+                "id": nueva_reserva.id,
+                "sala_nombre": nueva_reserva.sala.nombre if nueva_reserva.sala else "",
+                "usuario_username": nueva_reserva.usuario.username if nueva_reserva.usuario else "",
+                "fecha_inicio": nueva_reserva.fecha_inicio,
+                "fecha_fin": nueva_reserva.fecha_fin,
+            }
+            return reserva_dict
         finally:
             db.close()
 

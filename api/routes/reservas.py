@@ -6,35 +6,61 @@ from api.schemas.reserva import ReservaIn, ReservaOut
 
 from datetime import datetime, timedelta, timezone
 
+router = APIRouter(prefix="/reservas", tags=["reservas"])
+reserva_service = ReservaService()
+sala_service = SalaService()
+user_service = UserService()
+
 def adapt_reserva(reserva):
-    if "sala_nombre" in reserva:
-        return reserva
-    fecha = reserva.get("fecha")
-    hora = reserva.get("hora")
-    # Si tienes duración, úsala, si no, suma 1 hora por defecto
-    if fecha and hora:
-        fecha_inicio = datetime.fromisoformat(f"{fecha}T{hora}")
-        fecha_fin = fecha_inicio + timedelta(hours=1)
-    else:
-        fecha_inicio = reserva.get("fecha_inicio")
-        fecha_fin = reserva.get("fecha_fin")
+    sala_nombre = None
+    usuario_username = None
+
+    # Intenta obtener de la relación
+    if hasattr(reserva, "sala") and reserva.sala:
+        sala_nombre = getattr(reserva.sala, "nombre", None)
+    if hasattr(reserva, "usuario") and reserva.usuario:
+        usuario_username = getattr(reserva.usuario, "username", None)
+
+    # Si no, busca por ID
+    if sala_nombre is None and hasattr(reserva, "sala_id"):
+        print("DEBUG buscando sala por id:", reserva.sala_id)
+        sala = sala_service.obtener_sala_por_id(reserva.sala_id)
+        print("DEBUG sala encontrada:", sala)
+        if sala:
+            sala_nombre = getattr(sala, "nombre", None) if not isinstance(sala, dict) else sala.get("nombre")
+    if usuario_username is None and hasattr(reserva, "usuario_id"):
+        print("DEBUG buscando usuario por id:", reserva.usuario_id)
+        usuario = user_service.obtener_usuario_por_id(reserva.usuario_id)
+        print("DEBUG usuario encontrado:", usuario)
+        if usuario:
+            usuario_username = getattr(usuario, "username", None) if not isinstance(usuario, dict) else usuario.get("username")
+
+    # Si es dict, usa las claves directas
+    if isinstance(reserva, dict):
+        sala_nombre = reserva.get("sala_nombre") or reserva.get("sala") or sala_nombre
+        usuario_username = reserva.get("usuario_username") or reserva.get("usuario") or usuario_username
+
+    # Imprime los valores antes de retornar
+    print("DEBUG FINAL: sala_nombre =", sala_nombre, "usuario_username =", usuario_username)
+    print("DEBUG FECHAS:", getattr(reserva, "fecha_inicio", None), getattr(reserva, "fecha_fin", None))
+
+    # Validación final
+    if not sala_nombre or not usuario_username:
+        print("ERROR: Faltan campos obligatorios", sala_nombre, usuario_username)
+        raise HTTPException(status_code=500, detail="Error adaptando reserva: faltan campos obligatorios")
+
     return {
-        "id": reserva.get("id"),
-        "sala_nombre": reserva.get("sala") or reserva.get("sala_nombre"),
-        "usuario_username": reserva.get("usuario") or reserva.get("usuario_username"),
-        "fecha_inicio": fecha_inicio,
-        "fecha_fin": fecha_fin,
+        "id": reserva.id if hasattr(reserva, "id") else reserva.get("id"),
+        "sala_nombre": sala_nombre,
+        "usuario_username": usuario_username,
+        "fecha_inicio": reserva.fecha_inicio if hasattr(reserva, "fecha_inicio") else reserva.get("fecha_inicio"),
+        "fecha_fin": reserva.fecha_fin if hasattr(reserva, "fecha_fin") else reserva.get("fecha_fin"),
     }
 
 def to_naive(dt):
     if dt is not None and hasattr(dt, 'tzinfo') and dt.tzinfo is not None:
         return dt.replace(tzinfo=None)
     return dt
-
-router = APIRouter(prefix="/reservas", tags=["reservas"])
-reserva_service = ReservaService()
-sala_service = SalaService()
-user_service = UserService()
 
 @router.get("/", response_model=list[ReservaOut])
 def get_reservas():
@@ -98,7 +124,7 @@ def create_reserva(reserva: ReservaIn):
             fecha_inicio=reserva.fecha_inicio,
             fecha_fin=reserva.fecha_fin
         )
-        return nueva
+        return adapt_reserva(nueva)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:
@@ -157,8 +183,8 @@ def update_reserva(reserva_id: int, reserva: ReservaIn):
             fecha_inicio=reserva.fecha_inicio,
             fecha_fin=reserva.fecha_fin
         )
-        # Devuelve la lista de reservas actualizada
-        return reserva_service.listar_reservas()
+        reservas = reserva_service.listar_reservas()
+        return [adapt_reserva(r) for r in reservas]
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:
@@ -169,7 +195,7 @@ def delete_reserva(reserva_id: int):
     try:
         reserva_service.eliminar_reserva(reserva_id)
         reservas = reserva_service.listar_reservas()
-        return reservas
+        return [adapt_reserva(r) for r in reservas]
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
