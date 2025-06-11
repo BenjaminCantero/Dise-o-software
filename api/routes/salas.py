@@ -12,14 +12,34 @@ sala_service = SalaService()
 def get_salas():
     return sala_service.listar_salas()
 
-@router.post("/", response_model=SalaOut, status_code=201)
-def create_sala(sala: SalaIn):
-    nueva = sala_service.crear_sala(
-        nombre=sala.nombre,
-        capacidad=sala.capacidad,
-        estado=sala.estado
-    )
-    return nueva
+@router.post("/", response_model=list[SalaOut], status_code=201)
+def create_sala(sala_data: SalaIn):
+    # Validar estado
+    if sala_data.estado.lower() not in ["ocupada", "disponible"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Agregue un estado válido: 'ocupada' o 'disponible'"
+        )
+    # Validar nombre único
+    salas = sala_service.listar_salas()
+    if any(
+        (getattr(s, "nombre", None) or (s.get("nombre") if isinstance(s, dict) else None)).lower() == sala_data.nombre.lower()
+        for s in salas
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Ya existe una sala con ese nombre"
+        )
+    try:
+        sala_service.crear_sala(
+            nombre=sala_data.nombre,
+            capacidad=sala_data.capacidad,
+            estado=sala_data.estado.lower()
+        )
+        salas = sala_service.listar_salas()
+        return salas
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @router.put("/{sala_id}", response_model=list[SalaOut])
 def update_sala(sala_id: int, sala_data: SalaIn):
