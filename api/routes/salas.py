@@ -21,18 +21,27 @@ def create_sala(sala: SalaIn):
     )
     return nueva
 
-@router.put("/{sala_id}")
-def update_sala(sala_id: int, sala: SalaIn):
-    salas = sala_service.listar_salas()
-    if not any(getattr(s, "id", s.get("id")) == sala_id for s in salas):
-        raise HTTPException(status_code=404, detail="Sala no encontrada")
-    sala_service.editar_sala(
-        sala_id=sala_id,
-        nombre=sala.nombre,
-        capacidad=sala.capacidad,
-        estado=sala.estado
-    )
-    return {"message": "Sala actualizada correctamente"}
+@router.put("/{sala_id}", response_model=list[SalaOut])
+def update_sala(sala_id: int, sala_data: SalaIn):
+    # Validación del estado
+    if sala_data.estado.lower() not in ["ocupada", "disponible"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Agregue un estado válido: 'ocupada' o 'disponible'"
+        )
+    try:
+        sala_service.editar_sala(
+            sala_id=sala_id,
+            nombre=sala_data.nombre,
+            capacidad=sala_data.capacidad,
+            estado=sala_data.estado.lower()
+        )
+        salas = sala_service.listar_salas()
+        return salas
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @router.delete("/{sala_id}", response_model=list[SalaOut])
 def delete_sala(sala_id: int):
