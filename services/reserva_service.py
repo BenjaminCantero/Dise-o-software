@@ -146,3 +146,15 @@ class ReservaService(Observable, metaclass=SingletonMeta):
             return None
         finally:
             db.close()
+
+    def eliminar_reservas_por_usuario(self, username):
+        db = SessionLocal()
+        try:
+            usuario = db.query(Usuario).filter_by(username=username).first()
+            if usuario:
+                reservas = db.query(Reserva).filter_by(usuario_id=usuario.id).all()
+                for reserva in reservas:
+                    db.delete(reserva)
+                db.commit()
+        finally:
+            db.close()
