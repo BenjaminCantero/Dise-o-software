@@ -13,7 +13,7 @@ def get_usuarios():
     usuarios = user_service.listar_usuarios()
     return [{"username": u.username, "role": u.role} for u in usuarios]
 
-@router.post("/", response_model=UserOut, status_code=201)
+@router.post("/", response_model=list[UserOut], status_code=201)
 def create_usuario(usuario: UserIn):
     usuarios = user_service.listar_usuarios()
     if any(u.username == usuario.username for u in usuarios):
@@ -22,15 +22,13 @@ def create_usuario(usuario: UserIn):
         raise HTTPException(status_code=400, detail="Agregue un rol válido: admin, profesor o estudiante")
     if not usuario.password or usuario.password.strip() == "":
         raise HTTPException(status_code=400, detail="La contraseña no puede estar vacía")
-    nuevo = user_service.crear_usuario(
+    user_service.crear_usuario(
         username=usuario.username,
         password=usuario.password,
         role=usuario.role
     )
-    return {
-        "username": nuevo.username,
-        "role": nuevo.role
-    }
+    usuarios = user_service.listar_usuarios()
+    return [{"username": u.username, "role": u.role} for u in usuarios]
 
 
 @router.put("/{username}", response_model=list[UserOut])
