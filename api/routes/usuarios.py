@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from api.db import SessionLocal
-from api.models import Usuario
+from api.models.usuario import Usuario
 from api.schemas.usuario import UsuarioIn, UsuarioOut
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])

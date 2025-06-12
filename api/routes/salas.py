@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import Session
 from api.db import SessionLocal
-from api.models import Sala
+from api.models.sala import Sala
 from api.schemas.sala import SalaIn, SalaOut
 
 router = APIRouter(prefix="/salas", tags=["salas"])
