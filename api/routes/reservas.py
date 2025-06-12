@@ -1,184 +1,149 @@
 from fastapi import APIRouter, HTTPException
-from services.reserva_service import ReservaService
-from services.sala_service import SalaService
-from services.user_service import UserService
+from sqlalchemy.orm import Session
+from api.db import SessionLocal
+from api.models import Reserva, Sala, Usuario
 from api.schemas.reserva import ReservaIn, ReservaOut
 
-from datetime import datetime, timedelta, timezone
-
 router = APIRouter(prefix="/reservas", tags=["reservas"])
-reserva_service = ReservaService()
-sala_service = SalaService()
-user_service = UserService()
 
-def adapt_reserva(reserva):
-    sala_nombre = None
-    usuario_username = None
-
-    # Intenta obtener de la relación
-    if hasattr(reserva, "sala") and reserva.sala:
-        sala_nombre = getattr(reserva.sala, "nombre", None)
-    if hasattr(reserva, "usuario") and reserva.usuario:
-        usuario_username = getattr(reserva.usuario, "username", None)
-
-    # Si no, busca por ID
-    if sala_nombre is None and hasattr(reserva, "sala_id"):
-        sala = sala_service.obtener_sala_por_id(reserva.sala_id)
-        if sala:
-            sala_nombre = getattr(sala, "nombre", None) if not isinstance(sala, dict) else sala.get("nombre")
-        else:
-            raise HTTPException(status_code=500, detail="Sala no encontrada al adaptar reserva")
-    if usuario_username is None and hasattr(reserva, "usuario_id"):
-        usuario = user_service.obtener_usuario_por_id(reserva.usuario_id)
-        if usuario:
-            usuario_username = getattr(usuario, "username", None) if not isinstance(usuario, dict) else usuario.get("username")
-        else:
-            raise HTTPException(status_code=500, detail="Usuario no encontrado al adaptar reserva")
-
-    # Si es dict, usa las claves directas
-    if isinstance(reserva, dict):
-        sala_nombre = reserva.get("sala_nombre") or reserva.get("sala") or sala_nombre
-        usuario_username = reserva.get("usuario_username") or reserva.get("usuario") or usuario_username
-
-    if not sala_nombre or not usuario_username:
-        raise HTTPException(status_code=500, detail="Error adaptando reserva: faltan campos obligatorios")
-
-    return {
-        "id": reserva.id if hasattr(reserva, "id") else reserva.get("id"),
-        "sala_nombre": sala_nombre,
-        "usuario_username": usuario_username,
-        "fecha_inicio": reserva.fecha_inicio if hasattr(reserva, "fecha_inicio") else reserva.get("fecha_inicio"),
-        "fecha_fin": reserva.fecha_fin if hasattr(reserva, "fecha_fin") else reserva.get("fecha_fin"),
-    }
-
-def to_naive(dt):
-    if dt is not None and hasattr(dt, 'tzinfo') and dt.tzinfo is not None:
-        return dt.replace(tzinfo=None)
-    return dt
+def adapt_reserva(reserva: Reserva):
+    return ReservaOut(
+        id=reserva.id,
+        sala_nombre=reserva.sala.nombre if reserva.sala else None,
+        usuario_username=reserva.usuario.username if reserva.usuario else None,
+        fecha_inicio=reserva.fecha_inicio,
+        fecha_fin=reserva.fecha_fin,
+    )
 
 @router.get("/", response_model=list[ReservaOut])
 def get_reservas():
-    reservas = reserva_service.listar_reservas()
-    return [adapt_reserva(r) for r in reservas]
+    db = SessionLocal()
+    try:
+        reservas = db.query(Reserva).all()
+        for r in reservas:
+            _ = r.sala
+            _ = r.usuario
+        return [adapt_reserva(r) for r in reservas]
+    finally:
+        db.close()
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
 def get_reserva(reserva_id: int):
-    reserva = reserva_service.obtener_reserva_por_id(reserva_id)
-    if not reserva:
-        raise HTTPException(status_code=404, detail="Reserva no encontrada")
-    return adapt_reserva(reserva)
+    db = SessionLocal()
+    try:
+        reserva = db.query(Reserva).filter_by(id=reserva_id).first()
+        if not reserva:
+            raise HTTPException(status_code=404, detail="Reserva no encontrada")
+        _ = reserva.sala
+        _ = reserva.usuario
+        return adapt_reserva(reserva)
+    finally:
+        db.close()
 
 @router.post("/", response_model=ReservaOut, status_code=201)
 def create_reserva(reserva: ReservaIn):
-    salas = sala_service.listar_salas()
-    if not any(
-        (getattr(s, "nombre", None) or (s.get("nombre") if isinstance(s, dict) else None)) == reserva.sala_nombre
-        for s in salas
-    ):
-        raise HTTPException(status_code=404, detail="Sala no encontrada")
-    usuarios = user_service.listar_usuarios()
-    if not any(
-        (getattr(u, "username", None) or (u.get("username") if isinstance(u, dict) else None)) == reserva.usuario_username
-        for u in usuarios
-    ):
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    if reserva.fecha_inicio is None or reserva.fecha_fin is None:
-        raise HTTPException(status_code=400, detail="Las fechas no pueden ser nulas")
-    if reserva.fecha_inicio >= reserva.fecha_fin:
-        raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
-    reservas_existentes = reserva_service.listar_reservas()
-    for r in reservas_existentes:
-        r_sala_nombre = r.get("sala_nombre") if isinstance(r, dict) else getattr(r, "sala_nombre", None)
-        r_fecha_inicio = to_naive(r.get("fecha_inicio") if isinstance(r, dict) else getattr(r, "fecha_inicio", None))
-        r_fecha_fin = to_naive(r.get("fecha_fin") if isinstance(r, dict) else getattr(r, "fecha_fin", None))
-        fecha_inicio = to_naive(reserva.fecha_inicio)
-        fecha_fin = to_naive(reserva.fecha_fin)
-        if r_sala_nombre == reserva.sala_nombre:
-            if not (fecha_fin <= r_fecha_inicio or fecha_inicio >= r_fecha_fin):
-                raise HTTPException(status_code=400, detail="La sala ya está reservada en ese horario")
-    for r in reservas_existentes:
-        r_usuario_username = r.get("usuario_username") if isinstance(r, dict) else getattr(r, "usuario_username", None)
-        r_fecha_inicio = to_naive(r.get("fecha_inicio") if isinstance(r, dict) else getattr(r, "fecha_inicio", None))
-        r_fecha_fin = to_naive(r.get("fecha_fin") if isinstance(r, dict) else getattr(r, "fecha_fin", None))
-        fecha_inicio = to_naive(reserva.fecha_inicio)
-        fecha_fin = to_naive(reserva.fecha_fin)
-        if r_usuario_username == reserva.usuario_username:
-            if not (fecha_fin <= r_fecha_inicio or fecha_inicio >= r_fecha_fin):
-                raise HTTPException(status_code=400, detail="El usuario ya tiene una reserva en ese horario")
+    db = SessionLocal()
     try:
-        nueva = reserva_service.crear_reserva(
-            sala_nombre=reserva.sala_nombre,
-            usuario_username=reserva.usuario_username,
+        sala = db.query(Sala).filter_by(nombre=reserva.sala_nombre).first()
+        if not sala:
+            raise HTTPException(status_code=404, detail="Sala no encontrada")
+        usuario = db.query(Usuario).filter_by(username=reserva.usuario_username).first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        if reserva.fecha_inicio is None or reserva.fecha_fin is None:
+            raise HTTPException(status_code=400, detail="Las fechas no pueden ser nulas")
+        if reserva.fecha_inicio >= reserva.fecha_fin:
+            raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
+        # Validar solapamiento de reservas
+        solapada = db.query(Reserva).filter(
+            Reserva.sala_id == sala.id,
+            Reserva.fecha_fin > reserva.fecha_inicio,
+            Reserva.fecha_inicio < reserva.fecha_fin
+        ).first()
+        if solapada:
+            raise HTTPException(status_code=400, detail="La sala ya está reservada en ese horario")
+        solapada_usuario = db.query(Reserva).filter(
+            Reserva.usuario_id == usuario.id,
+            Reserva.fecha_fin > reserva.fecha_inicio,
+            Reserva.fecha_inicio < reserva.fecha_fin
+        ).first()
+        if solapada_usuario:
+            raise HTTPException(status_code=400, detail="El usuario ya tiene una reserva en ese horario")
+        nueva = Reserva(
+            sala_id=sala.id,
+            usuario_id=usuario.id,
             fecha_inicio=reserva.fecha_inicio,
             fecha_fin=reserva.fecha_fin
         )
+        db.add(nueva)
+        db.commit()
+        db.refresh(nueva)
+        _ = nueva.sala
+        _ = nueva.usuario
         return adapt_reserva(nueva)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+    finally:
+        db.close()
 
 @router.put("/{reserva_id}", response_model=list[ReservaOut])
 def update_reserva(reserva_id: int, reserva: ReservaIn):
-    salas = sala_service.listar_salas()
-    if not any(
-        (getattr(s, "nombre", None) or (s.get("nombre") if isinstance(s, dict) else None)) == reserva.sala_nombre
-        for s in salas
-    ):
-        raise HTTPException(status_code=404, detail="Sala no encontrada")
-    usuarios = user_service.listar_usuarios()
-    if not any(
-        (getattr(u, "username", None) or (u.get("username") if isinstance(u, dict) else None)) == reserva.usuario_username
-        for u in usuarios
-    ):
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    if reserva.fecha_inicio is None or reserva.fecha_fin is None:
-        raise HTTPException(status_code=400, detail="Las fechas no pueden ser nulas")
-    if reserva.fecha_inicio >= reserva.fecha_fin:
-        raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
-    reservas_existentes = reserva_service.listar_reservas()
-    for r in reservas_existentes:
-        r_id = r.get("id") if isinstance(r, dict) else getattr(r, "id", None)
-        r_sala_nombre = r.get("sala_nombre") if isinstance(r, dict) else getattr(r, "sala_nombre", None)
-        r_fecha_inicio = to_naive(r.get("fecha_inicio") if isinstance(r, dict) else getattr(r, "fecha_inicio", None))
-        r_fecha_fin = to_naive(r.get("fecha_fin") if isinstance(r, dict) else getattr(r, "fecha_fin", None))
-        fecha_inicio = to_naive(reserva.fecha_inicio)
-        fecha_fin = to_naive(reserva.fecha_fin)
-        if r_id != reserva_id and r_sala_nombre == reserva.sala_nombre:
-            if not (fecha_fin <= r_fecha_inicio or fecha_inicio >= r_fecha_fin):
-                raise HTTPException(status_code=400, detail="La sala ya está reservada en ese horario")
-    for r in reservas_existentes:
-        r_id = r.get("id") if isinstance(r, dict) else getattr(r, "id", None)
-        r_usuario_username = r.get("usuario_username") if isinstance(r, dict) else getattr(r, "usuario_username", None)
-        r_fecha_inicio = to_naive(r.get("fecha_inicio") if isinstance(r, dict) else getattr(r, "fecha_inicio", None))
-        r_fecha_fin = to_naive(r.get("fecha_fin") if isinstance(r, dict) else getattr(r, "fecha_fin", None))
-        fecha_inicio = to_naive(reserva.fecha_inicio)
-        fecha_fin = to_naive(reserva.fecha_fin)
-        if r_id != reserva_id and r_usuario_username == reserva.usuario_username:
-            if not (fecha_fin <= r_fecha_inicio or fecha_inicio >= r_fecha_fin):
-                raise HTTPException(status_code=400, detail="El usuario ya tiene una reserva en ese horario")
+    db = SessionLocal()
     try:
-        reserva_service.editar_reserva(
-            reserva_id=reserva_id,
-            sala_nombre=reserva.sala_nombre,
-            usuario_username=reserva.usuario_username,
-            fecha_inicio=reserva.fecha_inicio,
-            fecha_fin=reserva.fecha_fin
-        )
-        reservas = reserva_service.listar_reservas()
+        sala = db.query(Sala).filter_by(nombre=reserva.sala_nombre).first()
+        if not sala:
+            raise HTTPException(status_code=404, detail="Sala no encontrada")
+        usuario = db.query(Usuario).filter_by(username=reserva.usuario_username).first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        if reserva.fecha_inicio is None or reserva.fecha_fin is None:
+            raise HTTPException(status_code=400, detail="Las fechas no pueden ser nulas")
+        if reserva.fecha_inicio >= reserva.fecha_fin:
+            raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
+        reserva_db = db.query(Reserva).filter_by(id=reserva_id).first()
+        if not reserva_db:
+            raise HTTPException(status_code=404, detail="Reserva no encontrada")
+        # Validar solapamiento de reservas (excluyendo la actual)
+        solapada = db.query(Reserva).filter(
+            Reserva.id != reserva_id,
+            Reserva.sala_id == sala.id,
+            Reserva.fecha_fin > reserva.fecha_inicio,
+            Reserva.fecha_inicio < reserva.fecha_fin
+        ).first()
+        if solapada:
+            raise HTTPException(status_code=400, detail="La sala ya está reservada en ese horario")
+        solapada_usuario = db.query(Reserva).filter(
+            Reserva.id != reserva_id,
+            Reserva.usuario_id == usuario.id,
+            Reserva.fecha_fin > reserva.fecha_inicio,
+            Reserva.fecha_inicio < reserva.fecha_fin
+        ).first()
+        if solapada_usuario:
+            raise HTTPException(status_code=400, detail="El usuario ya tiene una reserva en ese horario")
+        reserva_db.sala_id = sala.id
+        reserva_db.usuario_id = usuario.id
+        reserva_db.fecha_inicio = reserva.fecha_inicio
+        reserva_db.fecha_fin = reserva.fecha_fin
+        db.commit()
+        reservas = db.query(Reserva).all()
+        for r in reservas:
+            _ = r.sala
+            _ = r.usuario
         return [adapt_reserva(r) for r in reservas]
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+    finally:
+        db.close()
 
 @router.delete("/{reserva_id}", response_model=list[ReservaOut])
 def delete_reserva(reserva_id: int):
+    db = SessionLocal()
     try:
-        reserva_service.eliminar_reserva(reserva_id)
-        reservas = reserva_service.listar_reservas()
+        reserva = db.query(Reserva).filter_by(id=reserva_id).first()
+        if not reserva:
+            raise HTTPException(status_code=404, detail="Reserva no encontrada")
+        db.delete(reserva)
+        db.commit()
+        reservas = db.query(Reserva).all()
+        for r in reservas:
+            _ = r.sala
+            _ = r.usuario
         return [adapt_reserva(r) for r in reservas]
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+    finally:
+        db.close()

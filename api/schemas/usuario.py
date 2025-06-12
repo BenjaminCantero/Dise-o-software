@@ -1,13 +1,14 @@
 from pydantic import BaseModel
 
-class UserIn(BaseModel):
+class UsuarioIn(BaseModel):
     username: str
     password: str
     role: str
 
-class UserEdit(BaseModel):
-    role: str
-
-class UserOut(BaseModel):
+class UsuarioOut(BaseModel):
+    id: int
     username: str
     role: str
+
+    class Config:
+        orm_mode = True

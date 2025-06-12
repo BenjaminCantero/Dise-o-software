@@ -1,54 +1,88 @@
 from fastapi import APIRouter, HTTPException
-from services.user_service import UserService
-from api.schemas.usuario import UserIn, UserEdit, UserOut  # Import corregido
-from services.reserva_service import ReservaService
+from sqlalchemy.orm import Session
+from api.db import SessionLocal
+from api.models import Usuario
+from api.schemas.usuario import UsuarioIn, UsuarioOut
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
-user_service = UserService()
-reserva_service = ReservaService()
-ROLES_VALIDOS = {"admin", "profesor", "estudiante"}
 
-@router.get("/", response_model=list[UserOut])
-def get_usuarios():
-    usuarios = user_service.listar_usuarios()
-    return [{"username": u.username, "role": u.role} for u in usuarios]
-
-@router.post("/", response_model=list[UserOut], status_code=201)
-def create_usuario(usuario: UserIn):
-    usuarios = user_service.listar_usuarios()
-    if any(u.username == usuario.username for u in usuarios):
-        raise HTTPException(status_code=400, detail="El nombre de usuario ya existe")
-    if usuario.role not in ROLES_VALIDOS:
-        raise HTTPException(status_code=400, detail="Agregue un rol válido: admin, profesor o estudiante")
-    if not usuario.password or usuario.password.strip() == "":
-        raise HTTPException(status_code=400, detail="La contraseña no puede estar vacía")
-    user_service.crear_usuario(
+def adapt_usuario(usuario: Usuario):
+    return UsuarioOut(
+        id=usuario.id,
         username=usuario.username,
-        password=usuario.password,
         role=usuario.role
     )
-    usuarios = user_service.listar_usuarios()
-    return [{"username": u.username, "role": u.role} for u in usuarios]
 
+@router.get("/", response_model=list[UsuarioOut])
+def get_usuarios():
+    db = SessionLocal()
+    try:
+        usuarios = db.query(Usuario).all()
+        return [adapt_usuario(u) for u in usuarios]
+    finally:
+        db.close()
 
-@router.put("/{username}", response_model=list[UserOut])
-def update_usuario(username: str, usuario: UserEdit):
-    usuarios = user_service.listar_usuarios()
-    if not any(u.username == username for u in usuarios):
-        raise HTTPException(status_code=404, detail="Nombre de usuario no válido")
-    if usuario.role not in ROLES_VALIDOS:
-        raise HTTPException(status_code=400, detail="Agregue un rol válido: admin, profesor o estudiante")
-    user_service.editar_usuario(username=username, role=usuario.role)
-    usuarios = user_service.listar_usuarios()
-    return [{"username": u.username, "role": u.role} for u in usuarios]
+@router.get("/{usuario_id}", response_model=UsuarioOut)
+def get_usuario(usuario_id: int):
+    db = SessionLocal()
+    try:
+        usuario = db.query(Usuario).filter_by(id=usuario_id).first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        return adapt_usuario(usuario)
+    finally:
+        db.close()
 
-@router.delete("/{username}", response_model=list[UserOut])
-def delete_usuario(username: str):
-    usuarios = user_service.listar_usuarios()
-    if not any(u.username == username for u in usuarios):
-        raise HTTPException(status_code=404, detail="Nombre de usuario no válido")
-    # Eliminar reservas asociadas antes de eliminar el usuario
-    reserva_service.eliminar_reservas_por_usuario(username)
-    user_service.eliminar_usuario(username)
-    usuarios = user_service.listar_usuarios()
-    return [{"username": u.username, "role": u.role} for u in usuarios]
+@router.post("/", response_model=UsuarioOut, status_code=201)
+def create_usuario(usuario: UsuarioIn):
+    db = SessionLocal()
+    try:
+        existente = db.query(Usuario).filter_by(username=usuario.username).first()
+        if existente:
+            raise HTTPException(status_code=400, detail="El nombre de usuario ya existe")
+        nuevo = Usuario(
+            username=usuario.username,
+            password=usuario.password,
+            role=usuario.role
+        )
+        db.add(nuevo)
+        db.commit()
+        db.refresh(nuevo)
+        return adapt_usuario(nuevo)
+    finally:
+        db.close()
+
+@router.put("/{usuario_id}", response_model=UsuarioOut)
+def update_usuario(usuario_id: int, usuario: UsuarioIn):
+    db = SessionLocal()
+    try:
+        usuario_db = db.query(Usuario).filter_by(id=usuario_id).first()
+        if not usuario_db:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        # Validar nombre de usuario único si cambia
+        if usuario_db.username != usuario.username:
+            existente = db.query(Usuario).filter_by(username=usuario.username).first()
+            if existente:
+                raise HTTPException(status_code=400, detail="El nombre de usuario ya existe")
+        usuario_db.username = usuario.username
+        usuario_db.password = usuario.password
+        usuario_db.role = usuario.role
+        db.commit()
+        db.refresh(usuario_db)
+        return adapt_usuario(usuario_db)
+    finally:
+        db.close()
+
+@router.delete("/{usuario_id}", response_model=list[UsuarioOut])
+def delete_usuario(usuario_id: int):
+    db = SessionLocal()
+    try:
+        usuario = db.query(Usuario).filter_by(id=usuario_id).first()
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        db.delete(usuario)
+        db.commit()
+        usuarios = db.query(Usuario).all()
+        return [adapt_usuario(u) for u in usuarios]
+    finally:
+        db.close()
