@@ -7,6 +7,7 @@ from services.sala_service import SalaService
 from services.reserva_service import ReservaService
 
 def main():
+    # Los servicios ahora solo hacen peticiones HTTP a la API
     user_service = UserService()
     sala_service = SalaService()
     reserva_service = ReservaService()
@@ -14,13 +15,13 @@ def main():
     mediator = AppMediator()
 
     root = tk.Tk()
-    root.withdraw() # Oculta la ventana raíz principal inicialmente
+    root.withdraw()  # Oculta la ventana raíz principal inicialmente
 
     def on_login(user):
         for widget in root.winfo_children():
             widget.destroy()
         root.deiconify()
-        root.state("zoomed") # Maximiza la ventana principal
+        root.state("zoomed")  # Maximiza la ventana principal
         app = MainWindow(
             root,
             mediator,

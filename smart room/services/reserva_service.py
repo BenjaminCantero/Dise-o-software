@@ -1,169 +1,57 @@
-# services/reserva_service.py
+import requests
 from core.observable import Observable
-from core.singleton import SingletonMeta
-from repositories.db import SessionLocal
-from repositories.models import Reserva, Usuario, Sala
-from builders.reserva_builder import ReservaBuilder
-from decorators.notificacion_reserva import ReservaNotificada  # Decorator importado
 
-class ReservaService(Observable, metaclass=SingletonMeta):
-    def __init__(self):
-        super().__init__()
+API_URL = "http://127.0.0.1:8000/reservas/"
 
+class ReservaService(Observable):
     def listar_reservas(self):
-        db = SessionLocal()
-        try:
-            reservas = db.query(Reserva).all()
-            resultado = []
-            for r in reservas:
-                resultado.append({
-                    "id": r.id,
-                    "sala_nombre": r.sala.nombre if r.sala else "",
-                    "usuario_username": r.usuario.username if r.usuario else "",
-                    "fecha_inicio": r.fecha_inicio,
-                    "fecha_fin": r.fecha_fin,
-                    "estado": r.estado if hasattr(r, "estado") else "N/A"
-                })
-            return resultado
-        finally:
-            db.close()
+        response = requests.get(API_URL)
+        response.raise_for_status()
+        return response.json()
 
     def crear_reserva(self, sala_nombre, usuario_username, fecha_inicio, fecha_fin):
-        db = SessionLocal()
-        try:
-            usuario = db.query(Usuario).filter_by(username=usuario_username).first()
-            sala = db.query(Sala).filter_by(nombre=sala_nombre).first()
-
-            if not usuario or not sala:
-                raise Exception("Usuario o sala no encontrados.")
-
-            existe = db.query(Reserva).filter(
-                Reserva.sala_id == sala.id,
-                Reserva.fecha_inicio < fecha_fin,
-                Reserva.fecha_fin > fecha_inicio
-            ).first()
-
-            if existe:
-                raise Exception("La sala ya está reservada en ese horario.")
-
-            nueva_reserva = (
-                ReservaBuilder()
-                    .set_usuario(usuario)
-                    .set_sala(sala)
-                    .set_fecha_inicio(fecha_inicio)
-                    .set_fecha_fin(fecha_fin)
-                    .build()
-                )
-            db.add(nueva_reserva)
-            db.commit()
-            db.refresh(nueva_reserva)
-            self.notify_observers(event="reserva_creada", data=nueva_reserva)
-            # Devuelve un dict con los datos completos ANTES de cerrar la sesión
-            reserva_dict = {
-                "id": nueva_reserva.id,
-                "sala_nombre": nueva_reserva.sala.nombre if nueva_reserva.sala else "",
-                "usuario_username": nueva_reserva.usuario.username if nueva_reserva.usuario else "",
-                "fecha_inicio": nueva_reserva.fecha_inicio,
-                "fecha_fin": nueva_reserva.fecha_fin,
-            }
-            return reserva_dict
-        finally:
-            db.close()
+        data = {
+            "sala_nombre": sala_nombre,
+            "usuario_username": usuario_username,
+            "fecha_inicio": fecha_inicio,
+            "fecha_fin": fecha_fin
+        }
+        response = requests.post(API_URL, json=data)
+        response.raise_for_status()
+        return response.json()
 
     def eliminar_reserva(self, reserva_id):
-        db = SessionLocal()
-        try:
-            reserva = db.query(Reserva).filter_by(id=reserva_id).first()
-            if reserva:
-                db.delete(reserva)
-                db.commit()
-                self.notify_observers(event="reserva_eliminada", data=reserva_id)
-            else:
-                print(f"Reserva con id {reserva_id} no encontrada para eliminar.")  # Debug
-                raise ValueError("Reserva no encontrada.")
-        finally:
-            db.close()
+        response = requests.delete(f"{API_URL}{reserva_id}")
+        response.raise_for_status()
+        return response.json()
 
     def contar_reservas(self):
-        db = SessionLocal()
-        try:
-            count = db.query(Reserva).count()
-            return count
-        finally:
-            db.close()
+        reservas = self.listar_reservas()
+        return len(reservas)
 
     def obtener_reservas_por_usuario(self, username):
-        todas = self.listar_reservas()
-        return [r for r in todas if r.get("usuario") == username]
+        reservas = self.listar_reservas()
+        return [r for r in reservas if r.get("usuario_username") == username]
 
     def editar_reserva(self, reserva_id, sala_nombre, usuario_username, fecha_inicio, fecha_fin):
-        db = SessionLocal()
-        try:
-            reserva = db.query(Reserva).filter_by(id=reserva_id).first()
-            usuario = db.query(Usuario).filter_by(username=usuario_username).first()
-            sala = db.query(Sala).filter_by(nombre=sala_nombre).first()
-
-            if not reserva or not usuario or not sala:
-                raise Exception("Reserva, usuario o sala no encontrados.")
-
-            reserva.usuario_id = usuario.id
-            reserva.sala_id = sala.id
-            reserva.fecha_inicio = fecha_inicio
-            reserva.fecha_fin = fecha_fin
-            db.commit()
-            # Notificar con un diccionario, no con el objeto
-            reserva_dict = {
-                "id": reserva.id,
-                "sala": sala.nombre,
-                "usuario": usuario.username,
-                "fecha": reserva.fecha_inicio.strftime("%Y-%m-%d"),
-                "hora": reserva.fecha_inicio.strftime("%H:%M"),
-                "estado": reserva.estado if hasattr(reserva, "estado") else "N/A"
-            }
-            self.notify_observers(event="reserva_editada", data=reserva_dict)
-            return reserva
-        finally:
-            db.close()
-
-    def agregar_reserva(self, usuario, sala, fecha_inicio, fecha_fin):
-        builder = ReservaBuilder()
-        reserva = (
-            builder
-            .set_usuario(usuario)
-            .set_sala(sala)
-            .set_fecha_inicio(fecha_inicio)
-            .set_fecha_fin(fecha_fin)
-            .build()
-        )
-        # --- Uso del patrón Decorator ---
-        reserva_decorada = ReservaNotificada(reserva)
-        reserva_decorada.confirmar()
+        data = {
+            "sala_nombre": sala_nombre,
+            "usuario_username": usuario_username,
+            "fecha_inicio": fecha_inicio,
+            "fecha_fin": fecha_fin
+        }
+        response = requests.put(f"{API_URL}{reserva_id}", json=data)
+        response.raise_for_status()
+        return response.json()
 
     def obtener_reserva_por_id(self, reserva_id):
-        db = SessionLocal()
-        try:
-            reserva = db.query(Reserva).filter_by(id=reserva_id).first()
-            if reserva:
-                return {
-                    "id": reserva.id,
-                    "sala": reserva.sala.nombre if reserva.sala else "",
-                    "usuario": reserva.usuario.username if reserva.usuario else "",
-                    "fecha": reserva.fecha_inicio.strftime("%Y-%m-%d"),
-                    "hora": reserva.fecha_inicio.strftime("%H:%M"),
-                    "estado": reserva.estado if hasattr(reserva, "estado") else "N/A"
-                }
+        response = requests.get(f"{API_URL}{reserva_id}")
+        if response.status_code == 404:
             return None
-        finally:
-            db.close()
+        response.raise_for_status()
+        return response.json()
 
     def eliminar_reservas_por_usuario(self, username):
-        db = SessionLocal()
-        try:
-            usuario = db.query(Usuario).filter_by(username=username).first()
-            if usuario:
-                reservas = db.query(Reserva).filter_by(usuario_id=usuario.id).all()
-                for reserva in reservas:
-                    db.delete(reserva)
-                db.commit()
-        finally:
-            db.close()
+        reservas = self.obtener_reservas_por_usuario(username)
+        for reserva in reservas:
+            self.eliminar_reserva(reserva["id"])
