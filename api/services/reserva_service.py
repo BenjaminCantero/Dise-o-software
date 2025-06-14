@@ -2,7 +2,9 @@
 from smartroom.core.observable import Observable
 from smartroom.core.singleton import SingletonMeta
 from api.db import SessionLocal
-from api.models import Reserva, Usuario, Sala
+from api.models.reserva import Reserva
+from api.models.usuario import Usuario
+from api.models.sala import Sala
 from smartroom.builders.reserva_builder import ReservaBuilder
 from smartroom.decorators.notificacion_reserva import ReservaNotificada  # Decorator importado
 

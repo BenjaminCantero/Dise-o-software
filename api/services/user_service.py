@@ -2,7 +2,7 @@
 from smartroom.core.observable import Observable
 from smartroom.core.singleton import SingletonMeta  
 from api.db import SessionLocal
-from api.models import Usuario
+from api.models.usuario import Usuario
 from smartroom.builders.usuario_builder import UsuarioBuilder
 
 class User:

@@ -2,7 +2,7 @@ from tkcalendar import DateEntry
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from ..commands.cancel_reserva_command import CreateReservaCommand, CancelReservaCommand, EditReservaCommand
+from commands.cancel_reserva_command import CreateReservaCommand, CancelReservaCommand, EditReservaCommand
 
 class ReservasPanel(ttk.Frame):
     def __init__(self, parent, mediator, sala_service, user_service, reserva_service, user, on_volver=None):

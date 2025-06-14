@@ -1,6 +1,7 @@
 # services/sala_service.py
 from api.db import SessionLocal
-from models.models import Sala, Reserva
+from api.models.sala import Sala
+from api.models.reserva import Reserva
 from smartroom.core.observable import Observable
 from smartroom.core.singleton import SingletonMeta  # <--- IMPORTADO para Singleton
 from smartroom.builders.sala_builder import SalaBuilder

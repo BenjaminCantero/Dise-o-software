@@ -1,4 +1,4 @@
-from api.models import Sala
+from api.models.sala import Sala
 
 class SalaBuilder:
     def __init__(self):

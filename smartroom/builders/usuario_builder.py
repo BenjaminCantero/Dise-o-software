@@ -1,5 +1,4 @@
-from api.models import Usuario
-
+from api.models.usuario import Usuario
 class UsuarioBuilder:
     def __init__(self):
         self._username = None

@@ -13,41 +13,47 @@ class HorarioPanel(ttk.Frame):
     def create_widgets(self):
         style = ttk.Style()
         style.configure("Panel.TFrame", background="#f4f4f8")
-        style.configure("PanelTitle.TLabel", font=("Arial", 18, "bold"), background="#f4f4f8", foreground="#232946")
-        style.configure("PanelIcon.TLabel", font=("Arial", 22), background="#f4f4f8", foreground="#eebbc3")
-        style.configure("Panel.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946")
-        style.map("Panel.TButton",
-                  background=[("active", "#eebbc3")],
-                  foreground=[("active", "#232946")])
-        style.configure("Custom.Treeview", font=("Arial", 12), rowheight=28, background="#f4f4f8", fieldbackground="#f4f4f8")
+        style.configure("PanelTitle.TLabel", font=("Arial", 20, "bold"), background="#f4f4f8", foreground="#232946")
+        style.configure("PanelIcon.TLabel", font=("Arial", 26), background="#f4f4f8", foreground="#eebbc3")
+        style.configure("Custom.Treeview", font=("Arial", 13), rowheight=30, background="#f4f4f8", fieldbackground="#f4f4f8")
         style.map("Custom.Treeview", background=[("selected", "#eebbc3")])
-        style.configure("Custom.Treeview.Heading", font=("Arial", 13, "bold"), background="#eebbc3", foreground="#232946")
+        style.configure("Custom.Treeview.Heading", font=("Arial", 14, "bold"), background="#eebbc3", foreground="#232946")
 
         # Título e icono
         top_frame = ttk.Frame(self, style="Panel.TFrame")
-        top_frame.pack(fill="x", pady=(10, 0), padx=10)
+        top_frame.pack(fill="x", pady=(18, 0), padx=18)
         icon = ttk.Label(top_frame, text="📅", style="PanelIcon.TLabel")
-        icon.pack(side="left", padx=(0, 10))
-        label = ttk.Label(top_frame, text="Mi Horario de Reservas", style="PanelTitle.TLabel")
+        icon.pack(side="left", padx=(0, 12))
+        label = ttk.Label(top_frame, text="Horario de Reservas", style="PanelTitle.TLabel")
         label.pack(side="left")
 
-        # Tabla de horarios mejorada
+        # Subtítulo con nombre y rol
+        if self.user:
+            rol = self.user.role.capitalize()
+            nombre = self.user.username
+            subtitulo = ttk.Label(
+                top_frame,
+                text=f"Mostrando reservas para: {nombre} ({rol})",
+                font=("Arial", 12),
+                background="#f4f4f8",
+                foreground="#232946"
+            )
+            subtitulo.pack(side="left", padx=(20, 0))
+
+        # Tabla de horarios
         table_frame = ttk.Frame(self, style="Panel.TFrame")
-        table_frame.pack(fill="both", expand=True, padx=30, pady=20)
-        columns = ("Sala", "Horario", "User")
+        table_frame.pack(fill="both", expand=True, padx=40, pady=24)
+        columns = ("Sala", "Fecha", "Hora inicio", "Hora fin")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
             show="headings",
-            height=12,
+            height=14,
             style="Custom.Treeview"
         )
-        self.tree.heading("Sala", text="Sala")
-        self.tree.heading("Horario", text="Horario")
-        self.tree.heading("User", text="User")
-        self.tree.column("Sala", anchor="center", width=180, minwidth=120, stretch=True)
-        self.tree.column("Horario", anchor="center", width=220, minwidth=150, stretch=True)
-        self.tree.column("User", anchor="center", width=180, minwidth=120, stretch=True)
+        for col, ancho in zip(columns, [160, 120, 110, 110]):
+            self.tree.heading(col, text=col)
+            self.tree.column(col, anchor="center", width=ancho, minwidth=80, stretch=True)
 
         # Scrollbars
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
@@ -63,17 +69,33 @@ class HorarioPanel(ttk.Frame):
         # Limpia la tabla
         for row in self.tree.get_children():
             self.tree.delete(row)
-        # Obtiene las reservas desde el servicio
-        if self.reserva_service and self.user:
-            reservas = self.reserva_service.obtener_reservas_por_usuario(self.user.username)
-            for i, reserva in enumerate(reservas):
-                sala = reserva.get("sala", "N/A")
-                fecha = reserva.get("fecha", "N/A")
-                hora = reserva.get("hora", "N/A")
-                profesor = reserva.get("usuario", "N/A")
-                horario = f"{fecha} {hora}"
-                tags = ("evenrow",) if i % 2 == 0 else ("oddrow",)
-                self.tree.insert("", "end", values=(sala, horario, profesor), tags=tags)
-            # Colores alternos para filas
-            self.tree.tag_configure("evenrow", background="#f4f4f8")
-            self.tree.tag_configure("oddrow", background="#e6e6ef")
+        reservas = []
+        if self.reserva_service:
+            # Obtén todas las reservas desde el servicio
+            reservas = self.reserva_service.listar_reservas()
+            # Filtra según el rol del usuario
+            if hasattr(self, "user") and hasattr(self.user, "role"):
+                if self.user.role in ("estudiante", "profesor"):
+                    reservas = [r for r in reservas if r.get("usuario_username") == self.user.username]
+        for i, reserva in enumerate(reservas):
+            sala = reserva.get("sala_nombre", "N/A")
+            fecha_inicio = reserva.get("fecha_inicio", "N/A")
+            fecha_fin = reserva.get("fecha_fin", "N/A")
+            # Formatea fecha y hora
+            try:
+                fecha = str(fecha_inicio)[:10]
+                hora_inicio = str(fecha_inicio)[11:16]
+                hora_fin = str(fecha_fin)[11:16]
+            except Exception:
+                fecha = str(fecha_inicio)
+                hora_inicio = ""
+                hora_fin = ""
+            tags = ("evenrow",) if i % 2 == 0 else ("oddrow",)
+            self.tree.insert(
+                "", "end",
+                values=(sala, fecha, hora_inicio, hora_fin),
+                tags=tags
+            )
+        # Colores alternos para filas
+        self.tree.tag_configure("evenrow", background="#f4f4f8")
+        self.tree.tag_configure("oddrow", background="#e6e6ef")

@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from ..adapters.usuario_dialog_adapter import UsuarioDialogAdapter
+from adapters.usuario_dialog_adapter import UsuarioDialogAdapter
 
 class EditarUsuarioDialog(tk.Toplevel):
     def __init__(self, parent, usuario, on_save=None):

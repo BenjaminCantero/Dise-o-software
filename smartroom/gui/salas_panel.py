@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from .editar_sala_dialog import EditarSalaDialog
-from .nueva_sala_dialog import NuevaSalaDialog
-from ..factories.dialog_factory import DialogFactory  # Importa la fábrica
+from gui.editar_sala_dialog import EditarSalaDialog
+from gui.nueva_sala_dialog import NuevaSalaDialog
+from factories.dialog_factory import DialogFactory  # Importa la fábrica
 
 class SalasPanel(ttk.Frame):
     def __init__(self, parent, mediator, sala_service=None, on_volver=None):

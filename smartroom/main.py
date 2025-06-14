@@ -1,7 +1,11 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import tkinter as tk
 from gui.main_window import MainWindow
 from gui.login_window import LoginWindow
-from .mediator.app_mediator import AppMediator
+from mediator.app_mediator import AppMediator
 from api.services.user_service import UserService
 from api.services.sala_service import SalaService
 from api.services.reserva_service import ReservaService

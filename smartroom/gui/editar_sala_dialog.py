@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from ..adapters.sala_dialog_adapter import SalaDialogAdapter
+from adapters.sala_dialog_adapter import SalaDialogAdapter
 
 class EditarSalaDialog(tk.Toplevel):
     def __init__(self, parent, sala, on_save=None):
