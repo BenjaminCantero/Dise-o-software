@@ -1,10 +1,10 @@
 # services/reserva_service.py
-from core.observable import Observable
-from core.singleton import SingletonMeta
-from repositories.db import SessionLocal
-from repositories.models import Reserva, Usuario, Sala
-from builders.reserva_builder import ReservaBuilder
-from decorators.notificacion_reserva import ReservaNotificada  # Decorator importado
+from smartroom.core.observable import Observable
+from smartroom.core.singleton import SingletonMeta
+from api.db import SessionLocal
+from api.models import Reserva, Usuario, Sala
+from smartroom.builders.reserva_builder import ReservaBuilder
+from smartroom.decorators.notificacion_reserva import ReservaNotificada  # Decorator importado
 
 class ReservaService(Observable, metaclass=SingletonMeta):
     def __init__(self):

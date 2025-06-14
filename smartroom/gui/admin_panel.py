@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from gui.editar_usuario_dialog import EditarUsuarioDialog
+from .editar_usuario_dialog import EditarUsuarioDialog
 
 class AdminPanel(ttk.Frame):
     def __init__(self, parent, mediator, user_service=None, on_volver=None):

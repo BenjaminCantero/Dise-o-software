@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from adapters.reserva_dialog_adapter import ReservaDialogAdapter
-from builders.reserva_builder import ReservaBuilder
-from commands.cancel_reserva_command import CreateReservaCommand  # Importa el comando
+from ..adapters.reserva_dialog_adapter import ReservaDialogAdapter
+from ..builders.reserva_builder import ReservaBuilder
+from ..commands.cancel_reserva_command import CreateReservaCommand  # Importa el comando
 
 class ReservaApp(tk.Tk):
     def __init__(self, reserva_service, mediator, *args, **kwargs):

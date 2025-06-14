@@ -1,10 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
-from gui.reservas_panel import ReservasPanel
-from gui.salas_panel import SalasPanel
-from gui.admin_panel import AdminPanel
-from gui.dashboard_panel import DashboardPanel
-from gui.horario_panel import HorarioPanel
+from .reservas_panel import ReservasPanel
+from .salas_panel import SalasPanel
+from .admin_panel import AdminPanel
+from .dashboard_panel import DashboardPanel
+from .horario_panel import HorarioPanel
 
 class MainWindow(tk.Frame):
     def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None, on_login=None):
@@ -183,7 +183,7 @@ class MainWindow(tk.Frame):
 
     def cerrar_sesion(self):
         self.root.withdraw()  # Oculta la ventana principal
-        from gui.login_window import LoginWindow
+        from .login_window import LoginWindow
         LoginWindow(self.root, self.user_service, self.on_login)
         self.destroy()  # Destruye el frame actual, pero NO root
 

@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import Session
-from api.db import SessionLocal
-from api.models import Reserva, Sala, Usuario
-from api.schemas.reserva import ReservaIn, ReservaOut
+from ..db import SessionLocal
+from ..models.reserva import Reserva
+from ..models.sala import Sala
+from ..models.usuario import Usuario
+from ..schemas.reserva import ReservaIn, ReservaOut
 
 router = APIRouter(prefix="/reservas", tags=["reservas"])
 
