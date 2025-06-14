@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from adapters.sala_dialog_adapter import SalaDialogAdapter
 
 class EditarSalaDialog(tk.Toplevel):
     def __init__(self, parent, sala, on_save=None):
@@ -27,8 +28,8 @@ class EditarSalaDialog(tk.Toplevel):
 
         tk.Label(frame, text="Estado:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.estado_var = tk.StringVar(value=sala.get("estado", "disponible"))
-        estado_combo = ttk.Combobox(frame, textvariable=self.estado_var, values=["disponible", "ocupada"], state="readonly", width=22)
-        estado_combo.pack(ipady=3)
+        self.estado_combo = ttk.Combobox(frame, textvariable=self.estado_var, values=["disponible", "ocupada"], state="readonly", width=22)
+        self.estado_combo.pack(ipady=3)
 
         btn_frame = tk.Frame(frame, bg="#f4f4f8")
         btn_frame.pack(pady=18)
@@ -39,36 +40,44 @@ class EditarSalaDialog(tk.Toplevel):
         self.nombre_entry.focus_set()
 
     def guardar(self):
-        error = False
+        nombre = self.nombre_entry.get().strip()
+        capacidad_str = self.capacidad_entry.get().strip()
+        estado = self.estado_var.get().strip()
+
         self.nombre_entry.configure(background="white")
         self.capacidad_entry.configure(background="white")
+        error = False
 
-        if not self.nombre_entry.get().strip():
+        if not nombre:
             self.nombre_entry.configure(background="#ffcccc")
             error = True
 
-        capacidad_str = self.capacidad_entry.get().strip()
-        if not capacidad_str:
+        if not capacidad_str.isdigit() or int(capacidad_str) <= 0:
             self.capacidad_entry.configure(background="#ffcccc")
-            error = True
-        else:
-            try:
-                capacidad = int(capacidad_str)
-                if capacidad <= 0:
-                    raise ValueError
-            except ValueError:
-                self.capacidad_entry.configure(background="#ffcccc")
-                messagebox.showerror("Error", "La capacidad debe ser un número entero positivo")
-                return
+            messagebox.showerror("Error", "Ingrese una capacidad válida (número entero positivo).")
+            return
 
         if error:
             messagebox.showerror("Error", "Todos los campos son obligatorios")
             return
 
-        nombre = self.nombre_entry.get().strip()
-        capacidad = int(self.capacidad_entry.get().strip())
-        estado = self.estado_var.get()
-        messagebox.showinfo("Éxito", "Sala guardada correctamente")
-        if self.on_save:
-            self.on_save(nombre, capacidad, estado)
-        self.destroy()
+        try:
+            if self.on_save:
+                self.on_save(nombre, int(capacidad_str), estado)
+            messagebox.showinfo("Éxito", "Sala modificada correctamente.")  # <--- Mensaje de éxito
+            self.destroy()
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    @property
+    def nombre_input(self):
+        return self.nombre_entry
+
+    @property
+    def capacidad_input(self):
+        return self.capacidad_entry
+
+    @property
+    def ubicacion_input(self):
+        # Si tienes un campo de ubicación, retorna el widget aquí. Si no, retorna None.
+        return None

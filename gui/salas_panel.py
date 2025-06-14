@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from gui.editar_sala_dialog import EditarSalaDialog
 from gui.nueva_sala_dialog import NuevaSalaDialog
+from factories.dialog_factory import DialogFactory  # Importa la fábrica
 
 class SalasPanel(ttk.Frame):
     def __init__(self, parent, mediator, sala_service=None, on_volver=None):
@@ -11,7 +12,11 @@ class SalasPanel(ttk.Frame):
         self.sala_service = sala_service
         self.on_volver = on_volver
         self.sala_service.add_observer(self)
+        self.dialog_factory = DialogFactory()  # Instancia la fábrica
         self.create_widgets()
+        # --- PATRÓN MEDIATOR: Registrar el panel ---
+        if self.mediator:
+            self.mediator.register("salas_panel", self)
 
     #patron observer#
 
@@ -19,7 +24,15 @@ class SalasPanel(ttk.Frame):
         if event in ("sala_creada", "sala_eliminada", "sala_editada"):
             self.cargar_salas()
 
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("sala_creada", "sala_eliminada", "sala_editada"):
+            self.cargar_salas()
+
     def destroy(self):
+        # --- PATRÓN MEDIATOR: Desregistrar el panel ---
+        if self.mediator:
+            self.mediator.unregister("salas_panel")
         self.sala_service.remove_observer(self)
         super().destroy()
 
@@ -98,50 +111,41 @@ class SalasPanel(ttk.Frame):
         def on_save(nombre, capacidad):
             self.sala_service.crear_sala(nombre, capacidad)
             self.cargar_salas()
-        NuevaSalaDialog(self, on_save=on_save)
+            # --- PATRÓN MEDIATOR: Notificar evento ---
+            if self.mediator:
+                self.mediator.notify(self, "sala_creada")
+        self.dialog_factory.create_dialog("nueva_sala", self, sala_service=self.sala_service, on_success=on_save)
 
     def editar_sala(self):
         selected = self.tree.selection()
-        if selected and self.sala_service:
+        if not selected:
+            messagebox.showwarning("Advertencia", "Selecciona una sala para editar.")
+            return
+        if self.sala_service:
             sala_id = self.tree.item(selected[0])["values"][0]
             sala = next((s for s in self.sala_service.listar_salas() if s["id"] == sala_id), None)
             if sala:
                 def on_save(nombre, capacidad, estado):
                     self.sala_service.editar_sala(sala_id, nombre, capacidad, estado)
                     self.cargar_salas()
-                EditarSalaDialog(self, sala, on_save=on_save)
+                    # --- PATRÓN MEDIATOR: Notificar evento ---
+                    if self.mediator:
+                        self.mediator.notify(self, "sala_editada")
+                self.dialog_factory.create_dialog("editar_sala", self, sala, on_save=on_save)
 
     def eliminar_sala(self):
         selected = self.tree.selection()
-        if selected and self.sala_service:
+        if not selected:
+            messagebox.showwarning("Advertencia", "Selecciona una sala para eliminar.")
+            return
+        if self.sala_service:
             sala_id = self.tree.item(selected[0])["values"][0]
             respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta sala?")
             if respuesta:
                 self.sala_service.eliminar_sala(sala_id)
                 self.cargar_salas()
+                # --- PATRÓN MEDIATOR: Notificar evento ---
                 if self.mediator:
                     self.mediator.notify(self, "sala_eliminada")
                 messagebox.showinfo("Éxito", "Sala eliminada correctamente")
 
-if __name__ == "__main__":
-    import sys
-    from mediator import Mediator
-    from services.sala_service import SalaService
-
-    app = tk.Tk()
-    app.title("Gestión de Salas")
-    app.geometry("800x600")
-
-    mediator = Mediator()
-    sala_service = SalaService()
-
-    panel = SalasPanel(
-        app,
-        mediator,
-        sala_service,
-        on_volver=lambda: (print("Volver al inicio"), None)[1]
-    )
-    panel.pack(fill="both", expand=True)
-
-    app.protocol("WM_DELETE_WINDOW", app.quit)
-    app.mainloop()

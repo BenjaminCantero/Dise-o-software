@@ -1,4 +1,6 @@
-class AppMediator:
+from core.singleton import SingletonMeta
+
+class AppMediator(metaclass=SingletonMeta):
     """
     Mediador para coordinar la comunicación entre los diferentes componentes de la aplicación.
     Permite registrar componentes y notificar eventos entre ellos de forma desacoplada.
@@ -20,17 +22,12 @@ class AppMediator:
         if name in self.components:
             del self.components[name]
 
-    def notify(self, sender, event, data=None, target=None):
+    def notify(self, sender, event, data=None):
         """
         Notifica a los componentes registrados sobre un evento.
         Si se especifica 'target', solo notifica a ese componente.
         """
-        if target:
-            component = self.components.get(target)
-            if component and hasattr(component, "on_event"):
+        # Copia los items para evitar el error si se modifica el diccionario durante la iteración
+        for name, component in list(self.components.items()):
+            if component != sender:
                 component.on_event(sender, event, data)
-        else:
-            for name, component in self.components.items():
-                # Evita notificar al componente que envió el evento
-                if component is not sender and hasattr(component, "on_event"):
-                    component.on_event(sender, event, data)

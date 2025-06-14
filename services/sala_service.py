@@ -1,11 +1,12 @@
+# services/sala_service.py
 from repositories.db import SessionLocal
-from repositories.models import Sala
+from repositories.models import Sala, Reserva
 from core.observable import Observable
-import tkinter.ttk as ttk
-
-class SalaService(Observable):
+from core.singleton import SingletonMeta # <--- IMPORTADO para Singleton
+from builders.sala_builder import SalaBuilder
+class SalaService(Observable, metaclass=SingletonMeta): # <--- METACLASE AÑADIDA para Singleton
     def __init__(self):
-        super().__init__()
+        super().__init__() # Inicialización de Observable
 
     def listar_salas(self):
         db = SessionLocal()
@@ -17,9 +18,15 @@ class SalaService(Observable):
         db.close()
         return salas
 
-    def crear_sala(self, nombre, capacidad):
+    def crear_sala(self, nombre, capacidad, estado="disponible"):
         db = SessionLocal()
-        nueva_sala = Sala(nombre=nombre, capacidad=capacidad, estado="disponible")
+        nueva_sala = (
+            SalaBuilder()
+                .set_nombre(nombre)
+                .set_capacidad(capacidad)
+                .set_estado(estado)
+                .build()
+        )
         db.add(nueva_sala)
         db.commit()
         db.refresh(nueva_sala)
@@ -40,15 +47,15 @@ class SalaService(Observable):
 
     def eliminar_sala(self, sala_id):
         db = SessionLocal()
+        # Elimina primero las reservas asociadas a la sala
+        reservas = db.query(Reserva).filter_by(sala_id=sala_id).all()
+        for reserva in reservas:
+            db.delete(reserva)
+        db.commit()
+        # Ahora elimina la sala
         sala = db.query(Sala).filter_by(id=sala_id).first()
         if sala:
             db.delete(sala)
             db.commit()
             self.notify_observers(event="sala_eliminada", data=sala_id)
         db.close()
-
-class DashboardPanel(ttk.Frame):
-    def __init__(self, parent, sala_service):
-        super().__init__(parent)
-        self.sala_service = sala_service
-        salas = [s["nombre"] for s in self.sala_service.listar_salas()]

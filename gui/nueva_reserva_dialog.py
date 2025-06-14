@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from adapters.reserva_dialog_adapter import ReservaDialogAdapter
+from builders.reserva_builder import ReservaBuilder
+from commands.cancel_reserva_command import CreateReservaCommand  # Importa el comando
 
 class ReservaApp(tk.Tk):
     def __init__(self, reserva_service, mediator, *args, **kwargs):
@@ -10,6 +13,10 @@ class ReservaApp(tk.Tk):
         self.title("Reservas")
         self.geometry("800x600")
         self.configure(bg="#232946")
+
+        # --- PATRÓN MEDIATOR: Registrar el componente ---
+        if self.mediator:
+            self.mediator.register("reserva_app", self)
 
         # Marco principal con sombra
         shadow = tk.Frame(self, bg="#1a1a2e")
@@ -35,24 +42,59 @@ class ReservaApp(tk.Tk):
         self.reservas_tree = None
         self.cargar_reservas()
 
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
+            self.cargar_reservas()
+
+    def destroy(self):
+        # --- PATRÓN MEDIATOR: Desregistrar el componente ---
+        if self.mediator:
+            self.mediator.unregister("reserva_app")
+        super().destroy()
+
     def nueva_reserva(self):
         # Obtén las listas de nombres de salas y usuarios
         salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
         usuarios = [u["nombre"] for u in self.mediator.user_service.listar_usuarios()]
-        NuevaReservaDialog(self, self.reserva_service, salas, usuarios, on_save=self.cargar_reservas)
+        NuevaReservaDialog(self, self.reserva_service, salas, usuarios, on_save=self.cargar_reservas, mediator=self.mediator)
 
     def cargar_reservas(self):
         # Implementa la carga de reservas en la tabla
         pass
 
+    def crear_reserva(self):
+        usuario = self.obtener_usuario_seleccionado()  # objeto o id
+        sala = self.obtener_sala_seleccionada()        # objeto o id
+        fecha_inicio = self.obtener_fecha_inicio()
+        fecha_fin = self.obtener_fecha_fin()
+
+        builder = ReservaBuilder()
+        reserva = (
+            builder
+            .set_usuario(usuario)
+            .set_sala(sala)
+            .set_fecha_inicio(fecha_inicio)
+            .set_fecha_fin(fecha_fin)
+            .build()
+        )
+
+        # Ahora puedes pasar la reserva al servicio o repositorio
+        self.reserva_service.agregar_reserva(reserva)
+
 class NuevaReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva_service, salas, usuarios, on_save=None):
+    def __init__(self, parent, reserva_service, salas, usuarios, on_save=None, mediator=None):
         super().__init__(parent)
         self.title("Nueva Reserva")
         self.geometry("400x350")
         self.reserva_service = reserva_service
         self.on_save = on_save
+        self.mediator = mediator  # --- PATRÓN MEDIATOR: Guardar referencia ---
         self.configure(bg="#232946")
+
+        # --- PATRÓN MEDIATOR: Registrar el diálogo ---
+        if self.mediator:
+            self.mediator.register("nueva_reserva_dialog", self)
 
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
         frame.place(relx=0.5, rely=0.5, anchor="center", width=360, height=300)
@@ -93,21 +135,36 @@ class NuevaReservaDialog(tk.Toplevel):
 
         self.fecha_entry.focus_set()
 
+    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
+    def on_event(self, sender, event, data):
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
+            # Aquí podrías actualizar campos o cerrar el diálogo si lo deseas
+            pass
+
+    def destroy(self):
+        # --- PATRÓN MEDIATOR: Desregistrar el diálogo ---
+        if self.mediator:
+            self.mediator.unregister("nueva_reserva_dialog")
+        super().destroy()
+
     def guardar(self):
-        sala = self.sala_var.get()
-        usuario = self.usuario_var.get()
-        fecha = self.fecha_entry.get().strip()
-        hora = self.hora_entry.get().strip()
+        adapter = ReservaDialogAdapter(self)
+        data = adapter.get_data()
 
         # Validaciones básicas
-        if not sala or not usuario or not fecha or not hora:
+        if not data["sala"] or not data["usuario"] or not data["fecha"] or not data["hora"]:
             messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
 
-        # Puedes agregar validaciones de formato aquí si lo deseas
-
         try:
-            self.reserva_service.crear_reserva(sala, usuario, fecha, hora)
+            reserva_data = {
+                "sala_nombre": data["sala"],
+                "usuario_username": data["usuario"],
+                "fecha_inicio": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M"),
+                "fecha_fin": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M").replace(hour=(datetime.strptime(data['hora'], "%H:%M").hour + 1) % 24)
+            }
+            command = CreateReservaCommand(self.reserva_service, reserva_data)
+            command.execute()
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return
@@ -115,12 +172,31 @@ class NuevaReservaDialog(tk.Toplevel):
         messagebox.showinfo("Éxito", "Reserva creada correctamente.")
         if self.on_save:
             self.on_save()
+        # --- PATRÓN MEDIATOR: Notificar evento ---
+        if self.mediator:
+            self.mediator.notify(self, "reserva_creada", data)
         self.destroy()
 
         self.sala_var.set("")
         self.usuario_var.set("")
         self.fecha_entry.delete(0, tk.END)
         self.hora_entry.delete(0, tk.END)
+
+    @property
+    def sala_input(self):
+        return self.sala_combo
+
+    @property
+    def usuario_input(self):
+        return self.usuario_combo
+
+    @property
+    def fecha_input(self):
+        return self.fecha_entry
+
+    @property
+    def hora_input(self):
+        return self.hora_entry
 
 def es_fecha_valida(fecha_str):
     try:

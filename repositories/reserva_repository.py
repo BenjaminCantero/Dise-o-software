@@ -19,6 +19,9 @@ def obtener_reserva(db: Session, reserva_id: int):
 def obtener_reservas(db: Session, skip: int = 0, limit: int = 100):
     return db.query(Reserva).offset(skip).limit(limit).all()
 
+def obtener_reservas_por_usuario(db: Session, usuario_id: int):
+    return db.query(Reserva).filter(Reserva.usuario_id == usuario_id).all()
+
 def actualizar_reserva(db: Session, reserva_id: int, fecha_inicio=None, fecha_fin=None):
     reserva = db.query(Reserva).filter(Reserva.id == reserva_id).first()
     if reserva:

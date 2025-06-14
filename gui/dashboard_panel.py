@@ -62,9 +62,9 @@ class DashboardPanel(ttk.Frame):
         cards_frame = ttk.Frame(self, style="Panel.TFrame")
         cards_frame.pack(pady=10, padx=20, fill="x")
 
-        total_salas = self.sala_service.contar_salas() if self.sala_service else 0
-        ocupadas = self.sala_service.contar_ocupadas() if self.sala_service else 0
-        libres = self.sala_service.contar_disponibles() if self.sala_service else 0
+        total_salas = len(self.sala_service.listar_salas()) if self.sala_service else 0
+        ocupadas = len([s for s in self.sala_service.listar_salas() if s["estado"] == "ocupada"]) if self.sala_service else 0
+        libres = len([s for s in self.sala_service.listar_salas() if s["estado"] == "disponible"]) if self.sala_service else 0
         total_reservas = self.reserva_service.contar_reservas() if self.reserva_service else 0
 
         # Card: Total de salas
