@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from .models import Reserva
+from api.models import Reserva
 
 def crear_reserva(db: Session, usuario_id: int, sala_id: int, fecha_inicio, fecha_fin):
     reserva = Reserva(

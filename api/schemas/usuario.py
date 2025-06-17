@@ -9,6 +9,3 @@ class UsuarioOut(BaseModel):
     id: int
     username: str
     role: str
-
-    class Config:
-        orm_mode = True

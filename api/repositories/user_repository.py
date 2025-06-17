@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from .models import Usuario
+from api.models import Usuario
 
 def crear_usuario(db: Session, username: str, password: str, role: str = "estudiante"):
     usuario = Usuario(username=username, password=password, role=role)

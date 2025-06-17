@@ -1,5 +1,13 @@
 from sqlalchemy.orm import Session
-from .models import Sala
+from ..db import SessionLocal
+from ..models import Sala
+
+class SalaRepository:
+    def listar_salas(self):
+        db = SessionLocal()
+        salas = db.query(Sala).all()
+        db.close()
+        return salas
 
 def crear_sala(db: Session, nombre: str, capacidad: int):
     sala = Sala(nombre=nombre, capacidad=capacidad)
