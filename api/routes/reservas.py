@@ -57,17 +57,29 @@ def create_reserva(reserva: ReservaIn, db: Session = Depends(get_db)):
 @router.put("/{reserva_id}", response_model=list[ReservaOut])
 def update_reserva(reserva_id: int, reserva: ReservaIn, db: Session = Depends(get_db)):
     reserva_service.db = db
-    command = EditReservaCommand(reserva_service, reserva_id, reserva.dict())
-    command.execute()
-    list_command = ListReservasCommand(reserva_service)
-    reservas = list_command.execute()
-    return [ReservaOut.from_orm(r) for r in reservas]
+    try:
+        command = EditReservaCommand(reserva_service, reserva_id, reserva.dict())
+        command.execute()
+        list_command = ListReservasCommand(reserva_service)
+        reservas = list_command.execute()
+        return [ReservaOut.from_orm(r) for r in reservas]
+    except ReservaNoExisteError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except UsuarioNoExisteError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except SalaNoExisteError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{reserva_id}", response_model=list[ReservaOut])
 def delete_reserva(reserva_id: int, db: Session = Depends(get_db)):
     reserva_service.db = db
-    command = CancelReservaCommand(reserva_service, reserva_id)
-    command.execute()
-    list_command = ListReservasCommand(reserva_service)
-    reservas = list_command.execute()
-    return [ReservaOut.from_orm(r) for r in reservas]
+    try:
+        command = CancelReservaCommand(reserva_service, reserva_id)
+        command.execute()
+        list_command = ListReservasCommand(reserva_service)
+        reservas = list_command.execute()
+        return [ReservaOut.from_orm(r) for r in reservas]
+    except ReservaNoExisteError as e:
+        raise HTTPException(status_code=404, detail=str(e))
