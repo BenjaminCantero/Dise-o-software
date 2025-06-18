@@ -2,8 +2,8 @@ from pydantic import BaseModel, root_validator
 from datetime import datetime
 
 class ReservaIn(BaseModel):
-    sala_nombre: str
-    usuario_username: str
+    usuario_id: int
+    sala_id: int
     fecha_inicio: datetime
     fecha_fin: datetime
 
@@ -17,12 +17,8 @@ class ReservaIn(BaseModel):
             raise ValueError("La fecha de inicio debe ser anterior a la fecha de fin")
         return values
 
-class ReservaOut(BaseModel):
+class ReservaOut(ReservaIn):
     id: int
-    sala_id: int
-    usuario_id: int
-    fecha_inicio: datetime
-    fecha_fin: datetime
 
     class Config:
         orm_mode = True

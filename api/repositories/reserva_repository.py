@@ -23,12 +23,16 @@ class ReservaRepository:
     def obtener_reservas_por_usuario(self, db: Session, usuario_id: int):
         return db.query(Reserva).filter(Reserva.usuario_id == usuario_id).all()
 
-    def actualizar_reserva(self, db: Session, reserva_id: int, fecha_inicio=None, fecha_fin=None):
+    def actualizar_reserva(self, db: Session, reserva_id: int, usuario_id=None, sala_id=None, fecha_inicio=None, fecha_fin=None):
         reserva = db.query(Reserva).filter(Reserva.id == reserva_id).first()
         if reserva:
-            if fecha_inicio:
+            if usuario_id is not None:
+                reserva.usuario_id = usuario_id
+            if sala_id is not None:
+                reserva.sala_id = sala_id
+            if fecha_inicio is not None:
                 reserva.fecha_inicio = fecha_inicio
-            if fecha_fin:
+            if fecha_fin is not None:
                 reserva.fecha_fin = fecha_fin
             db.commit()
             db.refresh(reserva)
