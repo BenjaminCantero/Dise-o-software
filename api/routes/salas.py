@@ -22,11 +22,10 @@ def listar_salas(db: Session = Depends(get_db)):
 
 @router.get("/{sala_id}", response_model=SalaOut)
 def get_sala(sala_id: int, db: Session = Depends(get_db)):
-    try:
-        sala = sala_service.obtener_sala_por_id(db, sala_id)
-        return SalaOut.from_orm(sala)
-    except SalaNoExisteError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    sala = sala_service.obtener_sala_por_id(db, sala_id)
+    if not sala:
+        raise HTTPException(status_code=404, detail="Sala no encontrada")
+    return SalaOut.from_orm(sala)
 
 @router.post("/", response_model=SalaOut, status_code=201)
 def create_sala(sala: SalaIn, db: Session = Depends(get_db)):
