@@ -1,17 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from ..db import SessionLocal
-from ..models.usuario import Usuario
 from ..schemas.usuario import UsuarioIn, UsuarioOut
+from ..services.user_service import UserService
+from ..repositories.user_repository import UserRepository
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
-def adapt_usuario(usuario: Usuario):
-    return UsuarioOut(
-        id=usuario.id,
-        username=usuario.username,
-        role=usuario.role
-    )
+user_service = UserService(UserRepository())
 
 def get_db():
     db = SessionLocal()
@@ -22,54 +18,31 @@ def get_db():
 
 @router.get("/", response_model=list[UsuarioOut])
 def get_usuarios(db: Session = Depends(get_db)):
-    usuarios = db.query(Usuario).all()
-    return [adapt_usuario(u) for u in usuarios]
+    return user_service.listar_usuarios(db)
 
 @router.get("/{usuario_id}", response_model=UsuarioOut)
 def get_usuario(usuario_id: int, db: Session = Depends(get_db)):
-    usuario = db.query(Usuario).filter_by(id=usuario_id).first()
+    usuarios = user_service.listar_usuarios(db)
+    usuario = next((u for u in usuarios if u.id == usuario_id), None)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return adapt_usuario(usuario)
+    return usuario
 
 @router.post("/", response_model=UsuarioOut, status_code=201)
 def create_usuario(usuario: UsuarioIn, db: Session = Depends(get_db)):
-    existente = db.query(Usuario).filter_by(username=usuario.username).first()
-    if existente:
-        raise HTTPException(status_code=400, detail="El nombre de usuario ya existe")
-    nuevo = Usuario(
-        username=usuario.username,
-        password=usuario.password,
-        role=usuario.role
-    )
-    db.add(nuevo)
-    db.commit()
-    db.refresh(nuevo)
-    return adapt_usuario(nuevo)
+    try:
+        return user_service.crear_usuario(db, usuario.username, usuario.password, usuario.role)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{usuario_id}", response_model=UsuarioOut)
 def update_usuario(usuario_id: int, usuario: UsuarioIn, db: Session = Depends(get_db)):
-    usuario_db = db.query(Usuario).filter_by(id=usuario_id).first()
-    if not usuario_db:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    # Validar nombre de usuario único si cambia
-    if usuario_db.username != usuario.username:
-        existente = db.query(Usuario).filter_by(username=usuario.username).first()
-        if existente:
-            raise HTTPException(status_code=400, detail="El nombre de usuario ya existe")
-    usuario_db.username = usuario.username
-    usuario_db.password = usuario.password
-    usuario_db.role = usuario.role
-    db.commit()
-    db.refresh(usuario_db)
-    return adapt_usuario(usuario_db)
+    try:
+        return user_service.editar_usuario(db, usuario_id, usuario.username, usuario.password)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{usuario_id}", response_model=list[UsuarioOut])
 def delete_usuario(usuario_id: int, db: Session = Depends(get_db)):
-    usuario = db.query(Usuario).filter_by(id=usuario_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    db.delete(usuario)
-    db.commit()
-    usuarios = db.query(Usuario).all()
-    return [adapt_usuario(u) for u in usuarios]
+    user_service.eliminar_usuario(db, usuario_id)
+    return user_service.listar_usuarios(db)

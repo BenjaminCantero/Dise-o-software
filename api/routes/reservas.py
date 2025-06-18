@@ -1,151 +1,45 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from ..db import SessionLocal
-from ..models.reserva import Reserva
-from ..models.sala import Sala
-from ..models.usuario import Usuario
 from ..schemas.reserva import ReservaIn, ReservaOut
+from ..services.reserva_service import ReservaService
 
 router = APIRouter(prefix="/reservas", tags=["reservas"])
 
-def adapt_reserva(reserva: Reserva):
-    return ReservaOut(
-        id=reserva.id,
-        sala_nombre=reserva.sala.nombre if reserva.sala else None,
-        usuario_username=reserva.usuario.username if reserva.usuario else None,
-        fecha_inicio=reserva.fecha_inicio,
-        fecha_fin=reserva.fecha_fin,
-    )
+reserva_service = ReservaService()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @router.get("/", response_model=list[ReservaOut])
-def get_reservas():
-    db = SessionLocal()
-    try:
-        reservas = db.query(Reserva).all()
-        for r in reservas:
-            _ = r.sala
-            _ = r.usuario
-        return [adapt_reserva(r) for r in reservas]
-    finally:
-        db.close()
+def get_reservas(db: Session = Depends(get_db)):
+    return reserva_service.listar_reservas(db)
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
-def get_reserva(reserva_id: int):
-    db = SessionLocal()
-    try:
-        reserva = db.query(Reserva).filter_by(id=reserva_id).first()
-        if not reserva:
-            raise HTTPException(status_code=404, detail="Reserva no encontrada")
-        _ = reserva.sala
-        _ = reserva.usuario
-        return adapt_reserva(reserva)
-    finally:
-        db.close()
+def get_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    reserva = reserva_service.obtener_reserva_por_id(db, reserva_id)
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada")
+    return reserva
 
 @router.post("/", response_model=ReservaOut, status_code=201)
-def create_reserva(reserva: ReservaIn):
-    db = SessionLocal()
+def create_reserva(reserva: ReservaIn, db: Session = Depends(get_db)):
     try:
-        sala = db.query(Sala).filter_by(nombre=reserva.sala_nombre).first()
-        if not sala:
-            raise HTTPException(status_code=404, detail="Sala no encontrada")
-        usuario = db.query(Usuario).filter_by(username=reserva.usuario_username).first()
-        if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        if reserva.fecha_inicio is None or reserva.fecha_fin is None:
-            raise HTTPException(status_code=400, detail="Las fechas no pueden ser nulas")
-        if reserva.fecha_inicio >= reserva.fecha_fin:
-            raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
-        # Validar solapamiento de reservas
-        solapada = db.query(Reserva).filter(
-            Reserva.sala_id == sala.id,
-            Reserva.fecha_fin > reserva.fecha_inicio,
-            Reserva.fecha_inicio < reserva.fecha_fin
-        ).first()
-        if solapada:
-            raise HTTPException(status_code=400, detail="La sala ya está reservada en ese horario")
-        solapada_usuario = db.query(Reserva).filter(
-            Reserva.usuario_id == usuario.id,
-            Reserva.fecha_fin > reserva.fecha_inicio,
-            Reserva.fecha_inicio < reserva.fecha_fin
-        ).first()
-        if solapada_usuario:
-            raise HTTPException(status_code=400, detail="El usuario ya tiene una reserva en ese horario")
-        nueva = Reserva(
-            sala_id=sala.id,
-            usuario_id=usuario.id,
-            fecha_inicio=reserva.fecha_inicio,
-            fecha_fin=reserva.fecha_fin
-        )
-        db.add(nueva)
-        db.commit()
-        db.refresh(nueva)
-        _ = nueva.sala
-        _ = nueva.usuario
-        return adapt_reserva(nueva)
-    finally:
-        db.close()
+        return reserva_service.crear_reserva(db, reserva)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.put("/{reserva_id}", response_model=list[ReservaOut])
-def update_reserva(reserva_id: int, reserva: ReservaIn):
-    db = SessionLocal()
+@router.put("/{reserva_id}", response_model=ReservaOut)
+def update_reserva(reserva_id: int, reserva: ReservaIn, db: Session = Depends(get_db)):
     try:
-        sala = db.query(Sala).filter_by(nombre=reserva.sala_nombre).first()
-        if not sala:
-            raise HTTPException(status_code=404, detail="Sala no encontrada")
-        usuario = db.query(Usuario).filter_by(username=reserva.usuario_username).first()
-        if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        if reserva.fecha_inicio is None or reserva.fecha_fin is None:
-            raise HTTPException(status_code=400, detail="Las fechas no pueden ser nulas")
-        if reserva.fecha_inicio >= reserva.fecha_fin:
-            raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
-        reserva_db = db.query(Reserva).filter_by(id=reserva_id).first()
-        if not reserva_db:
-            raise HTTPException(status_code=404, detail="Reserva no encontrada")
-        # Validar solapamiento de reservas (excluyendo la actual)
-        solapada = db.query(Reserva).filter(
-            Reserva.id != reserva_id,
-            Reserva.sala_id == sala.id,
-            Reserva.fecha_fin > reserva.fecha_inicio,
-            Reserva.fecha_inicio < reserva.fecha_fin
-        ).first()
-        if solapada:
-            raise HTTPException(status_code=400, detail="La sala ya está reservada en ese horario")
-        solapada_usuario = db.query(Reserva).filter(
-            Reserva.id != reserva_id,
-            Reserva.usuario_id == usuario.id,
-            Reserva.fecha_fin > reserva.fecha_inicio,
-            Reserva.fecha_inicio < reserva.fecha_fin
-        ).first()
-        if solapada_usuario:
-            raise HTTPException(status_code=400, detail="El usuario ya tiene una reserva en ese horario")
-        reserva_db.sala_id = sala.id
-        reserva_db.usuario_id = usuario.id
-        reserva_db.fecha_inicio = reserva.fecha_inicio
-        reserva_db.fecha_fin = reserva.fecha_fin
-        db.commit()
-        reservas = db.query(Reserva).all()
-        for r in reservas:
-            _ = r.sala
-            _ = r.usuario
-        return [adapt_reserva(r) for r in reservas]
-    finally:
-        db.close()
+        return reserva_service.editar_reserva(db, reserva_id, reserva)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{reserva_id}", response_model=list[ReservaOut])
-def delete_reserva(reserva_id: int):
-    db = SessionLocal()
-    try:
-        reserva = db.query(Reserva).filter_by(id=reserva_id).first()
-        if not reserva:
-            raise HTTPException(status_code=404, detail="Reserva no encontrada")
-        db.delete(reserva)
-        db.commit()
-        reservas = db.query(Reserva).all()
-        for r in reservas:
-            _ = r.sala
-            _ = r.usuario
-        return [adapt_reserva(r) for r in reservas]
-    finally:
-        db.close()
+def delete_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    return reserva_service.eliminar_reserva(db, reserva_id)

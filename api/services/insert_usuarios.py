@@ -1,5 +1,5 @@
 from db import SessionLocal
-from api.models import Usuario
+from api.models.usuario import Usuario
 
 db = SessionLocal()
 

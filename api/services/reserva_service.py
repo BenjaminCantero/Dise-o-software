@@ -1,69 +1,29 @@
-<<<<<<<< HEAD:smart room/services/reserva_service.py
-import requests
-from core.observable import Observable
-========
-# services/reserva_service.py
-from smartroom.core.observable import Observable
-from smartroom.core.singleton import SingletonMeta
-from api.db import SessionLocal
-from api.models.reserva import Reserva
-from api.models.usuario import Usuario
-from api.models.sala import Sala
-from smartroom.builders.reserva_builder import ReservaBuilder
-from smartroom.decorators.notificacion_reserva import ReservaNotificada  # Decorator importado
->>>>>>>> Benjamín-cantero:api/services/reserva_service.py
+from sqlalchemy.orm import Session
+from api.repositories.reserva_repository import ReservaRepository
 
-API_URL = "http://127.0.0.1:8000/reservas/"
+class ReservaService:
+    def __init__(self, reserva_repository=None):
+        self.reserva_repository = reserva_repository or ReservaRepository()
 
-class ReservaService(Observable):
-    def listar_reservas(self):
-        response = requests.get(API_URL)
-        response.raise_for_status()
-        return response.json()
+    def listar_reservas(self, db: Session):
+        return self.reserva_repository.obtener_reservas(db)
 
-    def crear_reserva(self, sala_nombre, usuario_username, fecha_inicio, fecha_fin):
-        data = {
-            "sala_nombre": sala_nombre,
-            "usuario_username": usuario_username,
-            "fecha_inicio": fecha_inicio,
-            "fecha_fin": fecha_fin
-        }
-        response = requests.post(API_URL, json=data)
-        response.raise_for_status()
-        return response.json()
+    def crear_reserva(self, db: Session, usuario_id: int, sala_id: int, fecha_inicio, fecha_fin):
+        return self.reserva_repository.crear_reserva(db, usuario_id, sala_id, fecha_inicio, fecha_fin)
 
-    def eliminar_reserva(self, reserva_id):
-        response = requests.delete(f"{API_URL}{reserva_id}")
-        response.raise_for_status()
-        return response.json()
+    def eliminar_reserva(self, db: Session, reserva_id: int):
+        return self.reserva_repository.eliminar_reserva(db, reserva_id)
 
-    def contar_reservas(self):
-        reservas = self.listar_reservas()
-        return len(reservas)
+    def editar_reserva(self, db: Session, reserva_id: int, fecha_inicio=None, fecha_fin=None):
+        return self.reserva_repository.actualizar_reserva(db, reserva_id, fecha_inicio, fecha_fin)
 
-    def obtener_reservas_por_usuario(self, username):
-        reservas = self.listar_reservas()
-        return [r for r in reservas if r.get("usuario_username") == username]
+    def obtener_reserva_por_id(self, db: Session, reserva_id: int):
+        return self.reserva_repository.obtener_reserva(db, reserva_id)
 
-    def editar_reserva(self, reserva_id, sala_nombre, usuario_username, fecha_inicio, fecha_fin):
-        data = {
-            "sala_nombre": sala_nombre,
-            "usuario_username": usuario_username,
-            "fecha_inicio": fecha_inicio,
-            "fecha_fin": fecha_fin
-        }
-        response = requests.put(f"{API_URL}{reserva_id}", json=data)
-        response.raise_for_status()
-        return response.json()
+    def obtener_reservas_por_usuario(self, db: Session, usuario_id: int):
+        return self.reserva_repository.obtener_reservas_por_usuario(db, usuario_id)
 
-    def obtener_reserva_por_id(self, reserva_id):
-        response = requests.get(f"{API_URL}{reserva_id}")
-        if response.status_code == 404:
-            return None
-        response.raise_for_status()
-        return response.json()
-
-    def eliminar_reservas_por_usuario(self, username):
-        reservas = self.obtener_reservas_por_usuario(username)
+    def eliminar_reservas_por_usuario(self, db: Session, usuario_id: int):
+        reservas = self.obtener_reservas_por_usuario(db, usuario_id)
         for reserva in reservas:
-            self.eliminar_reserva(reserva["id"])
+            self.eliminar_reserva(db, reserva.id)

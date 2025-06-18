@@ -1,4 +1,4 @@
-from repositories.models import Usuario
+from api.repositories.user_repository import Usuario
 
 class UsuarioBuilder:
     def __init__(self):

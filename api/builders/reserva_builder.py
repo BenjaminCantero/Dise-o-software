@@ -1,4 +1,4 @@
-from repositories.models import Reserva
+from api.models.reserva import Reserva
 
 class ReservaBuilder:
     def __init__(self):
