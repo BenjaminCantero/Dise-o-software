@@ -3,6 +3,11 @@ from sqlalchemy.orm import Session
 from ..db import SessionLocal
 from ..schemas.reserva import ReservaIn, ReservaOut
 from ..services.reserva_service import ReservaService, UsuarioNoExisteError, SalaNoExisteError, ReservaNoExisteError
+from api.commands.create_reserva_command import CreateReservaCommand
+from api.commands.edit_reserva_command import EditReservaCommand
+from api.commands.cancel_reserva_command import CancelReservaCommand
+from api.commands.list_reservas_command import ListReservasCommand
+from api.commands.get_reserva_command import GetReservaCommand
 
 router = APIRouter(prefix="/reservas", tags=["reservas"])
 
@@ -16,44 +21,29 @@ def get_db():
         db.close()
 
 @router.get("/", response_model=list[ReservaOut])
-def get_reservas(db: Session = Depends(get_db)):
-    reservas = reserva_service.listar_reservas(db)
+def listar_reservas(db: Session = Depends(get_db)):
+    reserva_service.db = db
+    command = ListReservasCommand(reserva_service)
+    reservas = command.execute()
     return [ReservaOut.from_orm(r) for r in reservas]
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
 def get_reserva(reserva_id: int, db: Session = Depends(get_db)):
-    reserva = reserva_service.obtener_reserva_por_id(db, reserva_id)
+    reserva_service.db = db
+    command = GetReservaCommand(reserva_service, reserva_id)
+    reserva = command.execute()
     if not reserva:
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
     return ReservaOut.from_orm(reserva)
 
 @router.post("/", response_model=list[ReservaOut], status_code=201)
 def create_reserva(reserva: ReservaIn, db: Session = Depends(get_db)):
+    reserva_service.db = db
     try:
-        nueva_reserva = reserva_service.crear_reserva(
-            db,
-            usuario_id=reserva.usuario_id,
-            sala_id=reserva.sala_id,
-            fecha_inicio=reserva.fecha_inicio,
-            fecha_fin=reserva.fecha_fin
-        )
-        reservas = reserva_service.listar_reservas(db)
-        return [ReservaOut.from_orm(r) for r in reservas]
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.put("/{reserva_id}", response_model=list[ReservaOut])
-def update_reserva(reserva_id: int, reserva: ReservaIn, db: Session = Depends(get_db)):
-    try:
-        reserva_service.editar_reserva(
-            db,
-            reserva_id,
-            usuario_id=reserva.usuario_id,
-            sala_id=reserva.sala_id,
-            fecha_inicio=reserva.fecha_inicio,
-            fecha_fin=reserva.fecha_fin
-        )
-        reservas = reserva_service.listar_reservas(db)
+        command = CreateReservaCommand(reserva_service, reserva.dict())
+        command.execute()
+        list_command = ListReservasCommand(reserva_service)
+        reservas = list_command.execute()
         return [ReservaOut.from_orm(r) for r in reservas]
     except UsuarioNoExisteError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -64,8 +54,20 @@ def update_reserva(reserva_id: int, reserva: ReservaIn, db: Session = Depends(ge
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.put("/{reserva_id}", response_model=list[ReservaOut])
+def update_reserva(reserva_id: int, reserva: ReservaIn, db: Session = Depends(get_db)):
+    reserva_service.db = db
+    command = EditReservaCommand(reserva_service, reserva_id, reserva.dict())
+    command.execute()
+    list_command = ListReservasCommand(reserva_service)
+    reservas = list_command.execute()
+    return [ReservaOut.from_orm(r) for r in reservas]
+
 @router.delete("/{reserva_id}", response_model=list[ReservaOut])
 def delete_reserva(reserva_id: int, db: Session = Depends(get_db)):
-    reserva_service.eliminar_reserva(db, reserva_id)
-    reservas = reserva_service.listar_reservas(db)
+    reserva_service.db = db
+    command = CancelReservaCommand(reserva_service, reserva_id)
+    command.execute()
+    list_command = ListReservasCommand(reserva_service)
+    reservas = list_command.execute()
     return [ReservaOut.from_orm(r) for r in reservas]
