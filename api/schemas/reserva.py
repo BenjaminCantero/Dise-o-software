@@ -17,5 +17,12 @@ class ReservaIn(BaseModel):
             raise ValueError("La fecha de inicio debe ser anterior a la fecha de fin")
         return values
 
-class ReservaOut(ReservaIn):
+class ReservaOut(BaseModel):
     id: int
+    sala_id: int
+    usuario_id: int
+    fecha_inicio: datetime
+    fecha_fin: datetime
+
+    class Config:
+        orm_mode = True

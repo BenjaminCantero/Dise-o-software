@@ -17,29 +17,34 @@ def get_db():
 
 @router.get("/", response_model=list[ReservaOut])
 def get_reservas(db: Session = Depends(get_db)):
-    return reserva_service.listar_reservas(db)
+    reservas = reserva_service.listar_reservas(db)
+    return [ReservaOut.from_orm(r) for r in reservas]
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
 def get_reserva(reserva_id: int, db: Session = Depends(get_db)):
     reserva = reserva_service.obtener_reserva_por_id(db, reserva_id)
     if not reserva:
         raise HTTPException(status_code=404, detail="Reserva no encontrada")
-    return reserva
+    return ReservaOut.from_orm(reserva)
 
 @router.post("/", response_model=ReservaOut, status_code=201)
 def create_reserva(reserva: ReservaIn, db: Session = Depends(get_db)):
     try:
-        return reserva_service.crear_reserva(db, reserva)
+        nueva_reserva = reserva_service.crear_reserva(db, reserva)
+        return ReservaOut.from_orm(nueva_reserva)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{reserva_id}", response_model=ReservaOut)
 def update_reserva(reserva_id: int, reserva: ReservaIn, db: Session = Depends(get_db)):
     try:
-        return reserva_service.editar_reserva(db, reserva_id, reserva)
+        reserva_actualizada = reserva_service.editar_reserva(db, reserva_id, reserva)
+        return ReservaOut.from_orm(reserva_actualizada)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{reserva_id}", response_model=list[ReservaOut])
 def delete_reserva(reserva_id: int, db: Session = Depends(get_db)):
-    return reserva_service.eliminar_reserva(db, reserva_id)
+    reserva_service.eliminar_reserva(db, reserva_id)
+    reservas = reserva_service.listar_reservas(db)
+    return [ReservaOut.from_orm(r) for r in reservas]

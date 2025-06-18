@@ -18,7 +18,8 @@ def get_db():
 
 @router.get("/", response_model=list[UsuarioOut])
 def get_usuarios(db: Session = Depends(get_db)):
-    return user_service.listar_usuarios(db)
+    usuarios = user_service.listar_usuarios(db)
+    return [UsuarioOut.from_orm(u) for u in usuarios]
 
 @router.get("/{usuario_id}", response_model=UsuarioOut)
 def get_usuario(usuario_id: int, db: Session = Depends(get_db)):
@@ -26,23 +27,26 @@ def get_usuario(usuario_id: int, db: Session = Depends(get_db)):
     usuario = next((u for u in usuarios if u.id == usuario_id), None)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return usuario
+    return UsuarioOut.from_orm(usuario)
 
 @router.post("/", response_model=UsuarioOut, status_code=201)
 def create_usuario(usuario: UsuarioIn, db: Session = Depends(get_db)):
     try:
-        return user_service.crear_usuario(db, usuario.username, usuario.password, usuario.role)
+        nuevo_usuario = user_service.crear_usuario(db, usuario.username, usuario.password, usuario.role)
+        return UsuarioOut.from_orm(nuevo_usuario)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{usuario_id}", response_model=UsuarioOut)
 def update_usuario(usuario_id: int, usuario: UsuarioIn, db: Session = Depends(get_db)):
     try:
-        return user_service.editar_usuario(db, usuario_id, usuario.username, usuario.password)
+        usuario_actualizado = user_service.editar_usuario(db, usuario_id, usuario.username, usuario.password)
+        return UsuarioOut.from_orm(usuario_actualizado)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{usuario_id}", response_model=list[UsuarioOut])
 def delete_usuario(usuario_id: int, db: Session = Depends(get_db)):
     user_service.eliminar_usuario(db, usuario_id)
-    return user_service.listar_usuarios(db)
+    usuarios = user_service.listar_usuarios(db)
+    return [UsuarioOut.from_orm(u) for u in usuarios]
