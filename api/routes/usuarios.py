@@ -7,8 +7,6 @@ from ..repositories.user_repository import UserRepository
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
-user_service = UserService(UserRepository())
-
 def get_db():
     db = SessionLocal()
     try:
@@ -16,13 +14,26 @@ def get_db():
     finally:
         db.close()
 
+def get_user_repository():
+    return UserRepository()
+
+def get_user_service(user_repository: UserRepository = Depends(get_user_repository)):
+    return UserService(user_repository)
+
 @router.get("/", response_model=list[UsuarioOut])
-def get_usuarios(db: Session = Depends(get_db)):
+def get_usuarios(
+    db: Session = Depends(get_db),
+    user_service: UserService = Depends(get_user_service)
+):
     usuarios = user_service.listar_usuarios(db)
     return [UsuarioOut.from_orm(u) for u in usuarios]
 
 @router.get("/{usuario_id}", response_model=UsuarioOut)
-def get_usuario(usuario_id: int, db: Session = Depends(get_db)):
+def get_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    user_service: UserService = Depends(get_user_service)
+):
     usuarios = user_service.listar_usuarios(db)
     usuario = next((u for u in usuarios if u.id == usuario_id), None)
     if not usuario:
@@ -30,7 +41,11 @@ def get_usuario(usuario_id: int, db: Session = Depends(get_db)):
     return UsuarioOut.from_orm(usuario)
 
 @router.post("/", response_model=UsuarioOut, status_code=201)
-def create_usuario(usuario: UsuarioIn, db: Session = Depends(get_db)):
+def create_usuario(
+    usuario: UsuarioIn,
+    db: Session = Depends(get_db),
+    user_service: UserService = Depends(get_user_service)
+):
     try:
         nuevo_usuario = user_service.crear_usuario(db, usuario.username, usuario.password, usuario.role)
         return UsuarioOut.from_orm(nuevo_usuario)
@@ -38,7 +53,12 @@ def create_usuario(usuario: UsuarioIn, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{usuario_id}", response_model=UsuarioOut)
-def update_usuario(usuario_id: int, usuario: UsuarioIn, db: Session = Depends(get_db)):
+def update_usuario(
+    usuario_id: int,
+    usuario: UsuarioIn,
+    db: Session = Depends(get_db),
+    user_service: UserService = Depends(get_user_service)
+):
     try:
         usuario_actualizado = user_service.editar_usuario(db, usuario_id, usuario.username, usuario.password)
         return UsuarioOut.from_orm(usuario_actualizado)
@@ -48,7 +68,11 @@ def update_usuario(usuario_id: int, usuario: UsuarioIn, db: Session = Depends(ge
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{usuario_id}", response_model=list[UsuarioOut])
-def delete_usuario(usuario_id: int, db: Session = Depends(get_db)):
+def delete_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    user_service: UserService = Depends(get_user_service)
+):
     try:
         user_service.eliminar_usuario(db, usuario_id)
         usuarios = user_service.listar_usuarios(db)

@@ -11,8 +11,6 @@ from api.commands.get_reserva_command import GetReservaCommand
 
 router = APIRouter(prefix="/reservas", tags=["reservas"])
 
-reserva_service = ReservaService()
-
 def get_db():
     db = SessionLocal()
     try:
@@ -20,15 +18,25 @@ def get_db():
     finally:
         db.close()
 
+def get_reserva_service():
+    return ReservaService()
+
 @router.get("/", response_model=list[ReservaOut])
-def listar_reservas(db: Session = Depends(get_db)):
+def listar_reservas(
+    db: Session = Depends(get_db),
+    reserva_service: ReservaService = Depends(get_reserva_service)
+):
     reserva_service.db = db
     command = ListReservasCommand(reserva_service)
     reservas = command.execute()
     return [ReservaOut.from_orm(r) for r in reservas]
 
 @router.get("/{reserva_id}", response_model=ReservaOut)
-def get_reserva(reserva_id: int, db: Session = Depends(get_db)):
+def get_reserva(
+    reserva_id: int,
+    db: Session = Depends(get_db),
+    reserva_service: ReservaService = Depends(get_reserva_service)
+):
     reserva_service.db = db
     command = GetReservaCommand(reserva_service, reserva_id)
     reserva = command.execute()
@@ -37,7 +45,11 @@ def get_reserva(reserva_id: int, db: Session = Depends(get_db)):
     return ReservaOut.from_orm(reserva)
 
 @router.post("/", response_model=list[ReservaOut], status_code=201)
-def create_reserva(reserva: ReservaIn, db: Session = Depends(get_db)):
+def create_reserva(
+    reserva: ReservaIn,
+    db: Session = Depends(get_db),
+    reserva_service: ReservaService = Depends(get_reserva_service)
+):
     reserva_service.db = db
     try:
         command = CreateReservaCommand(reserva_service, reserva.dict())
@@ -55,7 +67,12 @@ def create_reserva(reserva: ReservaIn, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{reserva_id}", response_model=list[ReservaOut])
-def update_reserva(reserva_id: int, reserva: ReservaIn, db: Session = Depends(get_db)):
+def update_reserva(
+    reserva_id: int,
+    reserva: ReservaIn,
+    db: Session = Depends(get_db),
+    reserva_service: ReservaService = Depends(get_reserva_service)
+):
     reserva_service.db = db
     try:
         command = EditReservaCommand(reserva_service, reserva_id, reserva.dict())
@@ -73,7 +90,11 @@ def update_reserva(reserva_id: int, reserva: ReservaIn, db: Session = Depends(ge
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{reserva_id}", response_model=list[ReservaOut])
-def delete_reserva(reserva_id: int, db: Session = Depends(get_db)):
+def delete_reserva(
+    reserva_id: int,
+    db: Session = Depends(get_db),
+    reserva_service: ReservaService = Depends(get_reserva_service)
+):
     reserva_service.db = db
     try:
         command = CancelReservaCommand(reserva_service, reserva_id)
