@@ -8,37 +8,9 @@ class DashboardPanel(ttk.Frame):
         self.reserva_service = reserva_service
         self.user_service = user_service
 
-        # Registrar como observer de los servicios
-        if self.sala_service:
-            self.sala_service.add_observer(self)
-        if self.reserva_service:
-            self.reserva_service.add_observer(self)
-        if self.user_service:
-            self.user_service.add_observer(self)
-
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
         self.create_widgets()
-
-    # Patrón Observer
-    def update(self, event, data):
-        # Si hay cambios en salas, reservas o usuarios, refresca el dashboard
-        if event in (
-            "sala_creada", "sala_eliminada", "sala_editada",
-            "reserva_creada", "reserva_eliminada",
-            "usuario_creado", "usuario_eliminado", "usuario_editado"
-        ):
-            self.refrescar_dashboard()
-
-    def destroy(self):
-        # Quitar el observer al cerrar el panel
-        if self.sala_service:
-            self.sala_service.remove_observer(self)
-        if self.reserva_service:
-            self.reserva_service.remove_observer(self)
-        if self.user_service:
-            self.user_service.remove_observer(self)
-        super().destroy()
 
     def refrescar_dashboard(self):
         # Elimina widgets y vuelve a crear el dashboard actualizado
@@ -65,7 +37,7 @@ class DashboardPanel(ttk.Frame):
         total_salas = len(self.sala_service.listar_salas()) if self.sala_service else 0
         ocupadas = len([s for s in self.sala_service.listar_salas() if s["estado"] == "ocupada"]) if self.sala_service else 0
         libres = len([s for s in self.sala_service.listar_salas() if s["estado"] == "disponible"]) if self.sala_service else 0
-        total_reservas = self.reserva_service.contar_reservas() if self.reserva_service else 0
+        total_reservas = len(self.reserva_service.listar_reservas()) if self.reserva_service else 0
 
         # Card: Total de salas
         card1 = ttk.Frame(cards_frame, style="Card.TFrame")
@@ -115,7 +87,6 @@ class DashboardPanel(ttk.Frame):
         if self.reserva_service:
             reservas = self.reserva_service.listar_reservas()
             for reserva in reservas:
-                # Soporta tanto dict como objeto
                 sala = reserva.get("sala") if isinstance(reserva, dict) else getattr(reserva, "sala", "")
                 usuario = reserva.get("usuario") if isinstance(reserva, dict) else getattr(reserva, "usuario", "")
                 fecha = reserva.get("fecha") if isinstance(reserva, dict) else getattr(reserva, "fecha", "")

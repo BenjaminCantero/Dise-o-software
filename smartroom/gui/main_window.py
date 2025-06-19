@@ -40,7 +40,7 @@ class MainWindow(tk.Frame):
         self.root.config(menu=menubar)
 
         # Menú de salas solo para admin
-        if self.user and self.user.role == "admin":
+        if self.user and self.user["role"] == "admin":
             salas_menu = tk.Menu(menubar, tearoff=0)
             menubar.add_cascade(label="Salas", menu=salas_menu)
             salas_menu.add_command(label="Ver salas", command=self.ver_salas)
@@ -80,7 +80,7 @@ class MainWindow(tk.Frame):
         nav_frame = tk.Frame(sidebar, bg="#232946")
         nav_frame.pack(pady=(10, 10), fill="x")
 
-        if self.user and self.user.role == "admin":
+        if self.user and self.user["role"] == "admin":
             dashboard_btn = ttk.Button(nav_frame, text="📊 Dashboard", style="Sidebar.TButton", command=self.ver_dashboard)
             dashboard_btn.pack(fill="x", pady=8, padx=30)
             admin_btn = ttk.Button(nav_frame, text="👤 Usuarios", style="Sidebar.TButton", command=self.ver_admin_panel)

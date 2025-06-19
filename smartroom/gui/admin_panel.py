@@ -9,18 +9,12 @@ class AdminPanel(ttk.Frame):
         self.mediator = mediator
         self.user_service = user_service
         self.on_volver = on_volver
-        if self.user_service:
-            self.user_service.add_observer(self)
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
         self.create_widgets()
         # --- PATRÓN MEDIATOR: Registrar el panel ---
         if self.mediator:
             self.mediator.register("admin_panel", self)
-
-    def update(self, event, data):
-        if event in ("usuario_creado", "usuario_eliminado", "usuario_editado"):
-            self.cargar_usuarios()
 
     # --- PATRÓN MEDIATOR: Método para recibir eventos ---
     def on_event(self, sender, event, data):
@@ -31,8 +25,6 @@ class AdminPanel(ttk.Frame):
         # --- PATRÓN MEDIATOR: Desregistrar el panel ---
         if self.mediator:
             self.mediator.unregister("admin_panel")
-        if self.user_service:
-            self.user_service.remove_observer(self)
         super().destroy()
 
     def create_widgets(self):
@@ -60,10 +52,11 @@ class AdminPanel(ttk.Frame):
         cards_frame = ttk.Frame(self, style="Panel.TFrame")
         cards_frame.pack(pady=10, padx=20, fill="x")
 
-        total_usuarios = len(self.user_service.listar_usuarios()) if self.user_service else 0
-        admins = len([u for u in self.user_service.listar_usuarios() if u.role == "admin"]) if self.user_service else 0
-        profesores = len([u for u in self.user_service.listar_usuarios() if u.role == "profesor"]) if self.user_service else 0
-        estudiantes = len([u for u in self.user_service.listar_usuarios() if u.role == "estudiante"]) if self.user_service else 0
+        usuarios = self.user_service.listar_usuarios() if self.user_service else []
+        total_usuarios = len(usuarios)
+        admins = len([u for u in usuarios if u["role"] == "admin"])
+        profesores = len([u for u in usuarios if u["role"] == "profesor"])
+        estudiantes = len([u for u in usuarios if u["role"] == "estudiante"])
 
         card_data = [
             ("Total usuarios", total_usuarios),
@@ -112,13 +105,12 @@ class AdminPanel(ttk.Frame):
                 self.tree.delete(row)
             usuarios = self.user_service.listar_usuarios()
             for usuario in usuarios:
-                self.tree.insert("", "end", values=(usuario.username, usuario.role))
+                self.tree.insert("", "end", values=(usuario["username"], usuario["role"]))
 
     def crear_usuario(self):
         def on_save(username, password, role):
             try:
                 self.user_service.crear_usuario(username, password, role)
-                self.user_service.notify_observers(event="usuario_creado", data=username)
                 self.cargar_usuarios()
                 messagebox.showinfo("Éxito", "Usuario creado correctamente.")
                 # --- PATRÓN MEDIATOR: Notificar evento ---
@@ -136,12 +128,12 @@ class AdminPanel(ttk.Frame):
         if self.user_service:
             respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar este usuario?")
             if respuesta:
-                user_id = self.tree.item(selected[0])["values"][0]
-                self.user_service.eliminar_usuario(user_id)
+                username = self.tree.item(selected[0])["values"][0]
+                self.user_service.eliminar_usuario(username)
                 messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
                 self.cargar_usuarios()
                 if self.mediator:
-                    self.mediator.notify(self, "usuario_eliminado", user_id)
+                    self.mediator.notify(self, "usuario_eliminado", username)
 
     def editar_usuario(self):
         selected = self.tree.selection()
@@ -149,13 +141,13 @@ class AdminPanel(ttk.Frame):
             messagebox.showwarning("Advertencia", "Selecciona un usuario para editar.")
             return
         if self.user_service:
-            user_id = self.tree.item(selected[0])["values"][0]
-            usuario = next((u for u in self.user_service.listar_usuarios() if u.username == user_id), None)
+            username = self.tree.item(selected[0])["values"][0]
+            usuarios = self.user_service.listar_usuarios()
+            usuario = next((u for u in usuarios if u["username"] == username), None)
             if usuario:
                 def on_save(username, password, role):
                     try:
                         self.user_service.editar_usuario(username, role)
-                        self.user_service.notify_observers(event="usuario_editado", data=username)
                         self.cargar_usuarios()
                         messagebox.showinfo("Éxito", "Usuario editado correctamente.")
                         if self.mediator:

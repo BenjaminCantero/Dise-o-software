@@ -4,17 +4,14 @@ from tkinter import messagebox
 from gui.editar_sala_dialog import EditarSalaDialog
 from gui.nueva_sala_dialog import NuevaSalaDialog
 from factories.dialog_factory import DialogFactory  # Importa la fábrica
+from smartroom.services import sala_service
 
 class SalasPanel(ttk.Frame):
-    def __init__(self, parent, mediator, sala_service=None, on_volver=None):
+    def __init__(self, parent, mediator, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator
-        self.sala_service = sala_service
         self.on_volver = on_volver
-        self.sala_service.add_observer(self)
-        self.dialog_factory = DialogFactory()  # Instancia la fábrica
         self.create_widgets()
-        # --- PATRÓN MEDIATOR: Registrar el panel ---
         if self.mediator:
             self.mediator.register("salas_panel", self)
 
@@ -33,7 +30,6 @@ class SalasPanel(ttk.Frame):
         # --- PATRÓN MEDIATOR: Desregistrar el panel ---
         if self.mediator:
             self.mediator.unregister("salas_panel")
-        self.sala_service.remove_observer(self)
         super().destroy()
 
     def create_widgets(self):
@@ -92,10 +88,12 @@ class SalasPanel(ttk.Frame):
     def cargar_salas(self):
         for row in self.tree.get_children():
             self.tree.delete(row)
-        if self.sala_service:
-            salas = self.sala_service.listar_salas()
+        try:
+            salas = sala_service.listar_salas()
             for sala in salas:
                 self.tree.insert("", "end", values=(sala["id"], sala["nombre"], sala["capacidad"], sala["estado"]))
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron cargar las salas:\n{e}")
 
     def filtrar_salas(self):
         filtro = self.search_var.get().strip().lower()
@@ -108,44 +106,48 @@ class SalasPanel(ttk.Frame):
                     self.tree.insert("", "end", values=(sala["id"], sala["nombre"], sala["capacidad"], sala["estado"]))
 
     def nueva_sala(self):
-        def on_save(nombre, capacidad):
-            self.sala_service.crear_sala(nombre, capacidad)
-            self.cargar_salas()
-            # --- PATRÓN MEDIATOR: Notificar evento ---
-            if self.mediator:
-                self.mediator.notify(self, "sala_creada")
-        self.dialog_factory.create_dialog("nueva_sala", self, sala_service=self.sala_service, on_success=on_save)
+        def on_save(nombre, capacidad, estado):
+            try:
+                sala_service.crear_sala(nombre, capacidad, estado)
+                self.cargar_salas()
+                if self.mediator:
+                    self.mediator.notify(self, "sala_creada")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo crear la sala:\n{e}")
+        self.dialog_factory.create_dialog("nueva_sala", self, on_success=on_save)
 
     def editar_sala(self):
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Selecciona una sala para editar.")
             return
-        if self.sala_service:
-            sala_id = self.tree.item(selected[0])["values"][0]
-            sala = next((s for s in self.sala_service.listar_salas() if s["id"] == sala_id), None)
-            if sala:
-                def on_save(nombre, capacidad, estado):
-                    self.sala_service.editar_sala(sala_id, nombre, capacidad, estado)
+        sala_id = self.tree.item(selected[0])["values"][0]
+        sala = next((s for s in sala_service.listar_salas() if s["id"] == sala_id), None)
+        if sala:
+            def on_save(nombre, capacidad, estado):
+                try:
+                    sala_service.editar_sala(sala_id, nombre, capacidad, estado)
                     self.cargar_salas()
-                    # --- PATRÓN MEDIATOR: Notificar evento ---
                     if self.mediator:
                         self.mediator.notify(self, "sala_editada")
-                self.dialog_factory.create_dialog("editar_sala", self, sala, on_save=on_save)
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo editar la sala:\n{e}")
+            self.dialog_factory.create_dialog("editar_sala", self, sala, on_save=on_save)
 
     def eliminar_sala(self):
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Selecciona una sala para eliminar.")
             return
-        if self.sala_service:
-            sala_id = self.tree.item(selected[0])["values"][0]
-            respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta sala?")
-            if respuesta:
-                self.sala_service.eliminar_sala(sala_id)
+        sala_id = self.tree.item(selected[0])["values"][0]
+        respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta sala?")
+        if respuesta:
+            try:
+                sala_service.eliminar_sala(sala_id)
                 self.cargar_salas()
-                # --- PATRÓN MEDIATOR: Notificar evento ---
                 if self.mediator:
                     self.mediator.notify(self, "sala_eliminada")
                 messagebox.showinfo("Éxito", "Sala eliminada correctamente")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo eliminar la sala:\n{e}")
 

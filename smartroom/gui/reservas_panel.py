@@ -2,40 +2,19 @@ from tkcalendar import DateEntry
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from commands.cancel_reserva_command import CreateReservaCommand, CancelReservaCommand, EditReservaCommand
+from smartroom.services import reserva_service, sala_service, user_service
+from gui.nueva_reserva_dialog import NuevaReservaDialog
+from gui.editar_reserva_dialog import EditarReservaDialog
 
 class ReservasPanel(ttk.Frame):
-    def __init__(self, parent, mediator, sala_service, user_service, reserva_service, user, on_volver=None):
+    def __init__(self, parent, mediator=None, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator
-        self.sala_service = sala_service
-        self.user_service = user_service
-        self.reserva_service = reserva_service
-        self.user = user
         self.on_volver = on_volver
         self.create_widgets()
+        self.cargar_reservas()
         if self.mediator:
             self.mediator.register("reservas_panel", self)
-        if self.reserva_service:
-            self.reserva_service.add_observer(self)
-
-    def update(self, event, data):
-        if event == "reserva_editada":
-            messagebox.showinfo("Éxito", "La reserva ha sido modificada con éxito.")
-            self.cargar_reservas()
-        elif event in ("reserva_creada", "reserva_eliminada"):
-            self.cargar_reservas()
-
-    def on_event(self, sender, event, data):
-        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
-            self.cargar_reservas()
-
-    def destroy(self):
-        if self.mediator:
-            self.mediator.unregister("reservas_panel")
-        if self.reserva_service:
-            self.reserva_service.remove_observer(self)
-        super().destroy()
 
     def create_widgets(self):
         style = ttk.Style()
@@ -88,26 +67,32 @@ class ReservasPanel(ttk.Frame):
     def cargar_reservas(self):
         for row in self.tree.get_children():
             self.tree.delete(row)
-        if self.reserva_service:
-            reservas = self.reserva_service.listar_reservas()
-            if hasattr(self, "user") and hasattr(self.user, "role"):
-                if self.user.role in ("estudiante", "profesor"):
-                    reservas = [r for r in reservas if r["usuario_username"] == self.user.username]
+        try:
+            reservas = reserva_service.listar_reservas()
+            usuarios = {u["id"]: u["username"] for u in user_service.get_usuarios()}
+            salas = {s["id"]: s["nombre"] for s in sala_service.get_salas()}
             for reserva in reservas:
-                self.tree.insert("", "end", values=(
-                    reserva["id"],
-                    reserva["sala_nombre"],
-                    reserva["usuario_username"],
-                    str(reserva["fecha_inicio"])[:16],
-                    str(reserva["fecha_fin"])[:16]
-                ))
+                usuario = usuarios.get(reserva["usuario_id"], "Desconocido")
+                sala = salas.get(reserva["sala_id"], "Desconocida")
+                self.tree.insert(
+                    "", "end",
+                    values=(
+                        reserva["id"],
+                        usuario,
+                        sala,
+                        reserva["fecha_inicio"].replace("T", " ")[:16],
+                        reserva["fecha_fin"].replace("T", " ")[:16]
+                    )
+                )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron cargar las reservas:\n{e}")
 
     def filtrar_reservas(self):
         filtro = self.search_var.get().strip().lower()
         for row in self.tree.get_children():
             self.tree.delete(row)
-        if self.reserva_service:
-            reservas = self.reserva_service.listar_reservas()
+        if reserva_service:
+            reservas = reserva_service.listar_reservas()
             for reserva in reservas:
                 if filtro in str(reserva["usuario_username"]).lower():
                     self.tree.insert("", "end", values=(
@@ -119,189 +104,40 @@ class ReservasPanel(ttk.Frame):
                     ))
 
     def nueva_reserva(self):
-        salas = [s["nombre"] for s in self.sala_service.listar_salas()]
-        usuarios = [u.username for u in self.user_service.listar_usuarios()]
-
-        dialog = tk.Toplevel(self)
-        dialog.title("Nueva Reserva")
-        dialog.grab_set()
-        dialog.resizable(False, False)
-        dialog.configure(bg="#f4f4f8")
-
-        frm = ttk.Frame(dialog, style="Panel.TFrame")
-        frm.pack(padx=25, pady=20, fill="both", expand=True)
-
-        ttk.Label(frm, text="Crear Nueva Reserva", style="PanelTitle.TLabel").grid(row=0, column=0, columnspan=2, pady=(0, 18))
-
-        ttk.Label(frm, text="Sala:", style="PanelTitle.TLabel").grid(row=1, column=0, padx=8, pady=6, sticky="e")
-        sala_var = tk.StringVar()
-        sala_cb = ttk.Combobox(frm, textvariable=sala_var, values=salas, state="readonly", font=("Arial", 12))
-        sala_cb.grid(row=1, column=1, padx=8, pady=6, sticky="w")
-
-        if hasattr(self.user, "role") and self.user.role == "admin":
-            ttk.Label(frm, text="Usuario:", style="PanelTitle.TLabel").grid(row=2, column=0, padx=8, pady=6, sticky="e")
-            usuario_var = tk.StringVar()
-            usuario_cb = ttk.Combobox(frm, textvariable=usuario_var, values=usuarios, state="readonly", font=("Arial", 12))
-            usuario_cb.grid(row=2, column=1, padx=8, pady=6, sticky="w")
-        else:
-            usuario_var = tk.StringVar(value=self.user.username)
-
-        ttk.Label(frm, text="Fecha:", style="PanelTitle.TLabel").grid(row=3, column=0, padx=8, pady=6, sticky="e")
-        fecha_var = tk.StringVar()
-        fecha_entry = DateEntry(frm, textvariable=fecha_var, date_pattern="yyyy-mm-dd", font=("Arial", 12))
-        fecha_entry.grid(row=3, column=1, padx=8, pady=6, sticky="w")
-
-        # Hora de inicio
-        ttk.Label(frm, text="Hora inicio (24h):", style="PanelTitle.TLabel").grid(row=4, column=0, padx=8, pady=6, sticky="e")
-        hora_ini_var = tk.StringVar(value="12")
-        spin_hora_ini = ttk.Spinbox(frm, from_=0, to=23, wrap=True, textvariable=hora_ini_var, width=5, font=("Arial", 12), format="%02.0f")
-        spin_hora_ini.grid(row=4, column=1, padx=8, pady=6, sticky="w")
-
-        ttk.Label(frm, text="Minuto inicio:", style="PanelTitle.TLabel").grid(row=5, column=0, padx=8, pady=6, sticky="e")
-        minuto_ini_var = tk.StringVar(value="00")
-        spin_minuto_ini = ttk.Spinbox(frm, from_=0, to=59, wrap=True, textvariable=minuto_ini_var, width=5, font=("Arial", 12), format="%02.0f")
-        spin_minuto_ini.grid(row=5, column=1, padx=8, pady=6, sticky="w")
-
-        # Hora de fin
-        ttk.Label(frm, text="Hora fin (24h):", style="PanelTitle.TLabel").grid(row=6, column=0, padx=8, pady=6, sticky="e")
-        hora_fin_var = tk.StringVar(value="13")
-        spin_hora_fin = ttk.Spinbox(frm, from_=0, to=23, wrap=True, textvariable=hora_fin_var, width=5, font=("Arial", 12), format="%02.0f")
-        spin_hora_fin.grid(row=6, column=1, padx=8, pady=6, sticky="w")
-
-        ttk.Label(frm, text="Minuto fin:", style="PanelTitle.TLabel").grid(row=7, column=0, padx=8, pady=6, sticky="e")
-        minuto_fin_var = tk.StringVar(value="00")
-        spin_minuto_fin = ttk.Spinbox(frm, from_=0, to=59, wrap=True, textvariable=minuto_fin_var, width=5, font=("Arial", 12), format="%02.0f")
-        spin_minuto_fin.grid(row=7, column=1, padx=8, pady=6, sticky="w")
-
-        def guardar():
-            sala = sala_var.get()
-            usuario = usuario_var.get()
-            fecha = fecha_var.get()
-            hora_ini = hora_ini_var.get()
-            minuto_ini = minuto_ini_var.get()
-            hora_fin = hora_fin_var.get()
-            minuto_fin = minuto_fin_var.get()
-            if not sala or not usuario or not fecha or not hora_ini or not minuto_ini or not hora_fin or not minuto_fin:
-                messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
-                return
-            if not (hora_ini.isdigit() and minuto_ini.isdigit() and hora_fin.isdigit() and minuto_fin.isdigit()):
-                messagebox.showerror("Error", "Por favor, ingrese valores numéricos en hora y minuto.", parent=dialog)
-                return
-            try:
-                fecha_inicio = datetime.strptime(f"{fecha} {hora_ini}:{minuto_ini}", "%Y-%m-%d %H:%M")
-                fecha_fin = datetime.strptime(f"{fecha} {hora_fin}:{minuto_fin}", "%Y-%m-%d %H:%M")
-                if fecha_fin <= fecha_inicio:
-                    messagebox.showerror("Error", "La hora de fin debe ser posterior a la de inicio.", parent=dialog)
-                    return
-                reserva_data = {
-                    "sala_nombre": sala,
-                    "usuario_username": usuario,
-                    "fecha_inicio": fecha_inicio,
-                    "fecha_fin": fecha_fin
-                }
-                command = CreateReservaCommand(self.reserva_service, reserva_data)
-                command.execute()
-                messagebox.showinfo("Éxito", "Reserva creada correctamente.", parent=dialog)
-                dialog.destroy()
-                self.cargar_reservas()
-                if self.mediator:
-                    self.mediator.notify(self, "reserva_creada")
-            except Exception:
-                messagebox.showerror("Error", "Por favor, ingrese valores correctos.", parent=dialog)
-
-        ttk.Button(frm, text="Guardar", style="Panel.TButton", command=guardar).grid(row=8, column=0, columnspan=2, pady=18)
-
-        dialog.update_idletasks()
-        w = dialog.winfo_width()
-        h = dialog.winfo_height()
-        x = (dialog.winfo_screenwidth() // 2) - (w // 2)
-        y = (dialog.winfo_screenheight() // 2) - (h // 2)
-        dialog.geometry(f"+{x}+{y}")
-
-    def eliminar_reserva(self):
-        seleccion = self.tree.selection()
-        if not seleccion:
-            messagebox.showwarning("Advertencia", "Selecciona una reserva para eliminar.")
-            return
-        item = self.tree.item(seleccion[0])
-        reserva_id = item["values"][0]
-        confirm = messagebox.askyesno("Confirmar", "¿Estás seguro de que deseas eliminar la reserva seleccionada?")
-        if confirm:
-            try:
-                command = CancelReservaCommand(self.reserva_service, reserva_id)
-                command.execute()
-                messagebox.showinfo("Éxito", "Reserva eliminada correctamente.")
-                self.cargar_reservas()
-                if self.mediator:
-                    self.mediator.notify(self, "reserva_eliminada", data=reserva_id)
-            except Exception as e:
-                messagebox.showerror("Error", str(e))
+        def on_success():
+            self.cargar_reservas()
+            if self.mediator:
+                self.mediator.notify(self, "reserva_creada")
+        NuevaReservaDialog(self, on_success=on_success)
 
     def editar_reserva(self):
-        seleccion = self.tree.selection()
-        if not seleccion:
+        selected = self.tree.selection()
+        if not selected:
             messagebox.showwarning("Advertencia", "Selecciona una reserva para editar.")
             return
-        if self.reserva_service:
-            reserva_id = self.tree.item(seleccion[0])["values"][0]
-            reserva = next((r for r in self.reserva_service.listar_reservas() if r["id"] == reserva_id), None)
-            if reserva:
-                salas = [s["nombre"] for s in self.sala_service.listar_salas()]
-                usuarios = [u.username for u in self.user_service.listar_usuarios()]
-                def on_save(sala, usuario, fecha, hora):
-                    try:
-                        fecha_inicio = datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M")
-                        fecha_fin = fecha_inicio.replace(hour=(fecha_inicio.hour + 1) % 24)
-                        new_data = {
-                            "sala_nombre": sala,
-                            "usuario_username": usuario,
-                            "fecha_inicio": fecha_inicio,
-                            "fecha_fin": fecha_fin
-                        }
-                        command = EditReservaCommand(self.reserva_service, reserva["id"], new_data)
-                        command.execute()
-                        self.cargar_reservas()
-                    except Exception:
-                        messagebox.showerror("Error", "Por favor, ingrese valores correctos.", parent=dialog)
-                dialog = tk.Toplevel(self)
-                dialog.title("Editar Reserva")
-                dialog.grab_set()
-                dialog.resizable(False, False)
+        reserva_id = self.tree.item(selected[0])["values"][0]
+        reservas = reserva_service.listar_reservas()
+        reserva = next((r for r in reservas if r["id"] == reserva_id), None)
+        if reserva:
+            def on_save():
+                self.cargar_reservas()
+                if self.mediator:
+                    self.mediator.notify(self, "reserva_editada")
+            EditarReservaDialog(self, reserva, on_save=on_save)
 
-                tk.Label(dialog, text="Sala:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-                sala_var = tk.StringVar(value=reserva["sala_nombre"])
-                sala_cb = ttk.Combobox(dialog, textvariable=sala_var, values=salas, state="readonly")
-                sala_cb.grid(row=0, column=1, padx=10, pady=5)
-
-                if hasattr(self.user, "role") and self.user.role == "admin":
-                    tk.Label(dialog, text="Usuario:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
-                    usuario_var = tk.StringVar(value=reserva["usuario_username"])
-                    usuario_cb = ttk.Combobox(dialog, textvariable=usuario_var, values=usuarios, state="readonly")
-                    usuario_cb.grid(row=1, column=1, padx=10, pady=5)
-                else:
-                    usuario_var = tk.StringVar(value=reserva["usuario_username"])
-
-                tk.Label(dialog, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
-                fecha_var = tk.StringVar(value=str(reserva["fecha_inicio"])[:10])
-                tk.Entry(dialog, textvariable=fecha_var).grid(row=2, column=1, padx=10, pady=5)
-
-                tk.Label(dialog, text="Hora (HH:MM):").grid(row=3, column=0, padx=10, pady=5, sticky="e")
-                hora_var = tk.StringVar(value=str(reserva["fecha_inicio"])[11:16])
-                tk.Entry(dialog, textvariable=hora_var).grid(row=3, column=1, padx=10, pady=5)
-
-                def guardar_cambios():
-                    sala = sala_var.get()
-                    usuario = usuario_var.get()
-                    fecha = fecha_var.get()
-                    hora = hora_var.get()
-                    if not sala or not usuario or not fecha or not hora:
-                        messagebox.showerror("Error", "Todos los campos son obligatorios.", parent=dialog)
-                        return
-                    try:
-                        on_save(sala, usuario, fecha, hora)
-                        dialog.destroy()
-                    except Exception:
-                        messagebox.showerror("Error", "Por favor, ingrese valores correctos.", parent=dialog)
-
-                ttk.Button(dialog, text="Guardar cambios", command=guardar_cambios).grid(row=4, column=0, columnspan=2, pady=10)
-                dialog.wait_window()
+    def eliminar_reserva(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Advertencia", "Selecciona una reserva para eliminar.")
+            return
+        reserva_id = self.tree.item(selected[0])["values"][0]
+        respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta reserva?")
+        if respuesta:
+            try:
+                reserva_service.eliminar_reserva(reserva_id)
+                self.cargar_reservas()
+                if self.mediator:
+                    self.mediator.notify(self, "reserva_eliminada")
+                messagebox.showinfo("Éxito", "Reserva eliminada correctamente")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo eliminar la reserva:\n{e}")

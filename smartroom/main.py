@@ -6,9 +6,9 @@ import tkinter as tk
 from gui.main_window import MainWindow
 from gui.login_window import LoginWindow
 from mediator.app_mediator import AppMediator
-from api.services.user_service import UserService
-from api.services.sala_service import SalaService
-from api.services.reserva_service import ReservaService
+from smartroom.services.user_service import UserService
+from smartroom.services.sala_service import SalaService
+from smartroom.services.reserva_service import ReservaService
 
 def main():
     # Los servicios ahora solo hacen peticiones HTTP a la API

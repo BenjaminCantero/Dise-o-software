@@ -1,83 +1,60 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from adapters.sala_dialog_adapter import SalaDialogAdapter
+from smartroom.services import sala_service
 
 class EditarSalaDialog(tk.Toplevel):
     def __init__(self, parent, sala, on_save=None):
         super().__init__(parent)
         self.title("Editar Sala")
-        self.geometry("350x260")
         self.sala = sala
         self.on_save = on_save
-        self.configure(bg="#232946")
 
-        frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
-        frame.place(relx=0.5, rely=0.5, anchor="center", width=320, height=210)
+        self.nombre_var = tk.StringVar(value=sala["nombre"])
+        self.capacidad_var = tk.IntVar(value=sala["capacidad"])
+        self.estado_var = tk.StringVar(value=sala["estado"])
 
-        tk.Label(frame, text="Nombre:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
-        self.nombre_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
-        self.nombre_entry.pack(ipady=3)
-        self.nombre_entry.delete(0, tk.END)
-        self.nombre_entry.insert(0, sala["nombre"])
+        ttk.Label(self, text="Nombre:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+        self.nombre_entry = ttk.Entry(self, textvariable=self.nombre_var)
+        self.nombre_entry.grid(row=0, column=1, padx=10, pady=5)
 
-        tk.Label(frame, text="Capacidad:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.capacidad_entry = ttk.Entry(frame, width=24, font=("Arial", 11))
-        self.capacidad_entry.pack(ipady=3)
-        self.capacidad_entry.delete(0, tk.END)
-        self.capacidad_entry.insert(0, str(sala["capacidad"]))
+        ttk.Label(self, text="Capacidad:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+        self.capacidad_entry = ttk.Entry(self, textvariable=self.capacidad_var)
+        self.capacidad_entry.grid(row=1, column=1, padx=10, pady=5)
 
-        tk.Label(frame, text="Estado:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.estado_var = tk.StringVar(value=sala.get("estado", "disponible"))
-        self.estado_combo = ttk.Combobox(frame, textvariable=self.estado_var, values=["disponible", "ocupada"], state="readonly", width=22)
-        self.estado_combo.pack(ipady=3)
+        ttk.Label(self, text="Estado:").grid(row=2, column=0, padx=10, pady=5, sticky="e")
+        self.estado_combo = ttk.Combobox(self, textvariable=self.estado_var, values=["disponible", "ocupada"])
+        self.estado_combo.grid(row=2, column=1, padx=10, pady=5)
 
-        btn_frame = tk.Frame(frame, bg="#f4f4f8")
-        btn_frame.pack(pady=18)
-        ttk.Button(btn_frame, text="Guardar", style="Panel.TButton", command=self.guardar).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Cancelar", style="Panel.TButton", command=self.destroy).pack(side="left", padx=8)
-
-        self.bind("<Return>", lambda event: self.guardar())
-        self.nombre_entry.focus_set()
+        guardar_btn = ttk.Button(self, text="Guardar", command=self.guardar)
+        guardar_btn.grid(row=3, column=0, columnspan=2, pady=10)
 
     def guardar(self):
-        nombre = self.nombre_entry.get().strip()
-        capacidad_str = self.capacidad_entry.get().strip()
-        estado = self.estado_var.get().strip()
-
-        self.nombre_entry.configure(background="white")
-        self.capacidad_entry.configure(background="white")
-        error = False
+        nombre = self.nombre_var.get()
+        try:
+            capacidad = int(self.capacidad_var.get())
+        except Exception:
+            messagebox.showerror("Error", "La capacidad debe ser un número entero.")
+            return
+        estado = self.estado_var.get()
 
         if not nombre:
-            self.nombre_entry.configure(background="#ffcccc")
-            error = True
-
-        if not capacidad_str.isdigit() or int(capacidad_str) <= 0:
-            self.capacidad_entry.configure(background="#ffcccc")
-            messagebox.showerror("Error", "Ingrese una capacidad válida (número entero positivo).")
+            messagebox.showerror("Error", "El nombre de la sala es obligatorio.")
             return
-
-        if error:
-            messagebox.showerror("Error", "Todos los campos son obligatorios")
+        if capacidad <= 0:
+            messagebox.showerror("Error", "La capacidad debe ser mayor a cero.")
+            return
+        if not estado:
+            messagebox.showerror("Error", "Debe seleccionar un estado.")
             return
 
         try:
-            if self.on_save:
-                self.on_save(nombre, int(capacidad_str), estado)
-            messagebox.showinfo("Éxito", "Sala modificada correctamente.")  # <--- Mensaje de éxito
-            self.destroy()
+            sala_service.editar_sala(self.sala["id"], nombre, capacidad, estado)
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", f"No se pudo editar la sala:\n{e}")
+            return
 
-    @property
-    def nombre_input(self):
-        return self.nombre_entry
-
-    @property
-    def capacidad_input(self):
-        return self.capacidad_entry
-
-    @property
-    def ubicacion_input(self):
-        # Si tienes un campo de ubicación, retorna el widget aquí. Si no, retorna None.
-        return None
+        messagebox.showinfo("Éxito", "Sala editada correctamente.")
+        if self.on_save:
+            self.on_save(nombre, capacidad, estado)
+        self.destroy()

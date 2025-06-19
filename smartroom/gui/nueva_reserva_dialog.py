@@ -4,6 +4,7 @@ from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
 from builders.reserva_builder import ReservaBuilder
 from commands.cancel_reserva_command import CreateReservaCommand  # Importa el comando
+from smartroom.services import reserva_service, sala_service, user_service
 
 class ReservaApp(tk.Tk):
     def __init__(self, reserva_service, mediator, *args, **kwargs):
@@ -54,10 +55,7 @@ class ReservaApp(tk.Tk):
         super().destroy()
 
     def nueva_reserva(self):
-        # Obtén las listas de nombres de salas y usuarios
-        salas = [s["nombre"] for s in self.mediator.sala_service.listar_salas()]
-        usuarios = [u["nombre"] for u in self.mediator.user_service.listar_usuarios()]
-        NuevaReservaDialog(self, self.reserva_service, salas, usuarios, on_save=self.cargar_reservas, mediator=self.mediator)
+        NuevaReservaDialog(self, on_success=self.cargar_reservas)
 
     def cargar_reservas(self):
         # Implementa la carga de reservas en la tabla
@@ -83,120 +81,92 @@ class ReservaApp(tk.Tk):
         self.reserva_service.agregar_reserva(reserva)
 
 class NuevaReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva_service, salas, usuarios, on_save=None, mediator=None):
+    def __init__(self, parent, on_success=None):
         super().__init__(parent)
         self.title("Nueva Reserva")
-        self.geometry("400x350")
-        self.reserva_service = reserva_service
-        self.on_save = on_save
-        self.mediator = mediator  # --- PATRÓN MEDIATOR: Guardar referencia ---
-        self.configure(bg="#232946")
+        self.on_success = on_success
 
-        # --- PATRÓN MEDIATOR: Registrar el diálogo ---
-        if self.mediator:
-            self.mediator.register("nueva_reserva_dialog", self)
+        # Obtener usuarios y salas desde la API
+        try:
+            self.usuarios = user_service.get_usuarios()
+            self.salas = sala_service.get_salas()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron cargar usuarios o salas:\n{e}")
+            self.destroy()
+            return
 
-        frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
-        frame.place(relx=0.5, rely=0.5, anchor="center", width=360, height=300)
-
-        # Sala
-        tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
-        self.sala_var = tk.StringVar()
-        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=salas, state="readonly", width=28)
-        self.sala_combo.pack(ipady=3)
-
-        # Usuario
-        tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.usuario_var = tk.StringVar()
-        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=usuarios, state="readonly", width=28)
-        self.usuario_combo.pack(ipady=3)
+        self.sala_var = tk.StringVar()
+        self.fecha_var = tk.StringVar()
+        self.hora_inicio_var = tk.StringVar()
+        self.hora_fin_var = tk.StringVar()
 
-        # Fecha
-        tk.Label(frame, text="Fecha (YYYY-MM-DD):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.fecha_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
-        self.fecha_entry.pack(ipady=3)
+        ttk.Label(self, text="Usuario:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+        self.usuario_combo = ttk.Combobox(self, textvariable=self.usuario_var, values=[u["username"] for u in self.usuarios])
+        self.usuario_combo.grid(row=0, column=1, padx=10, pady=5)
 
-        # Hora
-        tk.Label(frame, text="Hora (HH:MM):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.hora_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
-        self.hora_entry.pack(ipady=3)
+        ttk.Label(self, text="Sala:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+        self.sala_combo = ttk.Combobox(self, textvariable=self.sala_var, values=[s["nombre"] for s in self.salas])
+        self.sala_combo.grid(row=1, column=1, padx=10, pady=5)
 
-        # Botones
-        style = ttk.Style()
-        style.configure("ReservaForm.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
-        style.map("ReservaForm.TButton",
-                  background=[("active", "#eebbc3")],
-                  foreground=[("active", "#232946")])
+        ttk.Label(self, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
+        self.fecha_entry = ttk.Entry(self, textvariable=self.fecha_var)
+        self.fecha_entry.grid(row=2, column=1, padx=10, pady=5)
 
-        btn_frame = tk.Frame(frame, bg="#f4f4f8")
-        btn_frame.pack(pady=18)
-        ttk.Button(btn_frame, text="Guardar", style="ReservaForm.TButton", command=self.guardar).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Cancelar", style="ReservaForm.TButton", command=self.destroy).pack(side="left", padx=8)
+        ttk.Label(self, text="Hora inicio (HH:MM):").grid(row=3, column=0, padx=10, pady=5, sticky="e")
+        self.hora_inicio_entry = ttk.Entry(self, textvariable=self.hora_inicio_var)
+        self.hora_inicio_entry.grid(row=3, column=1, padx=10, pady=5)
 
-        self.fecha_entry.focus_set()
+        ttk.Label(self, text="Hora fin (HH:MM):").grid(row=4, column=0, padx=10, pady=5, sticky="e")
+        self.hora_fin_entry = ttk.Entry(self, textvariable=self.hora_fin_var)
+        self.hora_fin_entry.grid(row=4, column=1, padx=10, pady=5)
 
-    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
-    def on_event(self, sender, event, data):
-        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
-            # Aquí podrías actualizar campos o cerrar el diálogo si lo deseas
-            pass
-
-    def destroy(self):
-        # --- PATRÓN MEDIATOR: Desregistrar el diálogo ---
-        if self.mediator:
-            self.mediator.unregister("nueva_reserva_dialog")
-        super().destroy()
+        guardar_btn = ttk.Button(self, text="Guardar", command=self.guardar)
+        guardar_btn.grid(row=5, column=0, columnspan=2, pady=10)
 
     def guardar(self):
-        adapter = ReservaDialogAdapter(self)
-        data = adapter.get_data()
+        usuario_nombre = self.usuario_var.get()
+        sala_nombre = self.sala_var.get()
+        fecha = self.fecha_var.get()
+        hora_inicio = self.hora_inicio_var.get()
+        hora_fin = self.hora_fin_var.get()
 
-        # Validaciones básicas
-        if not data["sala"] or not data["usuario"] or not data["fecha"] or not data["hora"]:
+        if not usuario_nombre or not sala_nombre or not fecha or not hora_inicio or not hora_fin:
             messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
 
         try:
-            reserva_data = {
-                "sala_nombre": data["sala"],
-                "usuario_username": data["usuario"],
-                "fecha_inicio": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M"),
-                "fecha_fin": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M").replace(hour=(datetime.strptime(data['hora'], "%H:%M").hour + 1) % 24)
-            }
-            command = CreateReservaCommand(self.reserva_service, reserva_data)
-            command.execute()
+            usuario = next(u for u in self.usuarios if u["username"] == usuario_nombre)
+            sala = next(s for s in self.salas if s["nombre"] == sala_nombre)
+        except StopIteration:
+            messagebox.showerror("Error", "Usuario o sala no válidos.")
+            return
+
+        try:
+            fecha_inicio = datetime.strptime(f"{fecha} {hora_inicio}", "%Y-%m-%d %H:%M")
+            fecha_fin = datetime.strptime(f"{fecha} {hora_fin}", "%Y-%m-%d %H:%M")
+            if fecha_fin <= fecha_inicio:
+                messagebox.showerror("Error", "La hora de fin debe ser posterior a la de inicio.")
+                return
+        except Exception:
+            messagebox.showerror("Error", "Formato de fecha u hora incorrecto.")
+            return
+
+        try:
+            reserva_service.crear_reserva(
+                usuario_id=usuario["id"],
+                sala_id=sala["id"],
+                fecha_inicio=fecha_inicio.isoformat(),
+                fecha_fin=fecha_fin.isoformat()
+            )
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", f"No se pudo crear la reserva:\n{e}")
             return
 
         messagebox.showinfo("Éxito", "Reserva creada correctamente.")
-        if self.on_save:
-            self.on_save()
-        # --- PATRÓN MEDIATOR: Notificar evento ---
-        if self.mediator:
-            self.mediator.notify(self, "reserva_creada", data)
+        if self.on_success:
+            self.on_success()
         self.destroy()
-
-        self.sala_var.set("")
-        self.usuario_var.set("")
-        self.fecha_entry.delete(0, tk.END)
-        self.hora_entry.delete(0, tk.END)
-
-    @property
-    def sala_input(self):
-        return self.sala_combo
-
-    @property
-    def usuario_input(self):
-        return self.usuario_combo
-
-    @property
-    def fecha_input(self):
-        return self.fecha_entry
-
-    @property
-    def hora_input(self):
-        return self.hora_entry
 
 def es_fecha_valida(fecha_str):
     try:

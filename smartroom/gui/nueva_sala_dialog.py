@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from adapters.sala_dialog_adapter import SalaDialogAdapter
+from smartroom.services import sala_service
 
 class NuevaSalaDialog(tk.Toplevel):
     def __init__(self, parent, sala_service, on_success=None):
@@ -45,7 +46,6 @@ class NuevaSalaDialog(tk.Toplevel):
     def guardar(self):
         adapter = SalaDialogAdapter(self)
         data = adapter.get_data()
-
         if not data["nombre"]:
             messagebox.showerror("Error", "El nombre de la sala es obligatorio.")
             return
@@ -55,13 +55,11 @@ class NuevaSalaDialog(tk.Toplevel):
         if not self.estado_var.get():
             messagebox.showerror("Error", "Debe seleccionar un estado.")
             return
-
         try:
-            self.sala_service.crear_sala(data["nombre"], data["capacidad"], self.estado_var.get())
+            sala_service.crear_sala(data["nombre"], data["capacidad"], self.estado_var.get())
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return
-
         messagebox.showinfo("Éxito", "Sala creada correctamente.")
         if self.on_success:
             self.on_success(data["nombre"], data["capacidad"], self.estado_var.get())

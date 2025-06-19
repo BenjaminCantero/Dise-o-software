@@ -2,17 +2,27 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
+from smartroom.services import reserva_service, sala_service, user_service
+from commands.cancel_reserva_command import EditReservaCommand    
 from builders.reserva_builder import ReservaBuilder
-from commands.cancel_reserva_command import EditReservaCommand  # Importa el comando
 
 class EditarReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva, salas, usuarios, reserva_service=None, on_save=None):
+    def __init__(self, parent, reserva, on_save=None):
         super().__init__(parent)
         self.title("Editar Reserva")
         self.geometry("370x350")
         self.reserva = reserva
         self.on_save = on_save
-        self.reserva_service = reserva_service  # Asegúrate de recibir el servicio
+
+        # Obtener usuarios y salas desde la API
+        try:
+            self.usuarios = user_service.get_usuarios()
+            self.salas = sala_service.get_salas()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron cargar usuarios o salas: {str(e)}")
+            self.destroy()
+            return
+
         self.configure(bg="#232946")
 
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
@@ -20,12 +30,12 @@ class EditarReservaDialog(tk.Toplevel):
 
         tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
         self.sala_var = tk.StringVar(value=reserva["sala"])
-        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=salas, state="readonly", width=28)
+        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=self.salas, state="readonly", width=28)
         self.sala_combo.pack(ipady=3)
 
         tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.usuario_var = tk.StringVar(value=reserva["usuario"])
-        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=usuarios, state="readonly", width=28)
+        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=self.usuarios, state="readonly", width=28)
         self.usuario_combo.pack(ipady=3)
 
         tk.Label(frame, text="Fecha (YYYY-MM-DD):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
