@@ -20,7 +20,7 @@ SmartRoom es una solución integral para la gestión inteligente de salas y rese
 - [Contribuciones](#contribuciones)
 - [Autores](#autores)
 - [Licencia](#licencia)
-
+- [Pruebas automáticas](#pruebas-automáticas)
 ---
 
 ## Características
@@ -93,6 +93,8 @@ pip install -r requirements.txt
 Por defecto, se utiliza SQLite. Si deseas usar otro motor, edita `api/db.py` y ajusta la cadena de conexión.
 
 ---
+### 5. Pruebas automatizadas
+ejecutar desde la terminal en la carpeta del proyecto (Dise-o-software) el siguiente comando: pytest
 
 ## Ejecución
 
