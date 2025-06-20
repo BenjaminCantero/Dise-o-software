@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from ..db import SessionLocal
-from ..schemas.usuario import UsuarioIn, UsuarioOut
+from ..schemas.usuario import UsuarioIn, UsuarioOut, UsuarioUpdate
 from ..services.user_service import UserService, UsuarioNoExisteError, UsernameYaExisteError
 from ..repositories.user_repository import UserRepository
 
@@ -55,12 +55,16 @@ def create_usuario(
 @router.put("/{usuario_id}", response_model=UsuarioOut)
 def update_usuario(
     usuario_id: int,
-    usuario: UsuarioIn,
+    usuario: UsuarioUpdate, 
     db: Session = Depends(get_db),
     user_service: UserService = Depends(get_user_service)
 ):
+    # --- DEPURACIÓN ---
+    print("Datos recibidos para editar usuario:", usuario)
+    print("Tipo de role:", type(usuario.role), "Valor de role:", usuario.role)
+    # --- FIN DEPURACIÓN ---
     try:
-        usuario_actualizado = user_service.editar_usuario(db, usuario_id, usuario.username, usuario.password)
+        usuario_actualizado = user_service.editar_usuario(db, usuario_id, usuario.username, None, usuario.role)
         return UsuarioOut.from_orm(usuario_actualizado)
     except UsuarioNoExisteError as e:
         raise HTTPException(status_code=404, detail=str(e))

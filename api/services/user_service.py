@@ -37,8 +37,8 @@ class UserService:
         self._validar_usuario(db, usuario_id)
         return self.user_repository.eliminar_usuario(db, usuario_id)
 
-    def editar_usuario(self, db: Session, usuario_id: int, username: str = None, password: str = None):
+    def editar_usuario(self, db: Session, usuario_id: int, username: str = None, password: str = None, role: str = None):
         self._validar_usuario(db, usuario_id)
         if username:
             self._validar_username_unico(db, username)
-        return self.user_repository.actualizar_usuario(db, usuario_id, username, password)
+        return self.user_repository.actualizar_usuario(db, usuario_id, username, password, role)

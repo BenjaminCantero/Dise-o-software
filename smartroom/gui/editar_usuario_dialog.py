@@ -20,8 +20,6 @@ class EditarUsuarioDialog(tk.Toplevel):
         self.username_entry.delete(0, tk.END)
         if usuario:
             self.username_entry.insert(0, getattr(usuario, "username", ""))
-            self.username_entry.config(state="disabled")  # <-- agrega esta línea
-
         # Campo para contraseña solo al crear usuario
         self.password_entry = None
         if not usuario:

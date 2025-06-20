@@ -15,6 +15,12 @@ class UserService:
         resp.raise_for_status()
         return resp.json()
 
+    def update_usuario(self, user_id, username, role):
+        data = {"username": username, "role": role}
+        resp = requests.put(f"{self.API_URL}/usuarios/{user_id}", json=data, headers=self.HEADERS)
+        resp.raise_for_status()
+        return resp.json()
+
     def delete_usuario(self, user_id):
         resp = requests.delete(f"{self.API_URL}/usuarios/{user_id}", headers=self.HEADERS)
         resp.raise_for_status()

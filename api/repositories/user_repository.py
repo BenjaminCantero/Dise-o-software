@@ -15,13 +15,15 @@ class UserRepository:
     def obtener_usuarios(self, db: Session, skip: int = 0, limit: int = 100):
         return db.query(Usuario).offset(skip).limit(limit).all()
 
-    def actualizar_usuario(self, db: Session, usuario_id: int, username: str = None, password: str = None):
+    def actualizar_usuario(self, db: Session, usuario_id: int, username: str = None, password: str = None, role: str = None):
         usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
         if usuario:
             if username:
                 usuario.username = username
             if password:
                 usuario.password = password
+            if role:
+                usuario.role = role
             db.commit()
             db.refresh(usuario)
         return usuario

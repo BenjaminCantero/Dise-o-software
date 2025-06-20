@@ -3,18 +3,22 @@ from enum import Enum
 
 class RolEnum(str, Enum):
     admin = "admin"
-    estudiante = "estudiante"
     profesor = "profesor"
+    estudiante = "estudiante"
 
 class UsuarioIn(BaseModel):
     username: str
     password: str
-    role: RolEnum  # Solo acepta estos valores
+    role: RolEnum
+
+class UsuarioUpdate(BaseModel):
+    username: str
+    role: RolEnum
 
 class UsuarioOut(BaseModel):
     id: int
     username: str
-    role: str
+    role: RolEnum
 
     class Config:
         orm_mode = True

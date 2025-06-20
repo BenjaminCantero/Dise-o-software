@@ -93,7 +93,7 @@ class AdminPanel(ttk.Frame):
         btn_frame.pack(pady=10)
         ttk.Button(btn_frame, text="Crear Usuario", style="Panel.TButton", width=18, command=self.create_usuario).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.delete_usuario).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.update_usuario).pack(side="left", padx=8)
 
         ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=self.on_volver).pack(pady=10)
 
@@ -140,7 +140,7 @@ class AdminPanel(ttk.Frame):
                 else:
                     messagebox.showerror("Error", "No se encontró el usuario.")
 
-    def editar_usuario(self):
+    def update_usuario(self):
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Selecciona un usuario para editar.")
@@ -152,7 +152,7 @@ class AdminPanel(ttk.Frame):
             if usuario:
                 def on_save(username, password, role):
                     try:
-                        self.user_service.editar_usuario(username, role)
+                        self.user_service.update_usuario(usuario["id"], username, role)
                         self.cargar_usuarios()
                         messagebox.showinfo("Éxito", "Usuario editado correctamente.")
                         if self.mediator:
