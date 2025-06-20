@@ -90,3 +90,6 @@ class ReservasPanel(ttk.Frame):
                 messagebox.showinfo("Éxito", "Reserva eliminada correctamente")
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo eliminar la reserva:\n{e}")
+
+    def on_event(self, sender, event, data):
+        pass

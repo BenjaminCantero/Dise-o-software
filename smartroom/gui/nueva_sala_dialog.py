@@ -26,7 +26,7 @@ class NuevaSalaDialog(tk.Toplevel):
         tk.Label(frame, text="Estado:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.estado_var = tk.StringVar()
         self.estado_combo = ttk.Combobox(frame, textvariable=self.estado_var, state="readonly", width=28)
-        self.estado_combo['values'] = ("Disponible", "Ocupada", "Mantenimiento")
+        self.estado_combo['values'] = ("disponible", "ocupada")
         self.estado_combo.pack(ipady=3)
         self.estado_combo.current(0)
 
@@ -56,7 +56,7 @@ class NuevaSalaDialog(tk.Toplevel):
             messagebox.showerror("Error", "Debe seleccionar un estado.")
             return
         try:
-            sala_service.crear_sala(data["nombre"], data["capacidad"], self.estado_var.get())
+            self.sala_service.create_sala(data["nombre"], data["capacidad"], self.estado_var.get())
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return

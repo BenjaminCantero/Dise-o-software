@@ -92,7 +92,7 @@ class AdminPanel(ttk.Frame):
         btn_frame = ttk.Frame(self, style="Panel.TFrame")
         btn_frame.pack(pady=10)
         ttk.Button(btn_frame, text="Crear Usuario", style="Panel.TButton", width=18, command=self.create_usuario).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.eliminar_usuario).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.delete_usuario).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
 
         ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=self.on_volver).pack(pady=10)
@@ -120,7 +120,7 @@ class AdminPanel(ttk.Frame):
                 messagebox.showerror("Error", f"No se pudo crear el usuario: {e}")
         EditarUsuarioDialog(self, None, on_save=on_save)
 
-    def eliminar_usuario(self):
+    def delete_usuario(self):
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Selecciona un usuario para eliminar.")
@@ -129,11 +129,16 @@ class AdminPanel(ttk.Frame):
             respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar este usuario?")
             if respuesta:
                 username = self.tree.item(selected[0])["values"][0]
-                self.user_service.eliminar_usuario(username)
-                messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
-                self.cargar_usuarios()
-                if self.mediator:
-                    self.mediator.notify(self, "usuario_eliminado", username)
+                usuarios = self.user_service.get_usuarios()
+                usuario = next((u for u in usuarios if u["username"] == username), None)
+                if usuario:
+                    self.user_service.delete_usuario(usuario["id"])
+                    messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
+                    self.cargar_usuarios()
+                    if self.mediator:
+                        self.mediator.notify(self, "usuario_eliminado", username)
+                else:
+                    messagebox.showerror("Error", "No se encontró el usuario.")
 
     def editar_usuario(self):
         selected = self.tree.selection()

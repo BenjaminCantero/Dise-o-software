@@ -110,7 +110,12 @@ class SalasPanel(ttk.Frame):
                     self.mediator.notify(self, "sala_creada")
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo crear la sala:\n{e}")
-        self.dialog_factory.create_dialog("nueva_sala", self, on_success=on_save)
+        self.dialog_factory.create_dialog(
+            "nueva_sala",
+            self,
+            sala_service=self.sala_service,  # <-- agrega esto
+            on_success=on_save
+        )
 
     def editar_sala(self):
         selected = self.tree.selection()
