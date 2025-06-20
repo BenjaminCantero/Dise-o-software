@@ -141,9 +141,9 @@ class MainWindow(tk.Frame):
             widget.destroy()
         salas_panel = SalasPanel(
             self.main_frame,
-            self.mediator,
-            self.sala_service,
-            on_volver=lambda: self.seleccionar_seccion("dashboard")
+            mediator=self.mediator,
+            sala_service=self.sala_service,
+            on_volver=self.volver
         )
         salas_panel.pack(fill="both", expand=True)
 
@@ -235,3 +235,9 @@ class MainWindow(tk.Frame):
             on_volver=self.mostrar_bienvenida
         )
         panel.pack(fill="both", expand=True)
+
+    def volver(self):
+        """Limpia el área principal y muestra la pantalla de bienvenida."""
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+        self.mostrar_bienvenida()

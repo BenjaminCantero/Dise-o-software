@@ -52,7 +52,7 @@ class AdminPanel(ttk.Frame):
         cards_frame = ttk.Frame(self, style="Panel.TFrame")
         cards_frame.pack(pady=10, padx=20, fill="x")
 
-        usuarios = self.user_service.listar_usuarios() if self.user_service else []
+        usuarios = self.user_service.get_usuarios() if self.user_service else []
         total_usuarios = len(usuarios)
         admins = len([u for u in usuarios if u["role"] == "admin"])
         profesores = len([u for u in usuarios if u["role"] == "profesor"])
@@ -91,7 +91,7 @@ class AdminPanel(ttk.Frame):
         # Botones de acción
         btn_frame = ttk.Frame(self, style="Panel.TFrame")
         btn_frame.pack(pady=10)
-        ttk.Button(btn_frame, text="Crear Usuario", style="Panel.TButton", width=18, command=self.crear_usuario).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Crear Usuario", style="Panel.TButton", width=18, command=self.create_usuario).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.eliminar_usuario).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
 
@@ -103,14 +103,14 @@ class AdminPanel(ttk.Frame):
         if self.user_service:
             for row in self.tree.get_children():
                 self.tree.delete(row)
-            usuarios = self.user_service.listar_usuarios()
+            usuarios = self.user_service.get_usuarios()
             for usuario in usuarios:
                 self.tree.insert("", "end", values=(usuario["username"], usuario["role"]))
 
-    def crear_usuario(self):
+    def create_usuario(self):
         def on_save(username, password, role):
             try:
-                self.user_service.crear_usuario(username, password, role)
+                self.user_service.create_usuario(username, password, role)
                 self.cargar_usuarios()
                 messagebox.showinfo("Éxito", "Usuario creado correctamente.")
                 # --- PATRÓN MEDIATOR: Notificar evento ---
@@ -142,7 +142,7 @@ class AdminPanel(ttk.Frame):
             return
         if self.user_service:
             username = self.tree.item(selected[0])["values"][0]
-            usuarios = self.user_service.listar_usuarios()
+            usuarios = self.user_service.get_usuarios()
             usuario = next((u for u in usuarios if u["username"] == username), None)
             if usuario:
                 def on_save(username, password, role):

@@ -29,8 +29,8 @@ class HorarioPanel(ttk.Frame):
 
         # Subtítulo con nombre y rol
         if self.user:
-            rol = self.user.role.capitalize()
-            nombre = self.user.username
+            rol = self.user["role"].capitalize()
+            nombre = self.user["username"]
             subtitulo = ttk.Label(
                 top_frame,
                 text=f"Mostrando reservas para: {nombre} ({rol})",
@@ -72,11 +72,11 @@ class HorarioPanel(ttk.Frame):
         reservas = []
         if self.reserva_service:
             # Obtén todas las reservas desde el servicio
-            reservas = self.reserva_service.listar_reservas()
+            reservas = self.reserva_service.get_reservas()
             # Filtra según el rol del usuario
-            if hasattr(self, "user") and hasattr(self.user, "role"):
-                if self.user.role in ("estudiante", "profesor"):
-                    reservas = [r for r in reservas if r.get("usuario_username") == self.user.username]
+            if self.user and "role" in self.user:
+                if self.user["role"] in ("estudiante", "profesor"):
+                    reservas = [r for r in reservas if r.get("usuario_username") == self.user["username"]]
         for i, reserva in enumerate(reservas):
             sala = reserva.get("sala_nombre", "N/A")
             fecha_inicio = reserva.get("fecha_inicio", "N/A")

@@ -34,10 +34,10 @@ class DashboardPanel(ttk.Frame):
         cards_frame = ttk.Frame(self, style="Panel.TFrame")
         cards_frame.pack(pady=10, padx=20, fill="x")
 
-        total_salas = len(self.sala_service.listar_salas()) if self.sala_service else 0
-        ocupadas = len([s for s in self.sala_service.listar_salas() if s["estado"] == "ocupada"]) if self.sala_service else 0
-        libres = len([s for s in self.sala_service.listar_salas() if s["estado"] == "disponible"]) if self.sala_service else 0
-        total_reservas = len(self.reserva_service.listar_reservas()) if self.reserva_service else 0
+        total_salas = len(self.sala_service.get_salas()) if self.sala_service else 0
+        ocupadas = len([s for s in self.sala_service.get_salas() if s["estado"] == "ocupada"]) if self.sala_service else 0
+        libres = len([s for s in self.sala_service.get_salas() if s["estado"] == "disponible"]) if self.sala_service else 0
+        total_reservas = len(self.reserva_service.get_reservas()) if self.reserva_service else 0
 
         # Card: Total de salas
         card1 = ttk.Frame(cards_frame, style="Card.TFrame")
@@ -84,11 +84,15 @@ class DashboardPanel(ttk.Frame):
         vsb.pack(side="right", fill="y")
 
         # Cargar reservas actuales
-        if self.reserva_service:
-            reservas = self.reserva_service.listar_reservas()
+        if self.reserva_service and self.sala_service and self.user_service:
+            reservas = self.reserva_service.get_reservas()
+            usuarios = {u["id"]: u["username"] for u in self.user_service.get_usuarios()}
+            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_salas()}
             for reserva in reservas:
-                sala = reserva.get("sala") if isinstance(reserva, dict) else getattr(reserva, "sala", "")
-                usuario = reserva.get("usuario") if isinstance(reserva, dict) else getattr(reserva, "usuario", "")
-                fecha = reserva.get("fecha") if isinstance(reserva, dict) else getattr(reserva, "fecha", "")
-                hora = reserva.get("hora") if isinstance(reserva, dict) else getattr(reserva, "hora", "")
+                usuario = usuarios.get(reserva.get("usuario_id"), "None")
+                sala = salas.get(reserva.get("sala_id"), "None")
+                fecha_inicio = reserva.get("fecha_inicio", "None")
+                # Formatea fecha y hora
+                fecha = fecha_inicio[:10] if fecha_inicio else "None"
+                hora = fecha_inicio[11:16] if fecha_inicio else "None"
                 tree.insert("", "end", values=(sala, usuario, fecha, hora))
