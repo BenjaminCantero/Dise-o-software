@@ -1,10 +1,74 @@
-class ReservaNotificada:
-    def __init__(self, reserva):
-        self._reserva = reserva
+from abc import ABC, abstractmethod
+from datetime import datetime
 
-    def confirmar(self):
-        self._reserva.confirmar()
-        self._enviar_notificacion()
+# 1. Interfaz base para los componentes
+class Componente(ABC):
+    @abstractmethod
+    def operacion(self, datos):
+        pass
 
-    def _enviar_notificacion(self):
-        print("Notificación enviada")
+# 2. Componente concreto
+class ComponenteConcreto(Componente):
+    def operacion(self, datos):
+        print(f"Operacion principal ejecutada con datos: {datos}")
+        return {"resultado": "exito", "datos": datos}
+
+# 3. Decorador base
+class Decorador(Componente):
+    def __init__(self, componente: Componente):
+        self._componente = componente
+
+    def operacion(self, datos):
+        return self._componente.operacion(datos)
+
+# 4. Decorador de logging
+class DecoradorLogging(Decorador):
+    def operacion(self, datos):
+        print(f"[{datetime.now()}] [LOG] Inicio de operacion con datos: {datos}")
+        resultado = super().operacion(datos)
+        print(f"[{datetime.now()}] [LOG] Fin de operacion. Resultado: {resultado}")
+        return resultado
+
+# 5. Decorador de validación
+class DecoradorValidacion(Decorador):
+    def operacion(self, datos):
+        print("[VALIDACIÓN] Comprobando datos antes de la operacion")
+        if not datos or not isinstance(datos, dict):
+            raise ValueError("Los datos deben ser un diccionario no vacio")
+        if "usuario" not in datos:
+            raise ValueError("Falta el campo 'usuario' en los datos.")
+        print("[VALIDACIÓN] Datos validos.")
+        return super().operacion(datos)
+
+# 6. Decorador de auditoría
+class DecoradorAuditoria(Decorador):
+    def operacion(self, datos):
+        usuario = datos.get("usuario", "desconocido")
+        print(f"[AUDITORIA] Usuario '{usuario}' está realizando una operacion.")
+        resultado = super().operacion(datos)
+        print(f"[AUDITORIA] Operacion registrada para el usuario '{usuario}'.")
+        return resultado
+
+# 7. Decorador de notificación (ejemplo adicional)
+class DecoradorNotificacion(Decorador):
+    def operacion(self, datos):
+        resultado = super().operacion(datos)
+        print(f"[NOTIFICACION] Se ha notificado al usuario '{datos.get('usuario', 'desconocido')}'.")
+        return resultado
+
+# 8. Ejemplo de uso
+if __name__ == "__main__":
+    datos = {
+        "usuario": "gerardo",
+        "accion": "crear_reserva",
+        "detalle": {"sala": 2, "fecha": "2025-06-22"}
+    }
+
+    componente = ComponenteConcreto()
+    componente = DecoradorLogging(componente)
+    componente = DecoradorValidacion(componente)
+    componente = DecoradorAuditoria(componente)
+    componente = DecoradorNotificacion(componente)
+
+    resultado = componente.operacion(datos)
+    print("Resultado final:", resultado)
