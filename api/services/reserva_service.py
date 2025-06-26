@@ -1,6 +1,7 @@
 from datetime import datetime
 from sqlalchemy.orm import Session
 
+from api.services.interfaces import IReservaCRUDService
 from api.repositories.reserva_repository import ReservaRepository
 from api.repositories.user_repository import UserRepository
 from api.repositories.sala_repository import SalaRepository
@@ -9,7 +10,7 @@ class UsuarioNoExisteError(Exception): pass
 class SalaNoExisteError(Exception): pass
 class ReservaNoExisteError(Exception): pass
 
-class ReservaService:
+class ReservaService(IReservaCRUDService):
     def __init__(self, reserva_repository=None, user_repository=None, sala_repository=None):
         self.reserva_repository = reserva_repository or ReservaRepository()
         self.user_repository = user_repository or UserRepository()

@@ -1,8 +1,9 @@
 import requests
 from requests.exceptions import HTTPError
 from typing import Any, Dict, List
+from smartroom.services.interfaces import IReservaCRUDService
 
-class ReservaService:
+class ReservaService(IReservaCRUDService):
     """
     Cliente de servicio para interactuar con la API de Reservas.
     

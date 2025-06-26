@@ -21,4 +21,4 @@ class UsuarioOut(BaseModel):
     role: RolEnum
 
     class Config:
-        orm_mode = True
+        from_attributes = True

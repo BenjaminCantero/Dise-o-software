@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
 from api.repositories.sala_repository import SalaRepository
+from api.services.interfaces import ISalaCRUDService
 
 class SalaNoExisteError(Exception): pass
 class NombreSalaYaExisteError(Exception): pass
 
-class SalaService:
+class SalaService(ISalaCRUDService):
     def __init__(self, sala_repository=None):
         self.sala_repository = sala_repository or SalaRepository()
 

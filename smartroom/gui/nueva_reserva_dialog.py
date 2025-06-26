@@ -58,8 +58,38 @@ class ReservaApp(tk.Tk):
         NuevaReservaDialog(self, on_success=self.cargar_reservas)
 
     def cargar_reservas(self):
-        # Implementa la carga de reservas en la tabla
-        pass
+        if not hasattr(self, "reservas_tree") or self.reservas_tree is None:
+            # Crea el Treeview si no existe
+            columns = ("id", "usuario", "sala", "inicio", "fin")
+            self.reservas_tree = ttk.Treeview(self, columns=columns, show="headings")
+            for col in columns:
+                self.reservas_tree.heading(col, text=col.capitalize())
+                self.reservas_tree.column(col, anchor="center")
+            self.reservas_tree.grid(row=6, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
+
+        # Limpia la tabla
+        for row in self.reservas_tree.get_children():
+            self.reservas_tree.delete(row)
+
+        try:
+            reservas = self.reserva_service.get_reservas()
+            usuarios = {u["id"]: u["username"] for u in self.user_service.get_usuarios()}
+            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_salas()}
+            for reserva in reservas:
+                usuario = usuarios.get(reserva["usuario_id"], "Desconocido")
+                sala = salas.get(reserva["sala_id"], "Desconocida")
+                self.reservas_tree.insert(
+                    "", "end",
+                    values=(
+                        reserva["id"],
+                        usuario,
+                        sala,
+                        reserva["fecha_inicio"].replace("T", " ")[:16],
+                        reserva["fecha_fin"].replace("T", " ")[:16]
+                    )
+                )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudieron cargar las reservas:\n{e}")
 
     def crear_reserva(self):
         usuario = self.obtener_usuario_seleccionado()  # objeto o id

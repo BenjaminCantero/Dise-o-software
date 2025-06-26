@@ -1,6 +1,7 @@
 import requests
+from smartroom.services.interfaces import IAutenticacionService, IUsuarioCRUDService
 
-class UserService:
+class UserService(IAutenticacionService, IUsuarioCRUDService):
     API_URL = "http://127.0.0.1:8000"
     HEADERS = {"Authorization": "Bearer secrettoken"}
 
