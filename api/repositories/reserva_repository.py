@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 from api.models.reserva import Reserva
+from .base_repository import BaseRepository
 
-class ReservaRepository:
+class ReservaRepository(BaseRepository):
 
-    def crear_reserva(self, db: Session, usuario_id: int, sala_id: int, fecha_inicio, fecha_fin):
+    def crear(self, db: Session, usuario_id: int, sala_id: int, fecha_inicio, fecha_fin):
         reserva = Reserva(
             usuario_id=usuario_id,
             sala_id=sala_id,
@@ -15,17 +16,11 @@ class ReservaRepository:
         db.refresh(reserva)
         return reserva
 
-    def obtener_reserva(self, db: Session, reserva_id: int):
+    def obtener(self, db: Session, reserva_id: int):
         return db.query(Reserva).filter(Reserva.id == reserva_id).first()
 
-    def obtener_reservas(self, db: Session, skip: int = 0, limit: int = 100):
-        return db.query(Reserva).offset(skip).limit(limit).all()
-
-    def listar_reservas(self, db: Session):
-        return db.query(Reserva).all()
-
-    def actualizar_reserva(self, db: Session, reserva_id: int, usuario_id=None, sala_id=None,
-                             fecha_inicio=None, fecha_fin=None):
+    def actualizar(self, db: Session, reserva_id: int, usuario_id=None, sala_id=None,
+                   fecha_inicio=None, fecha_fin=None):
         reserva = db.query(Reserva).filter(Reserva.id == reserva_id).first()
         if reserva:
             if usuario_id is not None:
@@ -40,9 +35,19 @@ class ReservaRepository:
             db.refresh(reserva)
         return reserva
 
-    def eliminar_reserva(self, db: Session, reserva_id: int):
+    def eliminar(self, db: Session, reserva_id: int):
         reserva = db.query(Reserva).filter(Reserva.id == reserva_id).first()
         if reserva:
             db.delete(reserva)
             db.commit()
         return reserva
+
+    # Métodos adicionales específicos
+    def obtener_reserva(self, db: Session, reserva_id: int):
+        return self.obtener(db, reserva_id)
+
+    def obtener_reservas(self, db: Session, skip: int = 0, limit: int = 100):
+        return db.query(Reserva).offset(skip).limit(limit).all()
+
+    def listar_reservas(self, db: Session):
+        return db.query(Reserva).all()

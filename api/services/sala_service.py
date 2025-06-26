@@ -9,33 +9,27 @@ class SalaService:
         self.sala_repository = sala_repository or SalaRepository()
 
     def _validar_sala(self, db, sala_id):
-        sala = self.sala_repository.obtener_sala(db, sala_id)
+        sala = self.sala_repository.obtener(db, sala_id)
         if not sala:
-            raise SalaNoExisteError("La sala no existe.")
+            raise SalaNoExisteError(f"Sala con id {sala_id} no existe")
         return sala
 
     def _validar_nombre_unico(self, db, nombre):
         salas = self.sala_repository.obtener_salas(db)
-        if any(s.nombre == nombre for s in salas):
-            raise NombreSalaYaExisteError("El nombre de la sala ya está en uso.")
-        return True
+        if any(sala.nombre == nombre for sala in salas):
+            raise NombreSalaYaExisteError(f"El nombre '{nombre}' ya está en uso")
 
     def listar_salas(self, db: Session):
         return self.sala_repository.obtener_salas(db)
 
     def crear_sala(self, db: Session, nombre: str, capacidad: int, estado: str = "disponible"):
         self._validar_nombre_unico(db, nombre)
-        return self.sala_repository.crear_sala(db, nombre, capacidad, estado)
+        return self.sala_repository.crear(db, nombre, capacidad, estado)
 
     def editar_sala(self, db: Session, sala_id: int, nombre: str = None, capacidad: int = None, estado: str = None):
         self._validar_sala(db, sala_id)
-        if nombre:
-            self._validar_nombre_unico(db, nombre)
-        return self.sala_repository.actualizar_sala(db, sala_id, nombre, capacidad, estado)
+        return self.sala_repository.actualizar(db, sala_id, nombre, capacidad, estado)
 
     def eliminar_sala(self, db: Session, sala_id: int):
         self._validar_sala(db, sala_id)
-        return self.sala_repository.eliminar_sala(db, sala_id)
-
-    def obtener_sala_por_id(self, db: Session, sala_id: int):
-        return self.sala_repository.obtener_sala(db, sala_id)
+        return self.sala_repository.eliminar(db, sala_id)
