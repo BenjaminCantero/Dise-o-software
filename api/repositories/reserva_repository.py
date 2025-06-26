@@ -21,6 +21,9 @@ class ReservaRepository:
     def obtener_reservas(self, db: Session, skip: int = 0, limit: int = 100):
         return db.query(Reserva).offset(skip).limit(limit).all()
 
+    def listar_reservas(self, db: Session):
+        return db.query(Reserva).all()
+
     def actualizar_reserva(self, db: Session, reserva_id: int, usuario_id=None, sala_id=None,
                              fecha_inicio=None, fecha_fin=None):
         reserva = db.query(Reserva).filter(Reserva.id == reserva_id).first()

@@ -86,3 +86,9 @@ class ReservaService:
         return self.reserva_repository.actualizar_reserva(
             db, reserva_id, usuario_id, sala_id, fecha_inicio, fecha_fin
         )
+
+    def listar_reservas(self, db):
+        """
+        Devuelve todas las reservas.
+        """
+        return self.reserva_repository.listar_reservas(db)
