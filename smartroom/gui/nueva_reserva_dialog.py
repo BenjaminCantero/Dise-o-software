@@ -3,8 +3,9 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
 from builders.reserva_builder import ReservaBuilder
+from mediator.app_mediator import EventListener
 
-class ReservaApp(tk.Tk):
+class ReservaApp(EventListener, tk.Tk):
     def __init__(self, reserva_service, sala_service, user_service, mediator, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reserva_service = reserva_service

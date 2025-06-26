@@ -3,8 +3,9 @@ from tkinter import ttk, messagebox, Toplevel, StringVar, Label, Entry, Button
 from datetime import datetime
 from gui.nueva_reserva_dialog import NuevaReservaDialog
 from gui.editar_reserva_dialog import EditarReservaDialog
+from mediator.app_mediator import EventListener
 
-class ReservasPanel(ttk.Frame):
+class ReservasPanel(EventListener, ttk.Frame):
     def __init__(self, parent, mediator=None, reserva_service=None, sala_service=None, user_service=None, user=None, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator

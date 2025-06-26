@@ -1,5 +1,9 @@
 from core.singleton import SingletonMeta
 
+class EventListener:
+    def on_event(self, sender, event, data):
+        raise NotImplementedError("Debe implementar on_event en el componente que recibe eventos.")
+
 class AppMediator(metaclass=SingletonMeta):
     """
     Mediador para coordinar la comunicación entre los diferentes componentes de la aplicación.
@@ -7,27 +11,16 @@ class AppMediator(metaclass=SingletonMeta):
     """
 
     def __init__(self):
-        self.components = {}
+        self._components = {}
 
     def register(self, name, component):
-        """
-        Registra un componente con un nombre único.
-        """
-        self.components[name] = component
+        self._components[name] = component
 
     def unregister(self, name):
-        """
-        Elimina un componente registrado.
-        """
-        if name in self.components:
-            del self.components[name]
+        if name in self._components:
+            del self._components[name]
 
     def notify(self, sender, event, data=None):
-        """
-        Notifica a los componentes registrados sobre un evento.
-        Si se especifica 'target', solo notifica a ese componente.
-        """
-        # Copia los items para evitar el error si se modifica el diccionario durante la iteración
-        for name, component in list(self.components.items()):
-            if component != sender:
+        for component in self._components.values():
+            if isinstance(component, EventListener):
                 component.on_event(sender, event, data)

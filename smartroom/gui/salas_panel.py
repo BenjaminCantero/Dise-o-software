@@ -3,9 +3,10 @@ from tkinter import ttk
 from tkinter import messagebox
 from gui.editar_sala_dialog import EditarSalaDialog
 from gui.nueva_sala_dialog import NuevaSalaDialog
-from factories.dialog_factory import DialogFactory  # Importa la fábrica
+from factories.dialog_factory import DialogFactory
+from mediator.app_mediator import EventListener  # <--- Importa EventListener
 
-class SalasPanel(ttk.Frame):
+class SalasPanel(EventListener, ttk.Frame):  # <--- Hereda de EventListener
     def __init__(self, parent, mediator=None, sala_service=None, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator

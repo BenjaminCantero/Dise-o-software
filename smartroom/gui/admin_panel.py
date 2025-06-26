@@ -2,8 +2,9 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from gui.editar_usuario_dialog import EditarUsuarioDialog
+from mediator.app_mediator import EventListener
 
-class AdminPanel(ttk.Frame):
+class AdminPanel(EventListener, ttk.Frame):
     def __init__(self, parent, mediator, user_service=None, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator

@@ -5,8 +5,9 @@ from gui.salas_panel import SalasPanel
 from gui.admin_panel import AdminPanel
 from gui.dashboard_panel import DashboardPanel
 from gui.horario_panel import HorarioPanel
+from mediator.app_mediator import EventListener
 
-class MainWindow(tk.Frame):
+class MainWindow(EventListener, tk.Frame):
     def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None, on_login=None):
         super().__init__(root)
         self.root = root
