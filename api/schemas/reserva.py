@@ -1,4 +1,4 @@
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, model_validator
 from datetime import datetime
 
 class ReservaIn(BaseModel):
@@ -7,18 +7,16 @@ class ReservaIn(BaseModel):
     fecha_inicio: datetime
     fecha_fin: datetime
 
-    @root_validator
-    def validate_fechas(cls, values):
-        fecha_inicio = values.get("fecha_inicio")
-        fecha_fin = values.get("fecha_fin")
-        if fecha_inicio is None or fecha_fin is None:
+    @model_validator(mode="after")
+    def check_fechas(self):
+        if self.fecha_inicio is None or self.fecha_fin is None:
             raise ValueError("Las fechas no pueden ser nulas")
-        if fecha_inicio >= fecha_fin:
-            raise ValueError("La fecha de inicio debe ser anterior a la fecha de fin")
-        return values
+        if self.fecha_inicio >= self.fecha_fin:
+            raise ValueError("La fecha de inicio debe ser anterior a la fecha de fin.")
+        return self
 
 class ReservaOut(ReservaIn):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

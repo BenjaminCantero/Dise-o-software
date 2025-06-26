@@ -1,7 +1,10 @@
 import requests
-from .base_api_service import BaseApiService
+from smartroom.services.interfaces import IAutenticacionService, IUsuarioCRUDService
 
-class UserService(BaseApiService):
+class UserService(IAutenticacionService, IUsuarioCRUDService):
+    API_URL = "http://127.0.0.1:8000"
+    HEADERS = {"Authorization": "Bearer secrettoken"}
+
     def get_all(self):
         resp = requests.get(f"{self.API_URL}/usuarios/", headers=self.HEADERS)
         resp.raise_for_status()

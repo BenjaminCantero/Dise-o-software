@@ -1,8 +1,15 @@
 import requests
 from typing import Any, Dict, List
-from .base_api_service import BaseApiService
+from smartroom.services.interfaces import IReservaCRUDService
 
-class ReservaService(BaseApiService):
+class ReservaService(IReservaCRUDService):
+    """
+    Cliente de servicio para interactuar con la API de Reservas.
+    """
+
+    API_URL = "http://127.0.0.1:8000"
+    HEADERS = {"Authorization": "Bearer secrettoken"}
+
     def get_all(self) -> List[Dict[str, Any]]:
         resp = requests.get(f"{self.API_URL}/reservas/", headers=self.HEADERS)
         resp.raise_for_status()
