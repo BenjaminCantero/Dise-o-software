@@ -72,7 +72,7 @@ class HorarioPanel(ttk.Frame):
         reservas = []
         if self.reserva_service:
             # Obtén todas las reservas desde el servicio
-            reservas = self.reserva_service.get_reservas()
+            reservas = self.reserva_service.get_all()
             # Filtra según el rol del usuario
             if self.user and "role" in self.user:
                 if self.user["role"] in ("estudiante", "profesor"):

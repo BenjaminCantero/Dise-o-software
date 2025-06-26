@@ -85,7 +85,7 @@ class SalasPanel(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
         try:
-            salas = self.sala_service.get_salas()
+            salas = self.sala_service.get_all()
             for sala in salas:
                 self.tree.insert("", "end", values=(sala["id"], sala["nombre"], sala["capacidad"], sala["estado"]))
         except Exception as e:
@@ -96,7 +96,7 @@ class SalasPanel(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
         if self.sala_service:
-            salas = self.sala_service.get_salas()
+            salas = self.sala_service.get_all()
             for sala in salas:
                 if filtro in str(sala["nombre"]).lower():
                     self.tree.insert("", "end", values=(sala["id"], sala["nombre"], sala["capacidad"], sala["estado"]))
@@ -104,7 +104,7 @@ class SalasPanel(ttk.Frame):
     def nueva_sala(self):
         def on_save(nombre, capacidad, estado):
             try:
-                self.sala_service.create_sala(nombre, capacidad, estado)
+                self.sala_service.create(nombre, capacidad, estado)
                 self.cargar_salas()
                 if self.mediator:
                     self.mediator.notify(self, "sala_creada")
@@ -113,7 +113,7 @@ class SalasPanel(ttk.Frame):
         self.dialog_factory.create_dialog(
             "nueva_sala",
             self,
-            sala_service=self.sala_service,  # <-- agrega esto
+            sala_service=self.sala_service,
             on_success=on_save
         )
 
@@ -123,12 +123,12 @@ class SalasPanel(ttk.Frame):
             messagebox.showwarning("Advertencia", "Selecciona una sala para editar.")
             return
         sala_id = self.tree.item(selected[0])["values"][0]
-        salas = self.sala_service.get_salas()
+        salas = self.sala_service.get_all()
         sala = next((s for s in salas if s["id"] == sala_id), None)
         if sala:
             def on_save(nombre, capacidad, estado):
                 try:
-                    self.sala_service.update_sala(sala_id, nombre, capacidad, estado)
+                    self.sala_service.update(sala_id, nombre, capacidad, estado)
                     self.cargar_salas()
                     if self.mediator:
                         self.mediator.notify(self, "sala_editada")
@@ -145,11 +145,10 @@ class SalasPanel(ttk.Frame):
         respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta sala?")
         if respuesta:
             try:
-                self.sala_service.delete_sala(sala_id)
+                self.sala_service.delete(sala_id)
                 self.cargar_salas()
                 if self.mediator:
                     self.mediator.notify(self, "sala_eliminada")
                 messagebox.showinfo("Éxito", "Sala eliminada correctamente")
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo eliminar la sala:\n{e}")
-

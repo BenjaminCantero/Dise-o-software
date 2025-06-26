@@ -1,13 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from adapters.sala_dialog_adapter import SalaDialogAdapter
-from smartroom.services import sala_service
 
 class EditarSalaDialog(tk.Toplevel):
-    def __init__(self, parent, sala, on_save=None):
+    def __init__(self, parent, sala, sala_service, on_save=None):
         super().__init__(parent)
         self.title("Editar Sala")
         self.sala = sala
+        self.sala_service = sala_service
         self.on_save = on_save
 
         self.nombre_var = tk.StringVar(value=sala["nombre"])
@@ -49,7 +49,7 @@ class EditarSalaDialog(tk.Toplevel):
             return
 
         try:
-            sala_service.editar_sala(self.sala["id"], nombre, capacidad, estado)
+            self.sala_service.update(self.sala["id"], nombre, capacidad, estado)
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo editar la sala:\n{e}")
             return

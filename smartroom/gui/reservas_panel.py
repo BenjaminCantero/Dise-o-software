@@ -1,6 +1,8 @@
 from tkcalendar import DateEntry
 from tkinter import ttk, messagebox
 from datetime import datetime
+from gui.nueva_reserva_dialog import NuevaReservaDialog
+from gui.editar_reserva_dialog import EditarReservaDialog
 
 class ReservasPanel(ttk.Frame):
     def __init__(self, parent, mediator=None, reserva_service=None, sala_service=None, user_service=None, user=None, on_volver=None):
@@ -39,9 +41,9 @@ class ReservasPanel(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
         try:
-            reservas = self.reserva_service.get_reservas()
-            usuarios = {u["id"]: u["username"] for u in self.user_service.get_usuarios()}
-            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_salas()}
+            reservas = self.reserva_service.get_all()
+            usuarios = {u["id"]: u["username"] for u in self.user_service.get_all()}
+            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_all()}
             for reserva in reservas:
                 usuario = usuarios.get(reserva["usuario_id"], "Desconocido")
                 sala = salas.get(reserva["sala_id"], "Desconocida")
@@ -59,8 +61,11 @@ class ReservasPanel(ttk.Frame):
             messagebox.showerror("Error", f"No se pudieron cargar las reservas:\n{e}")
 
     def nueva_reserva(self):
-        # Aquí deberías abrir tu diálogo de nueva reserva y refrescar la tabla al guardar
-        messagebox.showinfo("Info", "Funcionalidad de nueva reserva no implementada en este ejemplo.")
+        def on_success(*_):
+            self.cargar_reservas()
+            if self.mediator:
+                self.mediator.notify(self, "reserva_creada", None)
+        NuevaReservaDialog(self, self.reserva_service, self.sala_service, self.user_service, on_success=on_success)
 
     def editar_reserva(self):
         selected = self.tree.selection()
@@ -68,11 +73,24 @@ class ReservasPanel(ttk.Frame):
             messagebox.showwarning("Advertencia", "Selecciona una reserva para editar.")
             return
         reserva_id = self.tree.item(selected[0])["values"][0]
-        reservas = self.reserva_service.get_reservas()
+        reservas = self.reserva_service.get_all()
         reserva = next((r for r in reservas if r["id"] == reserva_id), None)
         if reserva:
-            # Aquí deberías abrir tu diálogo de editar reserva y refrescar la tabla al guardar
-            messagebox.showinfo("Info", f"Funcionalidad de editar reserva para ID {reserva_id} no implementada en este ejemplo.")
+            def on_save(*_):
+                self.cargar_reservas()
+                if self.mediator:
+                    self.mediator.notify(self, "reserva_editada", None)
+            # Prepara los datos para el diálogo
+            usuarios = {u["id"]: u["username"] for u in self.user_service.get_all()}
+            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_all()}
+            reserva_dialog_data = {
+                "id": reserva["id"],
+                "usuario": usuarios.get(reserva["usuario_id"], ""),
+                "sala": salas.get(reserva["sala_id"], ""),
+                "fecha": reserva["fecha_inicio"][:10],
+                "hora": reserva["fecha_inicio"][11:16]
+            }
+            EditarReservaDialog(self, reserva_dialog_data, self.reserva_service, self.sala_service, self.user_service, on_save=on_save)
 
     def eliminar_reserva(self):
         selected = self.tree.selection()
@@ -83,13 +101,14 @@ class ReservasPanel(ttk.Frame):
         respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta reserva?")
         if respuesta:
             try:
-                self.reserva_service.delete_reserva(reserva_id)
+                self.reserva_service.delete(reserva_id)
                 self.cargar_reservas()
                 if self.mediator:
-                    self.mediator.notify(self, "reserva_eliminada")
+                    self.mediator.notify(self, "reserva_eliminada", None)
                 messagebox.showinfo("Éxito", "Reserva eliminada correctamente")
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo eliminar la reserva:\n{e}")
 
     def on_event(self, sender, event, data):
-        pass
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
+            self.cargar_reservas()

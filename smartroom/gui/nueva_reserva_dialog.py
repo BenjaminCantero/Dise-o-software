@@ -3,13 +3,13 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
 from builders.reserva_builder import ReservaBuilder
-from commands.cancel_reserva_command import CreateReservaCommand  # Importa el comando
-from smartroom.services import reserva_service, sala_service, user_service
 
 class ReservaApp(tk.Tk):
-    def __init__(self, reserva_service, mediator, *args, **kwargs):
+    def __init__(self, reserva_service, sala_service, user_service, mediator, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reserva_service = reserva_service
+        self.sala_service = sala_service
+        self.user_service = user_service
         self.mediator = mediator
         self.title("Reservas")
         self.geometry("800x600")
@@ -55,7 +55,7 @@ class ReservaApp(tk.Tk):
         super().destroy()
 
     def nueva_reserva(self):
-        NuevaReservaDialog(self, on_success=self.cargar_reservas)
+        NuevaReservaDialog(self, self.reserva_service, self.sala_service, self.user_service, on_success=self.cargar_reservas)
 
     def cargar_reservas(self):
         # Implementa la carga de reservas en la tabla
@@ -78,18 +78,21 @@ class ReservaApp(tk.Tk):
         )
 
         # Ahora puedes pasar la reserva al servicio o repositorio
-        self.reserva_service.agregar_reserva(reserva)
+        self.reserva_service.create(reserva)
 
 class NuevaReservaDialog(tk.Toplevel):
-    def __init__(self, parent, on_success=None):
+    def __init__(self, parent, reserva_service, sala_service, user_service, on_success=None):
         super().__init__(parent)
         self.title("Nueva Reserva")
+        self.reserva_service = reserva_service
+        self.sala_service = sala_service
+        self.user_service = user_service
         self.on_success = on_success
 
         # Obtener usuarios y salas desde la API
         try:
-            self.usuarios = user_service.get_usuarios()
-            self.salas = sala_service.get_salas()
+            self.usuarios = self.user_service.get_all()
+            self.salas = self.sala_service.get_all()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar usuarios o salas:\n{e}")
             self.destroy()
@@ -153,7 +156,7 @@ class NuevaReservaDialog(tk.Toplevel):
             return
 
         try:
-            reserva_service.crear_reserva(
+            self.reserva_service.create(
                 usuario_id=usuario["id"],
                 sala_id=sala["id"],
                 fecha_inicio=fecha_inicio.isoformat(),
@@ -183,5 +186,11 @@ def es_hora_valida(hora_str):
         return False
 
 if __name__ == "__main__":
-    app = ReservaApp(reserva_service=None, mediator=None)
+    # Aquí deberías pasar instancias reales de los servicios
+    app = ReservaApp(
+        reserva_service=None,
+        sala_service=None,
+        user_service=None,
+        mediator=None
+    )
     app.mainloop()

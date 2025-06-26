@@ -52,7 +52,7 @@ class AdminPanel(ttk.Frame):
         cards_frame = ttk.Frame(self, style="Panel.TFrame")
         cards_frame.pack(pady=10, padx=20, fill="x")
 
-        usuarios = self.user_service.get_usuarios() if self.user_service else []
+        usuarios = self.user_service.get_all() if self.user_service else []
         total_usuarios = len(usuarios)
         admins = len([u for u in usuarios if u["role"] == "admin"])
         profesores = len([u for u in usuarios if u["role"] == "profesor"])
@@ -103,14 +103,14 @@ class AdminPanel(ttk.Frame):
         if self.user_service:
             for row in self.tree.get_children():
                 self.tree.delete(row)
-            usuarios = self.user_service.get_usuarios()
+            usuarios = self.user_service.get_all()
             for usuario in usuarios:
                 self.tree.insert("", "end", values=(usuario["username"], usuario["role"]))
 
     def create_usuario(self):
         def on_save(username, password, role):
             try:
-                self.user_service.create_usuario(username, password, role)
+                self.user_service.create(username, password, role)
                 self.cargar_usuarios()
                 messagebox.showinfo("Éxito", "Usuario creado correctamente.")
                 # --- PATRÓN MEDIATOR: Notificar evento ---
@@ -129,10 +129,10 @@ class AdminPanel(ttk.Frame):
             respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar este usuario?")
             if respuesta:
                 username = self.tree.item(selected[0])["values"][0]
-                usuarios = self.user_service.get_usuarios()
+                usuarios = self.user_service.get_all()
                 usuario = next((u for u in usuarios if u["username"] == username), None)
                 if usuario:
-                    self.user_service.delete_usuario(usuario["id"])
+                    self.user_service.delete(usuario["id"])
                     messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
                     self.cargar_usuarios()
                     if self.mediator:
@@ -147,12 +147,12 @@ class AdminPanel(ttk.Frame):
             return
         if self.user_service:
             username = self.tree.item(selected[0])["values"][0]
-            usuarios = self.user_service.get_usuarios()
+            usuarios = self.user_service.get_all()
             usuario = next((u for u in usuarios if u["username"] == username), None)
             if usuario:
                 def on_save(username, password, role):
                     try:
-                        self.user_service.update_usuario(usuario["id"], username, role)
+                        self.user_service.update(usuario["id"], username, role)
                         self.cargar_usuarios()
                         messagebox.showinfo("Éxito", "Usuario editado correctamente.")
                         if self.mediator:
