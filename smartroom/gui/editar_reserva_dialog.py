@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
-from commands.cancel_reserva_command import EditReservaCommand    
+from commands.cancel_reserva_command import EditReservaCommand
 from builders.reserva_builder import ReservaBuilder
 
 class EditarReservaDialog(tk.Toplevel):
@@ -101,14 +101,18 @@ class EditarReservaDialog(tk.Toplevel):
             if usuario_id is None or sala_id is None:
                 messagebox.showerror("Error", "No se encontró el usuario o la sala seleccionada.")
                 return
-            # Llama al método update del servicio
-            self.reserva_service.update(
+            # --- Command: ejecuta la acción de editar reserva ---
+            command = EditReservaCommand(
+                self.reserva_service,
                 self.reserva["id"],
-                usuario_id=usuario_id,
-                sala_id=sala_id,
-                fecha_inicio=fecha_inicio.isoformat(),
-                fecha_fin=fecha_fin.isoformat()
+                {
+                    "usuario_id": usuario_id,
+                    "sala_id": sala_id,
+                    "fecha_inicio": fecha_inicio.isoformat(),
+                    "fecha_fin": fecha_fin.isoformat()
+                }
             )
+            command.execute()
         except Exception as e:
             messagebox.showerror("Conflicto", str(e))
             return

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from adapters.sala_dialog_adapter import SalaDialogAdapter
+from commands.sala_commands import CreateSalaCommand  # Debes tener este comando implementado
 
 class NuevaSalaDialog(tk.Toplevel):
     def __init__(self, parent, sala_service, on_success=None):
@@ -55,7 +56,9 @@ class NuevaSalaDialog(tk.Toplevel):
             messagebox.showerror("Error", "Debe seleccionar un estado.")
             return
         try:
-            self.sala_service.create(data["nombre"], data["capacidad"], self.estado_var.get())
+            # --- Command: ejecuta la acción de crear sala ---
+            command = CreateSalaCommand(self.sala_service, data["nombre"], data["capacidad"], self.estado_var.get())
+            command.execute()
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return

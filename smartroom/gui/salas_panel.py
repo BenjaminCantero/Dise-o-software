@@ -4,9 +4,10 @@ from tkinter import messagebox
 from gui.editar_sala_dialog import EditarSalaDialog
 from gui.nueva_sala_dialog import NuevaSalaDialog
 from factories.dialog_factory import DialogFactory
-from mediator.app_mediator import EventListener  # <--- Importa EventListener
+from mediator.app_mediator import EventListener
+from commands.sala_commands import DeleteSalaCommand  # Debes tener este comando implementado
 
-class SalasPanel(EventListener, ttk.Frame):  # <--- Hereda de EventListener
+class SalasPanel(EventListener, ttk.Frame):
     def __init__(self, parent, mediator=None, sala_service=None, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator
@@ -17,25 +18,20 @@ class SalasPanel(EventListener, ttk.Frame):  # <--- Hereda de EventListener
         if self.mediator:
             self.mediator.register("salas_panel", self)
 
-    #patron observer#
-
     def update(self, event, data):
         if event in ("sala_creada", "sala_eliminada", "sala_editada"):
             self.cargar_salas()
 
-    # --- PATRÓN MEDIATOR: Método para recibir eventos ---
     def on_event(self, sender, event, data):
         if event in ("sala_creada", "sala_eliminada", "sala_editada"):
             self.cargar_salas()
 
     def destroy(self):
-        # --- PATRÓN MEDIATOR: Desregistrar el panel ---
         if self.mediator:
             self.mediator.unregister("salas_panel")
         super().destroy()
 
     def create_widgets(self):
-        # Estilos coherentes
         style = ttk.Style()
         style.configure("Panel.TFrame", background="#f4f4f8")
         style.configure("PanelTitle.TLabel", font=("Arial", 20, "bold"), background="#f4f4f8", foreground="#232946")
@@ -45,7 +41,6 @@ class SalasPanel(EventListener, ttk.Frame):  # <--- Hereda de EventListener
                   background=[("active", "#eebbc3")],
                   foreground=[("active", "#232946")])
 
-        # Título e icono
         top_frame = ttk.Frame(self, style="Panel.TFrame")
         top_frame.pack(fill="x", pady=(10, 0), padx=10)
         icon = ttk.Label(top_frame, text="🏢", style="PanelIcon.TLabel")
@@ -53,7 +48,6 @@ class SalasPanel(EventListener, ttk.Frame):  # <--- Hereda de EventListener
         label = ttk.Label(top_frame, text="Gestión de Salas", style="PanelTitle.TLabel")
         label.pack(side="left")
 
-        # Tabla de salas
         table_frame = ttk.Frame(self, style="Panel.TFrame")
         table_frame.pack(fill="both", expand=True, padx=20, pady=10)
         columns = ("id", "nombre", "capacidad", "estado")
@@ -71,7 +65,6 @@ class SalasPanel(EventListener, ttk.Frame):  # <--- Hereda de EventListener
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
-        # Botones de acción
         btn_frame = ttk.Frame(self, style="Panel.TFrame")
         btn_frame.pack(pady=10)
         ttk.Button(btn_frame, text="Nueva Sala", style="Panel.TButton", width=18, command=self.nueva_sala).pack(side="left", padx=8)
@@ -146,7 +139,9 @@ class SalasPanel(EventListener, ttk.Frame):  # <--- Hereda de EventListener
         respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta sala?")
         if respuesta:
             try:
-                self.sala_service.delete(sala_id)
+                # --- Command: ejecuta la acción de eliminar sala ---
+                command = DeleteSalaCommand(self.sala_service, sala_id)
+                command.execute()
                 self.cargar_salas()
                 if self.mediator:
                     self.mediator.notify(self, "sala_eliminada")

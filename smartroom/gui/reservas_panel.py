@@ -4,6 +4,7 @@ from datetime import datetime
 from gui.nueva_reserva_dialog import NuevaReservaDialog
 from gui.editar_reserva_dialog import EditarReservaDialog
 from mediator.app_mediator import EventListener
+from commands.cancel_reserva_command import CancelReservaCommand  # Debes tener este comando implementado
 
 class ReservasPanel(EventListener, ttk.Frame):
     def __init__(self, parent, mediator=None, reserva_service=None, sala_service=None, user_service=None, user=None, on_volver=None):
@@ -132,7 +133,9 @@ class ReservasPanel(EventListener, ttk.Frame):
         respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta reserva?")
         if respuesta:
             try:
-                self.reserva_service.delete(reserva_id)
+                # --- Command: ejecuta la acción de eliminar reserva ---
+                command = CancelReservaCommand(self.reserva_service, reserva_id)
+                command.execute()
                 self.cargar_reservas()
                 if self.mediator:
                     self.mediator.notify(self, "reserva_eliminada", None)
