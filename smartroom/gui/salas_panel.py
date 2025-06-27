@@ -99,11 +99,9 @@ class SalasPanel(EventListener, ttk.Frame):
         def on_save(nombre, capacidad, estado):
             try:
                 self.sala_service.create(nombre, capacidad, estado)
-                self.cargar_salas()
-                if self.mediator:
-                    self.mediator.notify(self, "sala_creada")
+                # Mostrar mensaje de éxito
             except Exception as e:
-                messagebox.showerror("Error", f"No se pudo crear la sala:\n{e}")
+                messagebox.showerror("Error", f"No se pudo crear la sala: {e}")
         self.dialog_factory.create_dialog(
             "nueva_sala",
             self,
