@@ -36,3 +36,6 @@ class SalaRepository(BaseRepository):
     # Métodos adicionales específicos
     def obtener_salas(self, db: Session, skip: int = 0, limit: int = 100):
         return db.query(Sala).offset(skip).limit(limit).all()
+
+    def existe_nombre(self, db: Session, nombre: str):
+        return db.query(Sala).filter(Sala.nombre == nombre).first() is not None

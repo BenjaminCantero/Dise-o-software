@@ -76,6 +76,8 @@ class SalasPanel(EventListener, ttk.Frame):
         self.cargar_salas()
 
     def cargar_salas(self):
+        if not hasattr(self, "tree") or not self.tree.winfo_exists():
+            return  # El widget ya no existe, no intentes actualizarlo
         for row in self.tree.get_children():
             self.tree.delete(row)
         try:
@@ -97,11 +99,11 @@ class SalasPanel(EventListener, ttk.Frame):
 
     def nueva_sala(self):
         def on_save(nombre, capacidad, estado):
-            try:
-                self.sala_service.create(nombre, capacidad, estado)
-                # Mostrar mensaje de éxito
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo crear la sala: {e}")
+            # Solo refresca la lista o muestra mensaje, NO crees la sala aquí
+            self.cargar_salas()
+            if self.mediator:
+                self.mediator.notify(self, "sala_creada")
+            messagebox.showinfo("Éxito", "Sala creada correctamente.")
         self.dialog_factory.create_dialog(
             "nueva_sala",
             self,

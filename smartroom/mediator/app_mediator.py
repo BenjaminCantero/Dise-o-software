@@ -21,6 +21,6 @@ class AppMediator(metaclass=SingletonMeta):
             del self._components[name]
 
     def notify(self, sender, event, data=None):
-        for component in self._components.values():
+        for component in list(self._components.values()): 
             if isinstance(component, EventListener):
                 component.on_event(sender, event, data)
