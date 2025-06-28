@@ -1,3 +1,8 @@
+"""
+Rutas para la gestión de salas en SmartRoom API.
+Incluye operaciones CRUD y utiliza servicios para la lógica de negocio.
+"""
+
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -22,6 +27,7 @@ def listar_salas(
     db: Session = Depends(get_db),
     sala_service: SalaService = Depends(get_sala_service)
 ):
+    """Obtiene la lista de todas las salas registradas."""
     salas = sala_service.listar_salas(db)
     return [SalaOut.from_orm(s) for s in salas]
 
@@ -31,6 +37,7 @@ def get_sala(
     db: Session = Depends(get_db),
     sala_service: SalaService = Depends(get_sala_service)
 ):
+    """Obtiene una sala por su ID."""
     sala = sala_service.obtener_sala_por_id(db, sala_id)
     if not sala:
         raise HTTPException(status_code=404, detail="Sala no encontrada")
@@ -42,6 +49,7 @@ def create_sala(
     db: Session = Depends(get_db),
     sala_service: SalaService = Depends(get_sala_service)
 ):
+    """Crea una nueva sala."""
     try:
         nueva_sala = sala_service.crear_sala(db, sala.nombre, sala.capacidad, sala.estado)
         return SalaOut.from_orm(nueva_sala)
@@ -59,6 +67,7 @@ def update_sala(
     db: Session = Depends(get_db),
     sala_service: SalaService = Depends(get_sala_service)
 ):
+    """Actualiza una sala existente."""
     try:
         sala_actualizada = sala_service.editar_sala(db, sala_id, sala.nombre, sala.capacidad, sala.estado)
         return SalaOut.from_orm(sala_actualizada)
@@ -73,6 +82,7 @@ def delete_sala(
     db: Session = Depends(get_db),
     sala_service: SalaService = Depends(get_sala_service)
 ):
+    """Elimina una sala por su ID."""
     try:
         sala_service.eliminar_sala(db, sala_id)
         salas = sala_service.listar_salas(db)

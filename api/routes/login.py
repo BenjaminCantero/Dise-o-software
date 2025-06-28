@@ -1,3 +1,8 @@
+"""
+Rutas de autenticación y login para SmartRoom API.
+Permite a los usuarios obtener un token de acceso.
+"""
+
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from api.db import SessionLocal
@@ -14,6 +19,7 @@ def get_db():
 
 @router.post("/login")
 def login(data: dict, db: Session = Depends(get_db)):
+    """Autentica al usuario y retorna sus datos si las credenciales son válidas."""
     username = data.get("username")
     password = data.get("password")
     user = db.query(Usuario).filter(Usuario.username == username).first()

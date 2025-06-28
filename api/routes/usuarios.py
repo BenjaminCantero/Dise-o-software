@@ -1,9 +1,15 @@
+"""
+Rutas para la gestión de usuarios en SmartRoom API.
+Incluye operaciones CRUD y utiliza dependencias para acceso a base de datos y servicios.
+"""
+
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from ..db import SessionLocal
 from ..schemas.usuario import UsuarioIn, UsuarioOut, UsuarioUpdate
 from ..services.user_service import UserService, UsuarioNoExisteError, UsernameYaExisteError
 from ..repositories.user_repository import UserRepository
+from ..auth import get_current_user
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
@@ -23,8 +29,10 @@ def get_user_service(user_repository: UserRepository = Depends(get_user_reposito
 @router.get("/", response_model=list[UsuarioOut])
 def get_usuarios(
     db: Session = Depends(get_db),
-    user_service: UserService = Depends(get_user_service)
+    user_service: UserService = Depends(get_user_service),
+    current_user: str = Depends(get_current_user)
 ):
+    """Obtiene la lista de todos los usuarios registrados. Requiere autenticación JWT."""
     usuarios = user_service.listar_usuarios(db)
     return [UsuarioOut.from_orm(u) for u in usuarios]
 
@@ -34,6 +42,7 @@ def get_usuario(
     db: Session = Depends(get_db),
     user_service: UserService = Depends(get_user_service)
 ):
+    """Obtiene un usuario por su ID."""
     usuarios = user_service.listar_usuarios(db)
     usuario = next((u for u in usuarios if u.id == usuario_id), None)
     if not usuario:
@@ -46,6 +55,7 @@ def create_usuario(
     db: Session = Depends(get_db),
     user_service: UserService = Depends(get_user_service)
 ):
+    """Crea un nuevo usuario con username, password y rol."""
     try:
         nuevo_usuario = user_service.crear_usuario(db, usuario.username, usuario.password, usuario.role)
         return UsuarioOut.from_orm(nuevo_usuario)
@@ -59,6 +69,7 @@ def update_usuario(
     db: Session = Depends(get_db),
     user_service: UserService = Depends(get_user_service)
 ):
+    """Actualiza los datos de un usuario existente."""
     # --- DEPURACIÓN ---
     print("Datos recibidos para editar usuario:", usuario)
     print("Tipo de role:", type(usuario.role), "Valor de role:", usuario.role)
@@ -77,6 +88,7 @@ def delete_usuario(
     db: Session = Depends(get_db),
     user_service: UserService = Depends(get_user_service)
 ):
+    """Elimina un usuario por su ID y retorna la lista actualizada."""
     try:
         user_service.eliminar_usuario(db, usuario_id)
         usuarios = user_service.listar_usuarios(db)

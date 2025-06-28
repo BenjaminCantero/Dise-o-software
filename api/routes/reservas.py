@@ -1,3 +1,8 @@
+"""
+Rutas para la gestión de reservas en SmartRoom API.
+Incluye operaciones CRUD y utiliza comandos para la lógica de negocio.
+"""
+
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from ..db import SessionLocal
@@ -26,6 +31,7 @@ def listar_reservas(
     db: Session = Depends(get_db),
     reserva_service: ReservaService = Depends(get_reserva_service)
 ):
+    """Obtiene la lista de todas las reservas registradas."""
     reserva_service.db = db
     command = ListReservasCommand(reserva_service)
     reservas = command.execute()
@@ -37,6 +43,7 @@ def get_reserva(
     db: Session = Depends(get_db),
     reserva_service: ReservaService = Depends(get_reserva_service)
 ):
+    """Obtiene una reserva por su ID."""
     reserva_service.db = db
     command = GetReservaCommand(reserva_service, reserva_id)
     reserva = command.execute()
@@ -50,6 +57,7 @@ def create_reserva(
     db: Session = Depends(get_db),
     reserva_service: ReservaService = Depends(get_reserva_service)
 ):
+    """Crea una nueva reserva y retorna la lista actualizada."""
     reserva_service.db = db
     try:
         command = CreateReservaCommand(reserva_service, reserva.dict())
@@ -73,6 +81,7 @@ def update_reserva(
     db: Session = Depends(get_db),
     reserva_service: ReservaService = Depends(get_reserva_service)
 ):
+    """Actualiza una reserva existente y retorna la lista actualizada."""
     reserva_service.db = db
     try:
         command = EditReservaCommand(reserva_service, reserva_id, reserva.dict())
@@ -95,6 +104,7 @@ def delete_reserva(
     db: Session = Depends(get_db),
     reserva_service: ReservaService = Depends(get_reserva_service)
 ):
+    """Cancela una reserva por su ID y retorna la lista actualizada."""
     reserva_service.db = db
     try:
         command = CancelReservaCommand(reserva_service, reserva_id)
