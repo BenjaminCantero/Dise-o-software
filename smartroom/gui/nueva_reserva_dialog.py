@@ -14,7 +14,7 @@ class ReservaApp(EventListener, tk.Tk):
         self.user_service = user_service
         self.mediator = mediator
         self.title("Reservas")
-        self.geometry("800x600")
+        self.geometry("850x650")
         self.configure(bg="#232946")
 
         # --- PATRÓN MEDIATOR: Registrar el componente ---
@@ -97,48 +97,49 @@ class NuevaReservaDialog(tk.Toplevel):
     def __init__(self, parent, reserva_service, sala_service, user_service, on_success=None):
         super().__init__(parent)
         self.title("Nueva Reserva")
+        self.geometry("370x350")
         self.reserva_service = reserva_service
         self.sala_service = sala_service
         self.user_service = user_service
         self.on_success = on_success
+        self.configure(bg="#232946")
 
-        # Obtener usuarios y salas desde la API
-        try:
-            self.usuarios = self.user_service.get_all()
-            self.salas = self.sala_service.get_all()
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudieron cargar usuarios o salas:\n{e}")
-            self.destroy()
-            return
+        # Siempre en primer plano y bloquea la ventana principal
+        self.transient(parent)
+        self.grab_set()
 
-        self.usuario_var = tk.StringVar()
+        frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=340, height=300)
+        frame.pack_propagate(False)
+
+        tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
         self.sala_var = tk.StringVar()
-        self.fecha_var = tk.StringVar()
-        self.hora_inicio_var = tk.StringVar()
-        self.hora_fin_var = tk.StringVar()
+        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=self.sala_service.get_all(), state="readonly", width=28)
+        self.sala_combo.pack(ipady=3)
 
-        ttk.Label(self, text="Usuario:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-        self.usuario_combo = ttk.Combobox(self, textvariable=self.usuario_var, values=[u["username"] for u in self.usuarios])
-        self.usuario_combo.grid(row=0, column=1, padx=10, pady=5)
+        tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.usuario_var = tk.StringVar()
+        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=self.user_service.get_all(), state="readonly", width=28)
+        self.usuario_combo.pack(ipady=3)
 
-        ttk.Label(self, text="Sala:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
-        self.sala_combo = ttk.Combobox(self, textvariable=self.sala_var, values=[s["nombre"] for s in self.salas])
-        self.sala_combo.grid(row=1, column=1, padx=10, pady=5)
+        tk.Label(frame, text="Fecha (YYYY-MM-DD):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.fecha_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
+        self.fecha_entry.pack(ipady=3)
 
-        ttk.Label(self, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, padx=10, pady=5, sticky="e")
-        self.fecha_entry = ttk.Entry(self, textvariable=self.fecha_var)
-        self.fecha_entry.grid(row=2, column=1, padx=10, pady=5)
+        tk.Label(frame, text="Hora:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.hora_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
+        self.hora_entry.pack(ipady=3)
 
-        ttk.Label(self, text="Hora inicio (HH:MM):").grid(row=3, column=0, padx=10, pady=5, sticky="e")
-        self.hora_inicio_entry = ttk.Entry(self, textvariable=self.hora_inicio_var)
-        self.hora_inicio_entry.grid(row=3, column=1, padx=10, pady=5)
+        style = ttk.Style()
+        style.configure("Dialog.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
+        style.map("Dialog.TButton", background=[("active", "#eebbc3")], foreground=[("active", "#232946")])
 
-        ttk.Label(self, text="Hora fin (HH:MM):").grid(row=4, column=0, padx=10, pady=5, sticky="e")
-        self.hora_fin_entry = ttk.Entry(self, textvariable=self.hora_fin_var)
-        self.hora_fin_entry.grid(row=4, column=1, padx=10, pady=5)
+        btn_frame = tk.Frame(frame, bg="#f4f4f8")
+        btn_frame.pack(pady=18)
+        ttk.Button(btn_frame, text="Guardar", style="Dialog.TButton", command=self.guardar).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Cancelar", style="Dialog.TButton", command=self.destroy).pack(side="left", padx=8)
 
-        guardar_btn = ttk.Button(self, text="Guardar", command=self.guardar)
-        guardar_btn.grid(row=5, column=0, columnspan=2, pady=10)
+        self.fecha_entry.focus_set()
 
     def guardar(self):
         # --- Adapter: extrae y adapta los datos del diálogo ---

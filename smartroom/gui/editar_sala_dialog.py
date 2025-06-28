@@ -7,28 +7,40 @@ class EditarSalaDialog(tk.Toplevel):
     def __init__(self, parent, sala, sala_service, on_save=None):
         super().__init__(parent)
         self.title("Editar Sala")
+        self.geometry("370x320")
         self.sala = sala
         self.sala_service = sala_service
         self.on_save = on_save
+        self.configure(bg="#232946")
 
+        frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=340, height=270)
+
+        tk.Label(frame, text="Nombre de la sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
         self.nombre_var = tk.StringVar(value=sala["nombre"])
+        self.nombre_entry = ttk.Entry(frame, textvariable=self.nombre_var, width=30, font=("Arial", 11))
+        self.nombre_entry.pack(ipady=3)
+
+        tk.Label(frame, text="Capacidad:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.capacidad_var = tk.IntVar(value=sala["capacidad"])
+        self.capacidad_entry = ttk.Entry(frame, textvariable=self.capacidad_var, width=30, font=("Arial", 11))
+        self.capacidad_entry.pack(ipady=3)
+
+        tk.Label(frame, text="Estado:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.estado_var = tk.StringVar(value=sala["estado"])
+        self.estado_combo = ttk.Combobox(frame, textvariable=self.estado_var, values=["disponible", "ocupada"], state="readonly", width=28)
+        self.estado_combo.pack(ipady=3)
 
-        ttk.Label(self, text="Nombre:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-        self.nombre_entry = ttk.Entry(self, textvariable=self.nombre_var)
-        self.nombre_entry.grid(row=0, column=1, padx=10, pady=5)
+        style = ttk.Style()
+        style.configure("Dialog.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
+        style.map("Dialog.TButton", background=[("active", "#eebbc3")], foreground=[("active", "#232946")])
 
-        ttk.Label(self, text="Capacidad:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
-        self.capacidad_entry = ttk.Entry(self, textvariable=self.capacidad_var)
-        self.capacidad_entry.grid(row=1, column=1, padx=10, pady=5)
+        btn_frame = tk.Frame(frame, bg="#f4f4f8")
+        btn_frame.pack(pady=18)
+        ttk.Button(btn_frame, text="Guardar", style="Dialog.TButton", command=self.guardar).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Cancelar", style="Dialog.TButton", command=self.destroy).pack(side="left", padx=8)
 
-        ttk.Label(self, text="Estado:").grid(row=2, column=0, padx=10, pady=5, sticky="e")
-        self.estado_combo = ttk.Combobox(self, textvariable=self.estado_var, values=["disponible", "ocupada"])
-        self.estado_combo.grid(row=2, column=1, padx=10, pady=5)
-
-        guardar_btn = ttk.Button(self, text="Guardar", command=self.guardar)
-        guardar_btn.grid(row=3, column=0, columnspan=2, pady=10)
+        self.nombre_entry.focus_set()
 
     def guardar(self):
         # --- Adapter: extrae y adapta los datos del diálogo ---

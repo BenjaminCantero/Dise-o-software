@@ -15,16 +15,6 @@ class EditarReservaDialog(tk.Toplevel):
         self.sala_service = sala_service
         self.user_service = user_service
         self.on_save = on_save
-
-        # Obtener usuarios y salas desde la API
-        try:
-            self.usuarios = [u["username"] for u in self.user_service.get_all()]
-            self.salas = [s["nombre"] for s in self.sala_service.get_all()]
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudieron cargar usuarios o salas: {str(e)}")
-            self.destroy()
-            return
-
         self.configure(bg="#232946")
 
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
@@ -32,12 +22,12 @@ class EditarReservaDialog(tk.Toplevel):
 
         tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
         self.sala_var = tk.StringVar(value=reserva["sala"])
-        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=self.salas, state="readonly", width=28)
+        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=self.sala_service.get_all(), state="readonly", width=28)
         self.sala_combo.pack(ipady=3)
 
         tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.usuario_var = tk.StringVar(value=reserva["usuario"])
-        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=self.usuarios, state="readonly", width=28)
+        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=self.user_service.get_all(), state="readonly", width=28)
         self.usuario_combo.pack(ipady=3)
 
         tk.Label(frame, text="Fecha (YYYY-MM-DD):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
@@ -50,10 +40,14 @@ class EditarReservaDialog(tk.Toplevel):
         self.hora_entry.pack(ipady=3)
         self.hora_entry.insert(0, reserva["hora"])
 
+        style = ttk.Style()
+        style.configure("Dialog.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
+        style.map("Dialog.TButton", background=[("active", "#eebbc3")], foreground=[("active", "#232946")])
+
         btn_frame = tk.Frame(frame, bg="#f4f4f8")
         btn_frame.pack(pady=18)
-        ttk.Button(btn_frame, text="Guardar", command=self.guardar).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Cancelar", command=self.destroy).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Guardar", style="Dialog.TButton", command=self.guardar).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Cancelar", style="Dialog.TButton", command=self.destroy).pack(side="left", padx=8)
 
         self.bind("<Return>", lambda event: self.guardar())
         self.fecha_entry.focus_set()

@@ -33,22 +33,24 @@ class AdminPanel(EventListener, ttk.Frame):
 
     def create_widgets(self):
         style = ttk.Style()
+        style.theme_use("clam")
         style.configure("Panel.TFrame", background="#f4f4f8")
-        style.configure("PanelTitle.TLabel", font=("Arial", 20, "bold"), background="#f4f4f8", foreground="#232946")
-        style.configure("PanelIcon.TLabel", font=("Arial", 28), background="#f4f4f8", foreground="#eebbc3")
+        style.configure("PanelTitle.TLabel", font=("Segoe UI", 22, "bold"), background="#f4f4f8", foreground="#232946")
+        style.configure("PanelIcon.TLabel", font=("Segoe UI Emoji", 32), background="#f4f4f8", foreground="#eebbc3")
         style.configure("Card.TFrame", background="#eebbc3", relief="ridge", borderwidth=2)
-        style.configure("CardTitle.TLabel", font=("Arial", 12, "bold"), background="#eebbc3", foreground="#232946")
-        style.configure("CardValue.TLabel", font=("Arial", 16, "bold"), background="#eebbc3", foreground="#232946")
-        style.configure("Panel.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946")
-        style.map("Panel.TButton",
-                  background=[("active", "#eebbc3")],
-                  foreground=[("active", "#232946")])
+        style.configure("CardTitle.TLabel", font=("Segoe UI", 12, "bold"), background="#eebbc3", foreground="#232946")
+        style.configure("CardValue.TLabel", font=("Segoe UI", 18, "bold"), background="#eebbc3", foreground="#232946")
+        style.configure("Custom.Treeview", font=("Segoe UI", 13), rowheight=32, background="#f4f4f8", fieldbackground="#f4f4f8", borderwidth=0)
+        style.map("Custom.Treeview", background=[("selected", "#eebbc3")])
+        style.configure("Custom.Treeview.Heading", font=("Segoe UI", 14, "bold"), background="#eebbc3", foreground="#232946")
+        style.configure("Modern.TButton", font=("Segoe UI", 12, "bold"), background="#eebbc3", foreground="#232946", borderwidth=0, padding=8)
+        style.map("Modern.TButton", background=[("active", "#eebbc3")], foreground=[("active", "#232946")])
 
         # Título e icono
         top_frame = ttk.Frame(self, style="Panel.TFrame")
-        top_frame.pack(fill="x", pady=(10, 0), padx=10)
+        top_frame.pack(fill="x", pady=(18, 0), padx=18)
         icon = ttk.Label(top_frame, text="👤", style="PanelIcon.TLabel")
-        icon.pack(side="left", padx=(0, 10))
+        icon.pack(side="left", padx=(0, 12))
         label = ttk.Label(top_frame, text="Gestión de Usuarios", style="PanelTitle.TLabel")
         label.pack(side="left")
 
@@ -76,13 +78,13 @@ class AdminPanel(EventListener, ttk.Frame):
             cards_frame.columnconfigure(i, weight=1)
 
         # Tabla de usuarios
-        tabla_label = ttk.Label(self, text="Cuentas registradas", font=("Arial", 14, "bold"), background="#f4f4f8", foreground="#232946")
+        tabla_label = ttk.Label(self, text="Cuentas registradas", font=("Segoe UI", 14, "bold"), background="#f4f4f8", foreground="#232946")
         tabla_label.pack(pady=(30, 5))
 
         table_frame = ttk.Frame(self, style="Panel.TFrame")
         table_frame.pack(fill="both", expand=True, padx=20, pady=10)
         columns = ("username", "role")
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=12)
+        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=14, style="Custom.Treeview")
         self.tree.heading("username", text="Usuario")
         self.tree.heading("role", text="Rol")
         self.tree.column("username", width=180, anchor="center")
@@ -95,11 +97,11 @@ class AdminPanel(EventListener, ttk.Frame):
         # Botones de acción
         btn_frame = ttk.Frame(self, style="Panel.TFrame")
         btn_frame.pack(pady=10)
-        ttk.Button(btn_frame, text="Crear Usuario", style="Panel.TButton", width=18, command=self.create_usuario).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.delete_usuario).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Crear Usuario", style="Modern.TButton", width=18, command=self.create_usuario).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Eliminar Usuario", style="Modern.TButton", width=18, command=self.delete_usuario).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Editar Usuario", style="Modern.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
 
-        ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=self.on_volver).pack(pady=10)
+        ttk.Button(self, text="Volver al inicio", style="Modern.TButton", command=self.on_volver).pack(pady=10)
 
         self.cargar_usuarios()
 

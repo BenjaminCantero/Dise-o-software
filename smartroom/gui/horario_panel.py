@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import PhotoImage
 
 class HorarioPanel(ttk.Frame):
     def __init__(self, parent, reserva_service=None, user=None):
@@ -12,12 +13,15 @@ class HorarioPanel(ttk.Frame):
 
     def create_widgets(self):
         style = ttk.Style()
+        style.theme_use("clam")
         style.configure("Panel.TFrame", background="#f4f4f8")
-        style.configure("PanelTitle.TLabel", font=("Arial", 20, "bold"), background="#f4f4f8", foreground="#232946")
-        style.configure("PanelIcon.TLabel", font=("Arial", 26), background="#f4f4f8", foreground="#eebbc3")
-        style.configure("Custom.Treeview", font=("Arial", 13), rowheight=30, background="#f4f4f8", fieldbackground="#f4f4f8")
+        style.configure("PanelTitle.TLabel", font=("Segoe UI", 22, "bold"), background="#f4f4f8", foreground="#232946")
+        style.configure("PanelIcon.TLabel", font=("Segoe UI Emoji", 32), background="#f4f4f8", foreground="#eebbc3")
+        style.configure("Custom.Treeview", font=("Segoe UI", 13), rowheight=32, background="#f4f4f8", fieldbackground="#f4f4f8", borderwidth=0)
         style.map("Custom.Treeview", background=[("selected", "#eebbc3")])
-        style.configure("Custom.Treeview.Heading", font=("Arial", 14, "bold"), background="#eebbc3", foreground="#232946")
+        style.configure("Custom.Treeview.Heading", font=("Segoe UI", 14, "bold"), background="#eebbc3", foreground="#232946")
+        style.configure("Modern.TButton", font=("Segoe UI", 12, "bold"), background="#eebbc3", foreground="#232946", borderwidth=0, padding=8)
+        style.map("Modern.TButton", background=[("active", "#eebbc3")], foreground=[("active", "#232946")])
 
         # Título e icono
         top_frame = ttk.Frame(self, style="Panel.TFrame")
@@ -34,7 +38,7 @@ class HorarioPanel(ttk.Frame):
             subtitulo = ttk.Label(
                 top_frame,
                 text=f"Mostrando reservas para: {nombre} ({rol})",
-                font=("Arial", 12),
+                font=("Segoe UI", 12),
                 background="#f4f4f8",
                 foreground="#232946"
             )
@@ -62,6 +66,12 @@ class HorarioPanel(ttk.Frame):
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
         hsb.pack(side="bottom", fill="x")
+
+        # Botón de refrescar
+        btn_frame = ttk.Frame(self, style="Panel.TFrame")
+        btn_frame.pack(fill="x", pady=(0, 18), padx=18)
+        refresh_btn = ttk.Button(btn_frame, text="🔄 Refrescar", style="Modern.TButton", command=self.cargar_horario)
+        refresh_btn.pack(side="right")
 
         self.cargar_horario()
 

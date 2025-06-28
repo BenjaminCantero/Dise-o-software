@@ -32,15 +32,13 @@ class NuevaSalaDialog(tk.Toplevel):
         self.estado_combo.current(0)
 
         style = ttk.Style()
-        style.configure("SalaForm.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
-        style.map("SalaForm.TButton",
-                  background=[("active", "#eebbc3")],
-                  foreground=[("active", "#232946")])
+        style.configure("Dialog.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
+        style.map("Dialog.TButton", background=[("active", "#eebbc3")], foreground=[("active", "#232946")])
 
         btn_frame = tk.Frame(frame, bg="#f4f4f8")
         btn_frame.pack(pady=18)
-        ttk.Button(btn_frame, text="Guardar", style="SalaForm.TButton", command=self.guardar).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Cancelar", style="SalaForm.TButton", command=self.destroy).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Guardar", style="Dialog.TButton", command=self.guardar).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Cancelar", style="Dialog.TButton", command=self.destroy).pack(side="left", padx=8)
 
         self.nombre_entry.focus_set()
 
@@ -62,28 +60,32 @@ class NuevaSalaDialog(tk.Toplevel):
             self._guardando = False
             return
         try:
-            capacidad_int = int(capacidad)
-            if capacidad_int <= 0:
-                raise ValueError
-        except ValueError:
-            messagebox.showerror("Error", "La capacidad debe ser un número entero positivo.")
+            capacidad = int(capacidad)
+        except Exception:
+            messagebox.showerror("Error", "La capacidad debe ser un número entero.")
+            self._guardando = False
+            return
+        if capacidad <= 0:
+            messagebox.showerror("Error", "La capacidad debe ser mayor a cero.")
+            self._guardando = False
+            return
+        if not estado:
+            messagebox.showerror("Error", "Debe seleccionar un estado.")
             self._guardando = False
             return
 
-        # Si pasa la validación, usa el adapter normalmente
-        adapter = SalaDialogAdapter(self)
-        data = adapter.get_data()
         try:
-            command = CreateSalaCommand(self.sala_service, data["nombre"], data["capacidad"], data["estado"])
+            command = CreateSalaCommand(self.sala_service, nombre, capacidad, estado)
             command.execute()
-            messagebox.showinfo("Éxito", "Sala creada correctamente.")
-            if self.on_success:
-                self.on_success(data["nombre"], data["capacidad"], data["estado"])
-            self.destroy()
         except Exception as e:
-            # Solo muestra el error si ocurre una excepción real
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", f"No se pudo crear la sala:\n{e}")
             self._guardando = False
+            return
+
+        messagebox.showinfo("Éxito", "Sala creada correctamente.")
+        if self.on_success:
+            self.on_success()
+        self.destroy()
 
     @property
     def nombre_input(self):
