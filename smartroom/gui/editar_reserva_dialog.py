@@ -2,22 +2,24 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
-from smartroom.services import reserva_service, sala_service, user_service
-from commands.cancel_reserva_command import EditReservaCommand    
+from commands.cancel_reserva_command import EditReservaCommand
 from builders.reserva_builder import ReservaBuilder
 
 class EditarReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva, on_save=None):
+    def __init__(self, parent, reserva, reserva_service, sala_service, user_service, on_save=None):
         super().__init__(parent)
         self.title("Editar Reserva")
         self.geometry("370x350")
         self.reserva = reserva
+        self.reserva_service = reserva_service
+        self.sala_service = sala_service
+        self.user_service = user_service
         self.on_save = on_save
 
         # Obtener usuarios y salas desde la API
         try:
-            self.usuarios = user_service.get_usuarios()
-            self.salas = sala_service.get_salas()
+            self.usuarios = [u["username"] for u in self.user_service.get_all()]
+            self.salas = [s["nombre"] for s in self.sala_service.get_all()]
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar usuarios o salas: {str(e)}")
             self.destroy()
@@ -89,14 +91,27 @@ class EditarReservaDialog(tk.Toplevel):
             return
 
         try:
-            # Usar el patrón Command para editar la reserva
-            new_data = {
-                "sala_nombre": data["sala"],
-                "usuario_username": data["usuario"],
-                "fecha_inicio": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M"),
-                "fecha_fin": datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M").replace(hour=(datetime.strptime(data['hora'], "%H:%M").hour + 1) % 24)
-            }
-            command = EditReservaCommand(self.reserva_service, self.reserva["id"], new_data)
+            fecha_inicio = datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M")
+            fecha_fin = fecha_inicio.replace(hour=(fecha_inicio.hour + 1) % 24)
+            # Busca los IDs correspondientes
+            usuarios = self.user_service.get_all()
+            salas = self.sala_service.get_all()
+            usuario_id = next((u["id"] for u in usuarios if u["username"] == data["usuario"]), None)
+            sala_id = next((s["id"] for s in salas if s["nombre"] == data["sala"]), None)
+            if usuario_id is None or sala_id is None:
+                messagebox.showerror("Error", "No se encontró el usuario o la sala seleccionada.")
+                return
+            # --- Command: ejecuta la acción de editar reserva ---
+            command = EditReservaCommand(
+                self.reserva_service,
+                self.reserva["id"],
+                {
+                    "usuario_id": usuario_id,
+                    "sala_id": sala_id,
+                    "fecha_inicio": fecha_inicio.isoformat(),
+                    "fecha_fin": fecha_fin.isoformat()
+                }
+            )
             command.execute()
         except Exception as e:
             messagebox.showerror("Conflicto", str(e))
@@ -106,24 +121,6 @@ class EditarReservaDialog(tk.Toplevel):
         if self.on_save:
             self.on_save(data["sala"], data["usuario"], data["fecha"], data["hora"])
         self.destroy()
-
-    def actualizar_reserva(self):
-        usuario = self.obtener_usuario_seleccionado()
-        sala = self.obtener_sala_seleccionada()
-        fecha_inicio = self.obtener_fecha_inicio()
-        fecha_fin = self.obtener_fecha_fin()
-
-        builder = ReservaBuilder()
-        reserva = (
-            builder
-            .set_usuario(usuario)
-            .set_sala(sala)
-            .set_fecha_inicio(fecha_inicio)
-            .set_fecha_fin(fecha_fin)
-            .build()
-        )
-
-        self.reserva_service.actualizar_reserva(reserva)
 
     @property
     def sala_input(self):

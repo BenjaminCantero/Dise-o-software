@@ -1,8 +1,12 @@
 from tkcalendar import DateEntry
 from tkinter import ttk, messagebox, Toplevel, StringVar, Label, Entry, Button
 from datetime import datetime
+from gui.nueva_reserva_dialog import NuevaReservaDialog
+from gui.editar_reserva_dialog import EditarReservaDialog
+from mediator.app_mediator import EventListener
+from commands.cancel_reserva_command import CancelReservaCommand  # Debes tener este comando implementado
 
-class ReservasPanel(ttk.Frame):
+class ReservasPanel(EventListener, ttk.Frame):
     def __init__(self, parent, mediator=None, reserva_service=None, sala_service=None, user_service=None, user=None, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator
@@ -70,9 +74,9 @@ class ReservasPanel(ttk.Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
         try:
-            reservas = self.reserva_service.get_reservas()
-            usuarios = {u["id"]: u["username"] for u in self.user_service.get_usuarios()}
-            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_salas()}
+            reservas = self.reserva_service.get_all()
+            usuarios = {u["id"]: u["username"] for u in self.user_service.get_all()}
+            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_all()}
             for reserva in reservas:
                 usuario = usuarios.get(reserva["usuario_id"], "Desconocido")
                 sala = salas.get(reserva["sala_id"], "Desconocida")
@@ -90,7 +94,11 @@ class ReservasPanel(ttk.Frame):
             messagebox.showerror("Error", f"No se pudieron cargar las reservas:\n{e}")
 
     def nueva_reserva(self):
-        self._abrir_dialogo_reserva("Nueva Reserva")
+        def on_success(*_):
+            self.cargar_reservas()
+            if self.mediator:
+                self.mediator.notify(self, "reserva_creada", None)
+        NuevaReservaDialog(self, self.reserva_service, self.sala_service, self.user_service, on_success=on_success)
 
     def editar_reserva(self):
         selected = self.tree.selection()
@@ -98,10 +106,23 @@ class ReservasPanel(ttk.Frame):
             messagebox.showwarning("Advertencia", "Selecciona una reserva para editar.")
             return
         reserva_id = self.tree.item(selected[0])["values"][0]
-        reservas = self.reserva_service.get_reservas()
+        reservas = self.reserva_service.get_all()
         reserva = next((r for r in reservas if r["id"] == reserva_id), None)
         if reserva:
-            self._abrir_dialogo_reserva("Editar Reserva", reserva)
+            def on_save(*_):
+                self.cargar_reservas()
+                if self.mediator:
+                    self.mediator.notify(self, "reserva_editada", None)
+            usuarios = {u["id"]: u["username"] for u in self.user_service.get_all()}
+            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_all()}
+            reserva_dialog_data = {
+                "id": reserva["id"],
+                "usuario": usuarios.get(reserva["usuario_id"], ""),
+                "sala": salas.get(reserva["sala_id"], ""),
+                "fecha": reserva["fecha_inicio"][:10],
+                "hora": reserva["fecha_inicio"][11:16]
+            }
+            EditarReservaDialog(self, reserva_dialog_data, self.reserva_service, self.sala_service, self.user_service, on_save=on_save)
 
     def eliminar_reserva(self):
         selected = self.tree.selection()
@@ -112,124 +133,16 @@ class ReservasPanel(ttk.Frame):
         respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar esta reserva?")
         if respuesta:
             try:
-                self.reserva_service.delete_reserva(reserva_id)
+                # --- Command: ejecuta la acción de eliminar reserva ---
+                command = CancelReservaCommand(self.reserva_service, reserva_id)
+                command.execute()
                 self.cargar_reservas()
                 if self.mediator:
-                    self.mediator.notify(self, "reserva_eliminada", reserva_id)
+                    self.mediator.notify(self, "reserva_eliminada", None)
                 messagebox.showinfo("Éxito", "Reserva eliminada correctamente")
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo eliminar la reserva:\n{e}")
 
-    def _abrir_dialogo_reserva(self, titulo, reserva=None):
-        dialog = Toplevel(self)
-        dialog.title(titulo)
-        dialog.geometry("420x480")
-        dialog.configure(bg="#232946")
-        dialog.transient(self)
-        dialog.grab_set()
-
-        frame = ttk.Frame(dialog, style="Panel.TFrame")
-        frame.place(relx=0.5, rely=0.5, anchor="center", width=370, height=400)
-
-        label_opts = {"font": ("Arial", 12), "bg": "#f4f4f8", "fg": "#232946"}
-        entry_opts = {"font": ("Arial", 11)}
-
-        # Usuario
-        Label(frame, text="Usuario:", **label_opts).grid(row=0, column=0, sticky="e", padx=(18, 6), pady=(18, 6))
-        usuarios = self.user_service.get_usuarios()
-        usuario_var = StringVar()
-        usuario_combo = ttk.Combobox(frame, values=[f'{u["id"]}: {u["username"]}' for u in usuarios], state="readonly", textvariable=usuario_var, width=24)
-        usuario_combo.grid(row=0, column=1, padx=(6, 18), pady=(18, 6))
-        if reserva:
-            usuario_combo.set(f'{reserva["usuario_id"]}: {next((u["username"] for u in usuarios if u["id"] == reserva["usuario_id"]), "")}')
-        else:
-            usuario_combo.current(0)
-
-        # Sala
-        Label(frame, text="Sala:", **label_opts).grid(row=1, column=0, sticky="e", padx=(18, 6), pady=6)
-        salas = self.sala_service.get_salas()
-        sala_var = StringVar()
-        sala_combo = ttk.Combobox(frame, values=[f'{s["id"]}: {s["nombre"]}' for s in salas], state="readonly", textvariable=sala_var, width=24)
-        sala_combo.grid(row=1, column=1, padx=(6, 18), pady=6)
-        if reserva:
-            sala_combo.set(f'{reserva["sala_id"]}: {next((s["nombre"] for s in salas if s["id"] == reserva["sala_id"]), "")}')
-        else:
-            sala_combo.current(0)
-
-        # Fecha y hora inicio
-        Label(frame, text="Fecha Inicio:", **label_opts).grid(row=2, column=0, sticky="e", padx=(18, 6), pady=6)
-        fecha_inicio = DateEntry(frame, width=22)
-        fecha_inicio.grid(row=2, column=1, padx=(6, 18), pady=6)
-        Label(frame, text="Hora Inicio (HH:MM):", **label_opts).grid(row=3, column=0, sticky="e", padx=(18, 6), pady=6)
-        hora_inicio = Entry(frame, **entry_opts, width=26)
-        hora_inicio.grid(row=3, column=1, padx=(6, 18), pady=6)
-
-        # Fecha y hora fin
-        Label(frame, text="Fecha Fin:", **label_opts).grid(row=4, column=0, sticky="e", padx=(18, 6), pady=6)
-        fecha_fin = DateEntry(frame, width=22)
-        fecha_fin.grid(row=4, column=1, padx=(6, 18), pady=6)
-        Label(frame, text="Hora Fin (HH:MM):", **label_opts).grid(row=5, column=0, sticky="e", padx=(18, 6), pady=6)
-        hora_fin = Entry(frame, **entry_opts, width=26)
-        hora_fin.grid(row=5, column=1, padx=(6, 18), pady=6)
-
-        # Rellenar datos si es edición
-        if reserva:
-            try:
-                fi = reserva["fecha_inicio"]
-                ff = reserva["fecha_fin"]
-                if "T" in fi:
-                    fecha_i, hora_i = fi.split("T")
-                    hora_i = hora_i[:5]
-                else:
-                    fecha_i, hora_i = fi[:10], fi[11:16]
-                if "T" in ff:
-                    fecha_f, hora_f = ff.split("T")
-                    hora_f = hora_f[:5]
-                else:
-                    fecha_f, hora_f = ff[:10], ff[11:16]
-                fecha_inicio.set_date(fecha_i)
-                hora_inicio.delete(0, "end")
-                hora_inicio.insert(0, hora_i)
-                fecha_fin.set_date(fecha_f)
-                hora_fin.delete(0, "end")
-                hora_fin.insert(0, hora_f)
-            except Exception:
-                pass
-
-        # Botones
-        btn_frame = ttk.Frame(frame, style="Panel.TFrame")
-        btn_frame.grid(row=6, column=0, columnspan=2, pady=(24, 0))
-        ttk.Button(btn_frame, text="Guardar", style="Panel.TButton", command=lambda: guardar()).pack(side="left", padx=12)
-        ttk.Button(btn_frame, text="Cancelar", style="Panel.TButton", command=dialog.destroy).pack(side="left", padx=12)
-
-        def guardar():
-            usuario_val = usuario_combo.get()
-            sala_val = sala_combo.get()
-            hora_ini_val = hora_inicio.get().strip()
-            hora_fin_val = hora_fin.get().strip()
-            if not usuario_val or not sala_val or not hora_ini_val or not hora_fin_val:
-                messagebox.showwarning("Campos incompletos", "Completa todos los campos antes de guardar.")
-                return
-
-            try:
-                usuario_id = int(usuario_val.split(":")[0])
-                sala_id = int(sala_val.split(":")[0])
-                fecha_ini = f"{fecha_inicio.get()}T{hora_ini_val}:00"
-                fecha_fin_str = f"{fecha_fin.get()}T{hora_fin_val}:00"
-                if reserva:
-                    self.reserva_service.update_reserva(reserva["id"], usuario_id, sala_id, fecha_ini, fecha_fin_str)
-                else:
-                    self.reserva_service.create_reserva(usuario_id, sala_id, fecha_ini, fecha_fin_str)
-                self.cargar_reservas()
-                if self.mediator:
-                    self.mediator.notify(self, "reserva_editada" if reserva else "reserva_creada")
-                dialog.destroy()
-                messagebox.showinfo("Éxito", "Reserva guardada correctamente")
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo guardar la reserva:\n{e}")
-
-        dialog.bind("<Return>", lambda event: guardar())
-        usuario_combo.focus_set()
-
     def on_event(self, sender, event, data):
-        self.cargar_reservas()
+        if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
+            self.cargar_reservas()

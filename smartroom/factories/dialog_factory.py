@@ -2,6 +2,7 @@ from gui.nueva_reserva_dialog import NuevaReservaDialog
 from gui.editar_reserva_dialog import EditarReservaDialog
 from gui.nueva_sala_dialog import NuevaSalaDialog
 from gui.editar_sala_dialog import EditarSalaDialog
+from gui.editar_usuario_dialog import EditarUsuarioDialog
 
 class DialogFactory:
     """
@@ -14,6 +15,7 @@ class DialogFactory:
             "editar_reserva": EditarReservaDialog,
             "nueva_sala": NuevaSalaDialog,
             "editar_sala": EditarSalaDialog,
+            "editar_usuario": EditarUsuarioDialog,  # <-- AGREGA ESTA LÍNEA
         }
 
     def create_dialog(self, dialog_type, *args, **kwargs):

@@ -34,10 +34,12 @@ class DashboardPanel(ttk.Frame):
         cards_frame = ttk.Frame(self, style="Panel.TFrame")
         cards_frame.pack(pady=10, padx=20, fill="x")
 
-        total_salas = len(self.sala_service.get_salas()) if self.sala_service else 0
-        ocupadas = len([s for s in self.sala_service.get_salas() if s["estado"] == "ocupada"]) if self.sala_service else 0
-        libres = len([s for s in self.sala_service.get_salas() if s["estado"] == "disponible"]) if self.sala_service else 0
-        total_reservas = len(self.reserva_service.get_reservas()) if self.reserva_service else 0
+        salas = self.sala_service.get_all() if self.sala_service else []
+        total_salas = len(salas)
+        ocupadas = len([s for s in salas if s.get("estado") == "ocupada"])
+        libres = len([s for s in salas if s.get("estado") == "disponible"])
+        reservas = self.reserva_service.get_all() if self.reserva_service else []
+        total_reservas = len(reservas)
 
         # Card: Total de salas
         card1 = ttk.Frame(cards_frame, style="Card.TFrame")
@@ -85,9 +87,9 @@ class DashboardPanel(ttk.Frame):
 
         # Cargar reservas actuales
         if self.reserva_service and self.sala_service and self.user_service:
-            reservas = self.reserva_service.get_reservas()
-            usuarios = {u["id"]: u["username"] for u in self.user_service.get_usuarios()}
-            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_salas()}
+            reservas = self.reserva_service.get_all()
+            usuarios = {u["id"]: u["username"] for u in self.user_service.get_all()}
+            salas = {s["id"]: s["nombre"] for s in self.sala_service.get_all()}
             for reserva in reservas:
                 usuario = usuarios.get(reserva.get("usuario_id"), "None")
                 sala = salas.get(reserva.get("sala_id"), "None")

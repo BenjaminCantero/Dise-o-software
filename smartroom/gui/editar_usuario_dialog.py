@@ -19,7 +19,9 @@ class EditarUsuarioDialog(tk.Toplevel):
         self.username_entry.pack(ipady=3)
         self.username_entry.delete(0, tk.END)
         if usuario:
-            self.username_entry.insert(0, getattr(usuario, "username", ""))
+            # Si usuario es un dict (de la API), usa ["username"], si es objeto, usa getattr
+            username = usuario.get("username") if isinstance(usuario, dict) else getattr(usuario, "username", "")
+            self.username_entry.insert(0, username)
         # Campo para contraseña solo al crear usuario
         self.password_entry = None
         if not usuario:
@@ -28,7 +30,8 @@ class EditarUsuarioDialog(tk.Toplevel):
             self.password_entry.pack(ipady=3)
 
         tk.Label(frame, text="Rol:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.role_var = tk.StringVar(value=getattr(usuario, "role", "estudiante") if usuario else "estudiante")
+        role = usuario.get("role") if usuario and isinstance(usuario, dict) else getattr(usuario, "role", "estudiante")
+        self.role_var = tk.StringVar(value=role if role else "estudiante")
         self.role_combo = ttk.Combobox(frame, textvariable=self.role_var, values=["admin", "profesor", "estudiante"], state="readonly", width=22)
         self.role_combo.pack(ipady=3)
 
@@ -53,6 +56,7 @@ class EditarUsuarioDialog(tk.Toplevel):
             messagebox.showerror("Error", "Todos los campos son obligatorios.")
             return
         if self.on_save:
+            # Pasa password solo si se está creando usuario
             self.on_save(data["username"].strip(), password, data["role"].strip())
         self.destroy()
 

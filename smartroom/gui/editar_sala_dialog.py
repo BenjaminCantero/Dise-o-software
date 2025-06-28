@@ -1,13 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from adapters.sala_dialog_adapter import SalaDialogAdapter
-from smartroom.services import sala_service
+from commands.sala_commands import EditSalaCommand  # Debes tener este comando implementado
 
 class EditarSalaDialog(tk.Toplevel):
-    def __init__(self, parent, sala, on_save=None):
+    def __init__(self, parent, sala, sala_service, on_save=None):
         super().__init__(parent)
         self.title("Editar Sala")
         self.sala = sala
+        self.sala_service = sala_service
         self.on_save = on_save
 
         self.nombre_var = tk.StringVar(value=sala["nombre"])
@@ -30,13 +31,17 @@ class EditarSalaDialog(tk.Toplevel):
         guardar_btn.grid(row=3, column=0, columnspan=2, pady=10)
 
     def guardar(self):
-        nombre = self.nombre_var.get()
+        # --- Adapter: extrae y adapta los datos del diálogo ---
+        adapter = SalaDialogAdapter(self)
+        data = adapter.get_data()
+
+        nombre = data.get("nombre")
         try:
-            capacidad = int(self.capacidad_var.get())
+            capacidad = int(data.get("capacidad"))
         except Exception:
             messagebox.showerror("Error", "La capacidad debe ser un número entero.")
             return
-        estado = self.estado_var.get()
+        estado = data.get("estado")
 
         if not nombre:
             messagebox.showerror("Error", "El nombre de la sala es obligatorio.")
@@ -49,7 +54,9 @@ class EditarSalaDialog(tk.Toplevel):
             return
 
         try:
-            sala_service.editar_sala(self.sala["id"], nombre, capacidad, estado)
+            # --- Command: ejecuta la acción de editar sala ---
+            command = EditSalaCommand(self.sala_service, self.sala["id"], nombre, capacidad, estado)
+            command.execute()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo editar la sala:\n{e}")
             return

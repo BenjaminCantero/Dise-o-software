@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from ..schemas.sala import SalaIn, SalaOut
 from ..services.sala_service import SalaService, SalaNoExisteError, NombreSalaYaExisteError
 from ..db import SessionLocal
@@ -45,7 +46,11 @@ def create_sala(
         nueva_sala = sala_service.crear_sala(db, sala.nombre, sala.capacidad, sala.estado)
         return SalaOut.from_orm(nueva_sala)
     except NombreSalaYaExisteError as e:
+        db.rollback()  # <-- ¡Agrega esto!
         raise HTTPException(status_code=400, detail=str(e))
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error de base de datos")
 
 @router.put("/{sala_id}", response_model=SalaOut)
 def update_sala(

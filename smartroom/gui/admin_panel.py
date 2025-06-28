@@ -1,14 +1,18 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-from gui.editar_usuario_dialog import EditarUsuarioDialog
+from tkinter import ttk, messagebox
+from mediator.app_mediator import EventListener
+from factories.dialog_factory import DialogFactory
+from adapters.usuario_dialog_adapter import UsuarioDialogAdapter
+from builders.usuario_builder import UsuarioBuilder
+from commands.user_commands import CreateUsuarioCommand, EditUsuarioCommand, DeleteUsuarioCommand
 
-class AdminPanel(ttk.Frame):
+class AdminPanel(EventListener, ttk.Frame):
     def __init__(self, parent, mediator, user_service=None, on_volver=None):
         super().__init__(parent)
         self.mediator = mediator
         self.user_service = user_service
         self.on_volver = on_volver
+        self.dialog_factory = DialogFactory()
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
         self.create_widgets()
@@ -52,7 +56,7 @@ class AdminPanel(ttk.Frame):
         cards_frame = ttk.Frame(self, style="Panel.TFrame")
         cards_frame.pack(pady=10, padx=20, fill="x")
 
-        usuarios = self.user_service.get_usuarios() if self.user_service else []
+        usuarios = self.user_service.get_all() if self.user_service else []
         total_usuarios = len(usuarios)
         admins = len([u for u in usuarios if u["role"] == "admin"])
         profesores = len([u for u in usuarios if u["role"] == "profesor"])
@@ -93,7 +97,7 @@ class AdminPanel(ttk.Frame):
         btn_frame.pack(pady=10)
         ttk.Button(btn_frame, text="Crear Usuario", style="Panel.TButton", width=18, command=self.create_usuario).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Eliminar Usuario", style="Panel.TButton", width=18, command=self.delete_usuario).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.update_usuario).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Editar Usuario", style="Panel.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
 
         ttk.Button(self, text="Volver al inicio", style="Panel.TButton", command=self.on_volver).pack(pady=10)
 
@@ -103,22 +107,27 @@ class AdminPanel(ttk.Frame):
         if self.user_service:
             for row in self.tree.get_children():
                 self.tree.delete(row)
-            usuarios = self.user_service.get_usuarios()
+            usuarios = self.user_service.get_all()
             for usuario in usuarios:
                 self.tree.insert("", "end", values=(usuario["username"], usuario["role"]))
 
     def create_usuario(self):
         def on_save(username, password, role):
             try:
-                self.user_service.create_usuario(username, password, role)
+                # Adapter: extrae y adapta los datos del diálogo
+                usuario_data = {"username": username, "password": password, "role": role}
+                # Builder: solo si necesitas lógica extra, si no, puedes omitirlo
+                # usuario = UsuarioBuilder().set_username(usuario_data["username"]).set_password(usuario_data["password"]).set_role(usuario_data["role"]).build()
+                # Command: ejecuta la acción de crear usuario
+                command = CreateUsuarioCommand(self.user_service, usuario_data)
+                command.execute()
                 self.cargar_usuarios()
                 messagebox.showinfo("Éxito", "Usuario creado correctamente.")
-                # --- PATRÓN MEDIATOR: Notificar evento ---
                 if self.mediator:
-                    self.mediator.notify(self, "usuario_creado", username)
+                    self.mediator.notify(self, "usuario_creado", usuario_data["username"])
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo crear el usuario: {e}")
-        EditarUsuarioDialog(self, None, on_save=on_save)
+        self.dialog_factory.create_dialog("editar_usuario", self, None, on_save=on_save)
 
     def delete_usuario(self):
         selected = self.tree.selection()
@@ -129,10 +138,12 @@ class AdminPanel(ttk.Frame):
             respuesta = messagebox.askyesno("Confirmar eliminación", "¿Estás seguro de que deseas eliminar este usuario?")
             if respuesta:
                 username = self.tree.item(selected[0])["values"][0]
-                usuarios = self.user_service.get_usuarios()
+                usuarios = self.user_service.get_all()
                 usuario = next((u for u in usuarios if u["username"] == username), None)
                 if usuario:
-                    self.user_service.delete_usuario(usuario["id"])
+                    # --- Command: ejecuta la acción de eliminar usuario ---
+                    command = DeleteUsuarioCommand(self.user_service, usuario["id"])
+                    command.execute()
                     messagebox.showinfo("Éxito", "Usuario eliminado correctamente")
                     self.cargar_usuarios()
                     if self.mediator:
@@ -140,23 +151,34 @@ class AdminPanel(ttk.Frame):
                 else:
                     messagebox.showerror("Error", "No se encontró el usuario.")
 
-    def update_usuario(self):
+    def editar_usuario(self):
         selected = self.tree.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Selecciona un usuario para editar.")
             return
-        if self.user_service:
-            username = self.tree.item(selected[0])["values"][0]
-            usuarios = self.user_service.get_usuarios()
-            usuario = next((u for u in usuarios if u["username"] == username), None)
-            if usuario:
-                def on_save(username, password, role):
-                    try:
-                        self.user_service.update_usuario(usuario["id"], username, role)
-                        self.cargar_usuarios()
-                        messagebox.showinfo("Éxito", "Usuario editado correctamente.")
-                        if self.mediator:
-                            self.mediator.notify(self, "usuario_editado", username)
-                    except Exception as e:
-                        messagebox.showerror("Error", f"No se pudo editar el usuario: {e}")
-                EditarUsuarioDialog(self, usuario, on_save=on_save)
+        username = self.tree.item(selected[0])["values"][0]
+        usuarios = self.user_service.get_all()
+        usuario = next((u for u in usuarios if u["username"] == username), None)
+        if not usuario:
+            messagebox.showerror("Error", "No se encontró el usuario.")
+            return
+        usuario_id = usuario["id"]
+
+        def on_save(username, password, role):
+            try:
+                if not username or not role:
+                    raise Exception("El nombre de usuario y el rol son obligatorios.")
+                usuario_data = {
+                    "username": username.strip(),
+                    "role": role.strip()
+                }
+                command = EditUsuarioCommand(self.user_service, usuario_id, usuario_data)
+                command.execute()
+                self.cargar_usuarios()
+                messagebox.showinfo("Éxito", "Usuario editado correctamente.")
+                if self.mediator:
+                    self.mediator.notify(self, "usuario_editado", username)
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo editar el usuario: {e}")
+
+        self.dialog_factory.create_dialog("editar_usuario", self, usuario, on_save=on_save)

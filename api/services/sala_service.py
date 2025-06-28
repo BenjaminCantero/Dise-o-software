@@ -24,7 +24,8 @@ class SalaService(ISalaCRUDService):
         return self.sala_repository.obtener_salas(db)
 
     def crear_sala(self, db: Session, nombre: str, capacidad: int, estado: str = "disponible"):
-        self._validar_nombre_unico(db, nombre)
+        if self.sala_repository.existe_nombre(db, nombre):
+            raise NombreSalaYaExisteError("El nombre ya está en uso")
         return self.sala_repository.crear(db, nombre, capacidad, estado)
 
     def editar_sala(self, db: Session, sala_id: int, nombre: str = None, capacidad: int = None, estado: str = None):
