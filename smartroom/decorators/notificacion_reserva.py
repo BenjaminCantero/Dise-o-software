@@ -56,19 +56,4 @@ class DecoradorNotificacion(Decorador):
         print(f"[NOTIFICACION] Se ha notificado al usuario '{datos.get('usuario', 'desconocido')}'.")
         return resultado
 
-# 8. Ejemplo de uso
-if __name__ == "__main__":
-    datos = {
-        "usuario": "gerardo",
-        "accion": "crear_reserva",
-        "detalle": {"sala": 2, "fecha": "2025-06-22"}
-    }
-
-    componente = ComponenteConcreto()
-    componente = DecoradorLogging(componente)
-    componente = DecoradorValidacion(componente)
-    componente = DecoradorAuditoria(componente)
-    componente = DecoradorNotificacion(componente)
-
-    resultado = componente.operacion(datos)
-    print("Resultado final:", resultado)
+# Los decoradores están listos para ser usados en los servicios del sistema.

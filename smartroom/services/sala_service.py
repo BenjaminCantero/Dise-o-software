@@ -1,6 +1,13 @@
 import requests
 from smartroom.services.base_api_service import BaseApiService
 from smartroom.services.interfaces import ISalaCRUDService
+from smartroom.decorators.notificacion_reserva import (
+    ComponenteConcreto,
+    DecoradorLogging,
+    DecoradorValidacion,
+    DecoradorAuditoria,
+    DecoradorNotificacion
+)
 
 class SalaService(BaseApiService, ISalaCRUDService):
     """
@@ -18,6 +25,18 @@ class SalaService(BaseApiService, ISalaCRUDService):
 
     def create(self, nombre, capacidad, estado):
         try:
+            datos = {
+                "usuario": "admin",  # O el usuario que corresponda
+                "accion": "crear_sala",
+                "detalle": {"nombre": nombre, "capacidad": capacidad, "estado": estado}
+            }
+            componente = ComponenteConcreto()
+            componente = DecoradorLogging(componente)
+            componente = DecoradorValidacion(componente)
+            componente = DecoradorAuditoria(componente)
+            componente = DecoradorNotificacion(componente)
+            componente.operacion(datos)
+
             data = {"nombre": nombre, "capacidad": capacidad, "estado": estado}
             resp = requests.post(f"{self.API_URL}/salas/", json=data, headers=self.HEADERS)
             resp.raise_for_status()

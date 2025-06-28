@@ -2,6 +2,13 @@ import requests
 from typing import Any, Dict, List
 from smartroom.services.base_api_service import BaseApiService
 from smartroom.services.interfaces import IReservaCRUDService
+from smartroom.decorators.notificacion_reserva import (
+    ComponenteConcreto,
+    DecoradorLogging,
+    DecoradorValidacion,
+    DecoradorAuditoria,
+    DecoradorNotificacion
+)
 
 class ReservaService(BaseApiService, IReservaCRUDService):
     """
@@ -19,6 +26,25 @@ class ReservaService(BaseApiService, IReservaCRUDService):
 
     def create(self, usuario_id, sala_id, fecha_inicio, fecha_fin):
         try:
+            datos = {
+                "usuario": usuario_id,  # Se asume que usuario_id identifica al usuario
+                "accion": "crear_reserva",
+                "detalle": {
+                    "sala": sala_id,
+                    "fecha_inicio": fecha_inicio,
+                    "fecha_fin": fecha_fin
+                }
+            }
+            # Aplica la cadena de decoradores
+            componente = ComponenteConcreto()
+            componente = DecoradorLogging(componente)
+            componente = DecoradorValidacion(componente)
+            componente = DecoradorAuditoria(componente)
+            componente = DecoradorNotificacion(componente)
+            # Ejecuta la operación decorada (puedes usar el resultado si lo necesitas)
+            componente.operacion(datos)
+
+            # Lógica real de creación de reserva
             data = {
                 "usuario_id": usuario_id,
                 "sala_id": sala_id,

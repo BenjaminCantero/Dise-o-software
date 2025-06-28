@@ -1,6 +1,13 @@
 import requests
 from smartroom.services.base_api_service import BaseApiService
 from smartroom.services.interfaces import IAutenticacionService, IUsuarioCRUDService
+from smartroom.decorators.notificacion_reserva import (
+    ComponenteConcreto,
+    DecoradorLogging,
+    DecoradorValidacion,
+    DecoradorAuditoria,
+    DecoradorNotificacion
+)
 
 class UserService(BaseApiService, IAutenticacionService, IUsuarioCRUDService):
     """
@@ -17,6 +24,18 @@ class UserService(BaseApiService, IAutenticacionService, IUsuarioCRUDService):
 
     def create(self, username, password, role):
         try:
+            datos = {
+                "usuario": username,
+                "accion": "crear_usuario",
+                "detalle": {"role": role}
+            }
+            componente = ComponenteConcreto()
+            componente = DecoradorLogging(componente)
+            componente = DecoradorValidacion(componente)
+            componente = DecoradorAuditoria(componente)
+            componente = DecoradorNotificacion(componente)
+            componente.operacion(datos)
+
             data = {"username": username, "password": password, "role": role}
             resp = requests.post(f"{self.API_URL}/usuarios/", json=data, headers=self.HEADERS)
             resp.raise_for_status()
