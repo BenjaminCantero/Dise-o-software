@@ -237,12 +237,62 @@ Respuesta:
 
 ## Patrones de Diseño Utilizados
 
-- **Singleton:** Servicios y controladores únicos.
-- **Builder:** Creación flexible de objetos complejos (reservas, salas).
-- **Observable:** Notificación de cambios entre componentes (actualización de paneles).
-- **Mediator:** Comunicación desacoplada entre paneles de la GUI.
-- **Command:** Encapsulamiento de acciones (crear, editar, cancelar reservas).
-- **Factory:** Creación de diálogos y paneles según contexto.
+A continuación se detallan los patrones de diseño implementados en el sistema, su función y dónde se instancian o utilizan:
+
+- **Singleton:**
+  - *Dónde:* `smartroom/mediator/app_mediator.py`
+  - *Instanciación:* `mediator = AppMediator()` en `main.py` y registro de componentes en paneles GUI.
+  - *Función:* Garantiza una única instancia del mediador para coordinar la comunicación entre componentes.
+
+- **Builder:**
+  - *Dónde:* `smartroom/builders/`
+  - *Instanciación:* `ReservaBuilder().set_usuario(...).set_sala(...).set_fecha_inicio(...).set_fecha_fin(...).build()`
+  - *Función:* Construcción flexible y validada de objetos complejos (reservas, salas, usuarios).
+
+- **Factory:**
+  - *Dónde:* `smartroom/factories/dialog_factory.py`
+  - *Instanciación:* `dialog_factory.create_dialog("nueva_reserva", ...)` en paneles y controladores GUI.
+  - *Función:* Crea instancias de diálogos y paneles según el tipo solicitado.
+
+- **Adapter:**
+  - *Dónde:* `smartroom/adapters/`
+  - *Instanciación:* `adapter = ReservaDialogAdapter(self)` en `gui/editar_reserva_dialog.py` y `gui/nueva_reserva_dialog.py`.
+  - *Función:* Adapta los datos de los diálogos de la GUI al formato esperado por los comandos o servicios.
+
+- **Decorator:**
+  - *Dónde:* `smartroom/decorators/notificacion_reserva.py`
+  - *Instanciación:* En los servicios, por ejemplo en `ReservaService.create`:
+
+    ```python
+    componente = ComponenteConcreto()
+    componente = DecoradorLogging(componente)
+    componente = DecoradorValidacion(componente)
+    componente = DecoradorAuditoria(componente)
+    componente = DecoradorNotificacion(componente)
+    componente.operacion(datos)
+    ```
+
+  - *Función:* Añade funcionalidades (logging, validación, auditoría, notificación) a operaciones sin modificar la lógica principal.
+
+- **Facade:**
+  - *Dónde:* `smartroom/services/user_service.py`, `sala_service.py`, `reserva_service.py`
+  - *Instanciación:* `user_service = UserService()` (y análogos) en `main.py` y a través del contenedor de servicios.
+  - *Función:* Proveen una interfaz simple para interactuar con la API REST, ocultando la complejidad de las llamadas HTTP y el manejo de errores.
+
+- **Command:**
+  - *Dónde:* `smartroom/commands/`
+  - *Instanciación:* `command = CreateReservaCommand(reserva_service, ...)` y `command.execute()` en los diálogos y paneles de la GUI.
+  - *Función:* Encapsula acciones como crear, editar o cancelar reservas, permitiendo su ejecución y desacoplando la lógica de la interfaz.
+
+- **Mediator:**
+  - *Dónde:* `smartroom/mediator/app_mediator.py`
+  - *Instanciación:* `mediator = AppMediator()` en `main.py` y registro de componentes en paneles GUI.
+  - *Función:* Centraliza la comunicación entre componentes de la GUI, evitando dependencias directas.
+
+- **Observer (Observable):**
+  - *Dónde:* Lógica de actualización de paneles y notificación de eventos en la GUI.
+  - *Instanciación:* Métodos como `self.mediator.notify(self, "reserva_creada", None)` en paneles y diálogos.
+  - *Función:* Permite que los paneles se actualicen automáticamente cuando hay cambios en reservas, salas o usuarios.
 
 ---
 
