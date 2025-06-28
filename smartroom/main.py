@@ -6,15 +6,18 @@ import tkinter as tk
 from gui.main_window import MainWindow
 from gui.login_window import LoginWindow
 from mediator.app_mediator import AppMediator
+from core.service_container import ServiceContainer
+from smartroom.services.interfaces import IUsuarioCRUDService, ISalaCRUDService, IReservaCRUDService
 from smartroom.services.user_service import UserService
 from smartroom.services.sala_service import SalaService
 from smartroom.services.reserva_service import ReservaService
 
 def main():
-    # Los servicios ahora solo hacen peticiones HTTP a la API
-    user_service = UserService()
-    sala_service = SalaService()
-    reserva_service = ReservaService()
+    # Configuración del contenedor de servicios
+    container = ServiceContainer()
+    container.register(IUsuarioCRUDService, UserService())
+    container.register(ISalaCRUDService, SalaService())
+    container.register(IReservaCRUDService, ReservaService())
 
     mediator = AppMediator()
 
@@ -29,16 +32,16 @@ def main():
         app = MainWindow(
             root,
             mediator,
-            sala_service=sala_service,
-            reserva_service=reserva_service,
+            sala_service=container.resolve(ISalaCRUDService),
+            reserva_service=container.resolve(IReservaCRUDService),
             user=user,
-            user_service=user_service,
+            user_service=container.resolve(IUsuarioCRUDService),
             on_login=on_login
         )
         app.pack(fill="both", expand=True)
 
     try:
-        LoginWindow(root, user_service, on_login)
+        LoginWindow(root, container.resolve(IUsuarioCRUDService), on_login)
     except Exception as e:
         import traceback
         traceback.print_exc()
