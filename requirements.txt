@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+pytest
+requests
+httpx
+aiosqlite
+python-jose
