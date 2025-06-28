@@ -59,6 +59,18 @@ class ReservaService(BaseApiService, IReservaCRUDService):
 
     def update(self, reserva_id, **kwargs):
         try:
+            datos = {
+                "usuario": kwargs.get("usuario_id", "desconocido"),
+                "accion": "editar_reserva",
+                "detalle": kwargs
+            }
+            componente = ComponenteConcreto()
+            componente = DecoradorLogging(componente)
+            componente = DecoradorValidacion(componente)
+            componente = DecoradorAuditoria(componente)
+            componente = DecoradorNotificacion(componente)
+            componente.operacion(datos)
+
             resp = requests.put(f"{self.API_URL}/reservas/{reserva_id}", json=kwargs, headers=self.HEADERS)
             resp.raise_for_status()
             return resp.json()
@@ -67,8 +79,28 @@ class ReservaService(BaseApiService, IReservaCRUDService):
 
     def delete(self, reserva_id):
         try:
+            datos = {
+                "usuario": "desconocido",  # O el usuario que corresponda si está disponible
+                "accion": "eliminar_reserva",
+                "detalle": {"reserva_id": reserva_id}
+            }
+            componente = ComponenteConcreto()
+            componente = DecoradorLogging(componente)
+            componente = DecoradorValidacion(componente)
+            componente = DecoradorAuditoria(componente)
+            componente = DecoradorNotificacion(componente)
+            componente.operacion(datos)
+
             resp = requests.delete(f"{self.API_URL}/reservas/{reserva_id}", headers=self.HEADERS)
             resp.raise_for_status()
             return resp.status_code == 204
         except requests.RequestException as e:
             raise Exception(f"Error al eliminar reserva: {e}")
+
+    def obtener_reserva_por_id(self, reserva_id):
+        """Devuelve una reserva por su ID o None si no existe."""
+        reservas = self.get_all()
+        for reserva in reservas:
+            if reserva.get("id") == reserva_id:
+                return reserva
+        return None

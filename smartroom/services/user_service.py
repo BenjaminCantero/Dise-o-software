@@ -45,6 +45,18 @@ class UserService(BaseApiService, IAutenticacionService, IUsuarioCRUDService):
 
     def update(self, user_id, username, role):
         try:
+            datos = {
+                "usuario": username,
+                "accion": "editar_usuario",
+                "detalle": {"role": role}
+            }
+            componente = ComponenteConcreto()
+            componente = DecoradorLogging(componente)
+            componente = DecoradorValidacion(componente)
+            componente = DecoradorAuditoria(componente)
+            componente = DecoradorNotificacion(componente)
+            componente.operacion(datos)
+
             data = {"username": username, "role": role}
             resp = requests.put(f"{self.API_URL}/usuarios/{user_id}", json=data, headers=self.HEADERS)
             resp.raise_for_status()
@@ -54,6 +66,18 @@ class UserService(BaseApiService, IAutenticacionService, IUsuarioCRUDService):
 
     def delete(self, user_id):
         try:
+            datos = {
+                "usuario": user_id,
+                "accion": "eliminar_usuario",
+                "detalle": {"user_id": user_id}
+            }
+            componente = ComponenteConcreto()
+            componente = DecoradorLogging(componente)
+            componente = DecoradorValidacion(componente)
+            componente = DecoradorAuditoria(componente)
+            componente = DecoradorNotificacion(componente)
+            componente.operacion(datos)
+
             resp = requests.delete(f"{self.API_URL}/usuarios/{user_id}", headers=self.HEADERS)
             resp.raise_for_status()
             return resp.status_code == 204

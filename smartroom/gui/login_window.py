@@ -48,9 +48,9 @@ class LoginWindow(tk.Toplevel):
         login_btn = ttk.Button(frame, text="Iniciar sesión", style="Accent.TButton", command=self.login)
         login_btn.pack(pady=(4, 8), ipadx=12, ipady=4)
 
-        # Botón "Crear cuenta"
-        create_account_btn = ttk.Button(frame, text="Crear cuenta", command=self.create_account)
-        create_account_btn.pack(ipady=3)
+        # Botón "Editar mi información"
+        edit_info_btn = ttk.Button(frame, text="Editar mi información", command=self.edit_user_info)
+        edit_info_btn.pack(ipady=3)
 
         # Permite presionar Enter para iniciar sesión
         self.bind("<Return>", lambda event: self.login())
@@ -66,41 +66,60 @@ class LoginWindow(tk.Toplevel):
         else:
             messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
-    def create_account(self):
-        # Ventana para registrar usuario
-        def registrar():
-            username = username_entry.get().strip()
-            password = password_entry.get().strip()
-            role = role_var.get().strip()
-            if not username or not password or not role:
-                messagebox.showerror("Error", "Todos los campos son obligatorios.")
+    def edit_user_info(self):
+        # Ventana para editar información del usuario actual
+        user = getattr(self, 'current_user', None)
+        if not user:
+            messagebox.showinfo("Información", "Debes iniciar sesión para editar tus datos.")
+            return
+        def guardar_cambios():
+            nuevo_username = username_entry.get().strip()
+            nueva_contraseña = password_entry.get().strip()
+            nuevo_rol = role_var.get().strip()
+            if not nuevo_username or not nuevo_rol:
+                messagebox.showerror("Error", "El nombre de usuario y el rol son obligatorios.")
                 return
             try:
-                self.user_service.create(username, password, role)
-                messagebox.showinfo("Éxito", "Usuario creado correctamente. Ahora puedes iniciar sesión.")
-                reg_win.destroy()
+                self.user_service.update(user['id'], nuevo_username, nueva_contraseña, nuevo_rol)
+                messagebox.showinfo("Éxito", "Información actualizada correctamente.")
+                edit_win.destroy()
             except Exception as e:
-                messagebox.showerror("Error", f"No se pudo crear el usuario: {e}")
+                messagebox.showerror("Error", f"No se pudo actualizar la información: {e}")
 
-        reg_win = tk.Toplevel(self)
-        reg_win.title("Registrar nuevo usuario")
-        reg_win.geometry("320x260")
-        reg_win.resizable(False, False)
+        edit_win = tk.Toplevel(self)
+        edit_win.title("Editar mi información")
+        edit_win.geometry("370x320")
+        edit_win.configure(bg="#232946")
+        edit_win.resizable(False, False)
+        edit_win.transient(self)
+        edit_win.grab_set()
 
-        tk.Label(reg_win, text="Usuario:").pack(pady=(18, 0))
-        username_entry = ttk.Entry(reg_win, width=24)
-        username_entry.pack()
+        frame = tk.Frame(edit_win, bg="#f4f4f8", bd=2, relief="ridge")
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=340, height=270)
+        frame.pack_propagate(False)
 
-        tk.Label(reg_win, text="Contraseña:").pack(pady=(10, 0))
-        password_entry = ttk.Entry(reg_win, show="*", width=24)
-        password_entry.pack()
+        tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
+        username_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
+        username_entry.pack(ipady=3)
+        username_entry.insert(0, user['username'])
 
-        tk.Label(reg_win, text="Rol:").pack(pady=(10, 0))
-        role_var = tk.StringVar()
-        role_combo = ttk.Combobox(reg_win, textvariable=role_var, values=["admin", "profesor", "estudiante"], state="readonly")
-        role_combo.pack()
-        role_combo.current(0)
+        tk.Label(frame, text="Nueva contraseña (opcional):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        password_entry = ttk.Entry(frame, show="*", width=30, font=("Arial", 11))
+        password_entry.pack(ipady=3)
 
-        ttk.Button(reg_win, text="Registrar", command=registrar).pack(pady=18)
+        tk.Label(frame, text="Rol:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        role_var = tk.StringVar(value=user.get('role', 'estudiante'))
+        role_combo = ttk.Combobox(frame, textvariable=role_var, values=["admin", "profesor", "estudiante"], state="readonly", width=28)
+        role_combo.pack(ipady=3)
+        role_combo.current(["admin", "profesor", "estudiante"].index(user.get('role', 'estudiante')))
+
+        style = ttk.Style()
+        style.configure("Dialog.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
+        style.map("Dialog.TButton", background=[("active", "#eebbc3")], foreground=[("active", "#232946")])
+
+        btn_frame = tk.Frame(frame, bg="#f4f4f8")
+        btn_frame.pack(pady=18)
+        ttk.Button(btn_frame, text="Guardar cambios", style="Dialog.TButton", command=guardar_cambios).pack(side="left", padx=8)
+        ttk.Button(btn_frame, text="Cancelar", style="Dialog.TButton", command=edit_win.destroy).pack(side="left", padx=8)
 
         username_entry.focus_set()

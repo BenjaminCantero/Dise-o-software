@@ -72,12 +72,18 @@ class ReservasPanel(EventListener, ttk.Frame):
         self.cargar_reservas()
 
     def cargar_reservas(self):
+        # Verifica que el widget tree siga existiendo antes de manipularlo
+        if not hasattr(self, 'tree') or not self.tree.winfo_exists():
+            return
         for row in self.tree.get_children():
             self.tree.delete(row)
         try:
             reservas = self.reserva_service.get_all()
             usuarios = {u["id"]: u["username"] for u in self.user_service.get_all()}
             salas = {s["id"]: s["nombre"] for s in self.sala_service.get_all()}
+            # Filtrado por rol
+            if self.user and self.user.get("role") != "admin":
+                reservas = [r for r in reservas if r["usuario_id"] == self.user["id"] or usuarios.get(r["usuario_id"]) == self.user["username"]]
             for reserva in reservas:
                 usuario = usuarios.get(reserva["usuario_id"], "Desconocido")
                 sala = salas.get(reserva["sala_id"], "Desconocida")
@@ -99,7 +105,7 @@ class ReservasPanel(EventListener, ttk.Frame):
             self.cargar_reservas()
             if self.mediator:
                 self.mediator.notify(self, "reserva_creada", None)
-        NuevaReservaDialog(self, self.reserva_service, self.sala_service, self.user_service, on_success=on_success)
+        NuevaReservaDialog(self, self.reserva_service, self.sala_service, self.user_service, on_success=on_success, current_user=self.user)
 
     def editar_reserva(self):
         selected = self.tree.selection()
@@ -123,7 +129,7 @@ class ReservasPanel(EventListener, ttk.Frame):
                 "fecha": reserva["fecha_inicio"][:10],
                 "hora": reserva["fecha_inicio"][11:16]
             }
-            EditarReservaDialog(self, reserva_dialog_data, self.reserva_service, self.sala_service, self.user_service, on_save=on_save)
+            EditarReservaDialog(self, reserva_dialog_data, self.reserva_service, self.sala_service, self.user_service, on_save=on_save, current_user=self.user)
 
     def eliminar_reserva(self):
         selected = self.tree.selection()

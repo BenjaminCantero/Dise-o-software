@@ -31,7 +31,7 @@ class CreateReservaCommand(Command):
         self._created_reserva = None
 
     def execute(self):
-        self._created_reserva = self.reserva_service.crear_reserva(**self.reserva_data)
+        self._created_reserva = self.reserva_service.create(**self.reserva_data)
 
     def undo(self):
         if self._created_reserva:
@@ -49,12 +49,12 @@ class EditReservaCommand(Command):
         old_reserva = self.reserva_service.obtener_reserva_por_id(self.reserva_id)
         if old_reserva:
             self._old_data = {
-                "sala_nombre": old_reserva["sala"],
-                "usuario_username": old_reserva["usuario"],
-                "fecha_inicio": old_reserva["fecha"],
-                "fecha_fin": f"{old_reserva['fecha']} {old_reserva['hora']}"
+                "sala_id": old_reserva.get("sala_id"),
+                "usuario_id": old_reserva.get("usuario_id"),
+                "fecha_inicio": old_reserva.get("fecha_inicio"),
+                "fecha_fin": old_reserva.get("fecha_fin")
             }
-        self.reserva_service.editar_reserva(self.reserva_id, **self.new_data)
+        self.reserva_service.update(self.reserva_id, **self.new_data)
 
     def undo(self):
         if self._old_data:

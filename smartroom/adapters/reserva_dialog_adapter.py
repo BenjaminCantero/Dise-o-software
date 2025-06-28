@@ -12,5 +12,6 @@ class ReservaDialogAdapter:
             "usuario": self.dialog.usuario_input.get(),
             "sala": self.dialog.sala_input.get(),
             "fecha": self.dialog.fecha_input.get() if hasattr(self.dialog, "fecha_input") else None,
-            "hora": self.dialog.hora_input.get() if hasattr(self.dialog, "hora_input") else None,
+            "hora_inicio": self.dialog.hora_inicio_input.get() if hasattr(self.dialog, "hora_inicio_input") else None,
+            "hora_fin": self.dialog.hora_fin_input.get() if hasattr(self.dialog, "hora_fin_input") else None,
         }

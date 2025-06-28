@@ -47,7 +47,7 @@ class HorarioPanel(ttk.Frame):
         # Tabla de horarios
         table_frame = ttk.Frame(self, style="Panel.TFrame")
         table_frame.pack(fill="both", expand=True, padx=40, pady=24)
-        columns = ("Sala", "Fecha", "Hora inicio", "Hora fin")
+        columns = ("ID", "Sala", "Usuario", "Fecha", "Hora inicio", "Hora fin")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -55,9 +55,9 @@ class HorarioPanel(ttk.Frame):
             height=14,
             style="Custom.Treeview"
         )
-        for col, ancho in zip(columns, [160, 120, 110, 110]):
+        for col, ancho in zip(columns, [60, 160, 120, 120, 110, 110]):
             self.tree.heading(col, text=col)
-            self.tree.column(col, anchor="center", width=ancho, minwidth=80, stretch=True)
+            self.tree.column(col, anchor="center", width=ancho, minwidth=60, stretch=True)
 
         # Scrollbars
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
@@ -85,10 +85,12 @@ class HorarioPanel(ttk.Frame):
             reservas = self.reserva_service.get_all()
             # Filtra según el rol del usuario
             if self.user and "role" in self.user:
-                if self.user["role"] in ("estudiante", "profesor"):
-                    reservas = [r for r in reservas if r.get("usuario_username") == self.user["username"]]
+                if self.user["role"] != "admin":
+                    reservas = [r for r in reservas if r.get("usuario_id") == self.user["id"]]
         for i, reserva in enumerate(reservas):
-            sala = reserva.get("sala_nombre", "N/A")
+            reserva_id = reserva.get("id", "N/A")
+            sala = reserva.get("sala_nombre") or reserva.get("sala", "N/A")
+            usuario = reserva.get("usuario_username") or reserva.get("usuario", "N/A")
             fecha_inicio = reserva.get("fecha_inicio", "N/A")
             fecha_fin = reserva.get("fecha_fin", "N/A")
             # Formatea fecha y hora
@@ -103,7 +105,7 @@ class HorarioPanel(ttk.Frame):
             tags = ("evenrow",) if i % 2 == 0 else ("oddrow",)
             self.tree.insert(
                 "", "end",
-                values=(sala, fecha, hora_inicio, hora_fin),
+                values=(reserva_id, sala, usuario, fecha, hora_inicio, hora_fin),
                 tags=tags
             )
         # Colores alternos para filas

@@ -6,39 +6,54 @@ from commands.cancel_reserva_command import EditReservaCommand
 from builders.reserva_builder import ReservaBuilder
 
 class EditarReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva, reserva_service, sala_service, user_service, on_save=None):
+    def __init__(self, parent, reserva, reserva_service, sala_service, user_service, on_save=None, current_user=None):
         super().__init__(parent)
         self.title("Editar Reserva")
-        self.geometry("370x350")
+        self.geometry("370x410")
         self.reserva = reserva
         self.reserva_service = reserva_service
         self.sala_service = sala_service
         self.user_service = user_service
         self.on_save = on_save
+        self.current_user = current_user
         self.configure(bg="#232946")
 
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
-        frame.place(relx=0.5, rely=0.5, anchor="center", width=340, height=300)
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=340, height=420)
+        frame.pack_propagate(False)
 
-        tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
+        tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(14, 0))
         self.sala_var = tk.StringVar(value=reserva["sala"])
-        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=self.sala_service.get_all(), state="readonly", width=28)
+        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=[s["nombre"] for s in self.sala_service.get_all()], state="readonly", width=28)
         self.sala_combo.pack(ipady=3)
 
         tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.usuario_var = tk.StringVar(value=reserva["usuario"])
-        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=self.user_service.get_all(), state="readonly", width=28)
+        if self.current_user and self.current_user.get("role") == "admin":
+            usuarios = [u["username"] for u in self.user_service.get_all()]
+            self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=usuarios, state="readonly", width=28)
+        else:
+            self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=[self.current_user["username"]], state="readonly", width=28)
+            self.usuario_var.set(self.current_user["username"])
+            self.usuario_combo.config(state="disabled")
         self.usuario_combo.pack(ipady=3)
 
+        from tkcalendar import DateEntry
         tk.Label(frame, text="Fecha (YYYY-MM-DD):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.fecha_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
+        self.fecha_entry = DateEntry(frame, width=28, font=("Arial", 11), background="#eebbc3", foreground="#232946", date_pattern="yyyy-mm-dd")
+        self.fecha_entry.set_date(reserva["fecha"])
         self.fecha_entry.pack(ipady=3)
-        self.fecha_entry.insert(0, reserva["fecha"])
 
-        tk.Label(frame, text="Hora:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.hora_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
-        self.hora_entry.pack(ipady=3)
-        self.hora_entry.insert(0, reserva["hora"])
+        horas = [f"{h:02d}:{m:02d}" for h in range(8, 21) for m in (0, 30)]
+        tk.Label(frame, text="Hora de inicio:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.hora_inicio_var = tk.StringVar(value=reserva.get("hora_inicio", reserva.get("hora", "")))
+        self.hora_inicio_combo = ttk.Combobox(frame, textvariable=self.hora_inicio_var, values=horas, state="readonly", width=28)
+        self.hora_inicio_combo.pack(ipady=3)
+
+        tk.Label(frame, text="Hora de fin:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.hora_fin_var = tk.StringVar(value=reserva.get("hora_fin", ""))
+        self.hora_fin_combo = ttk.Combobox(frame, textvariable=self.hora_fin_var, values=horas, state="readonly", width=28)
+        self.hora_fin_combo.pack(ipady=3)
 
         style = ttk.Style()
         style.configure("Dialog.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
@@ -49,99 +64,75 @@ class EditarReservaDialog(tk.Toplevel):
         ttk.Button(btn_frame, text="Guardar", style="Dialog.TButton", command=self.guardar).pack(side="left", padx=8)
         ttk.Button(btn_frame, text="Cancelar", style="Dialog.TButton", command=self.destroy).pack(side="left", padx=8)
 
-        self.bind("<Return>", lambda event: self.guardar())
         self.fecha_entry.focus_set()
-
-    def guardar(self):
-        adapter = ReservaDialogAdapter(self)
-        data = adapter.get_data()
-
-        # Validaciones
-        self.sala_combo.configure(background="white")
-        self.usuario_combo.configure(background="white")
-        self.fecha_entry.configure(background="white")
-        self.hora_entry.configure(background="white")
-
-        error = False
-        if not data["sala"]:
-            self.sala_combo.configure(background="#ffcccc")
-            error = True
-        if not data["usuario"]:
-            self.usuario_combo.configure(background="#ffcccc")
-            error = True
-
-        if not data["fecha"] or not es_fecha_valida(data["fecha"]):
-            self.fecha_entry.configure(background="#ffcccc")
-            messagebox.showerror("Error", "La fecha debe tener el formato YYYY-MM-DD")
-            return
-
-        if not data["hora"] or not es_hora_valida(data["hora"]):
-            self.hora_entry.configure(background="#ffcccc")
-            messagebox.showerror("Error", "La hora debe tener el formato HH:MM (24h)")
-            return
-
-        if error:
-            messagebox.showerror("Error", "Todos los campos son obligatorios")
-            return
-
-        try:
-            fecha_inicio = datetime.strptime(f"{data['fecha']} {data['hora']}", "%Y-%m-%d %H:%M")
-            fecha_fin = fecha_inicio.replace(hour=(fecha_inicio.hour + 1) % 24)
-            # Busca los IDs correspondientes
-            usuarios = self.user_service.get_all()
-            salas = self.sala_service.get_all()
-            usuario_id = next((u["id"] for u in usuarios if u["username"] == data["usuario"]), None)
-            sala_id = next((s["id"] for s in salas if s["nombre"] == data["sala"]), None)
-            if usuario_id is None or sala_id is None:
-                messagebox.showerror("Error", "No se encontró el usuario o la sala seleccionada.")
-                return
-            # --- Command: ejecuta la acción de editar reserva ---
-            command = EditReservaCommand(
-                self.reserva_service,
-                self.reserva["id"],
-                {
-                    "usuario_id": usuario_id,
-                    "sala_id": sala_id,
-                    "fecha_inicio": fecha_inicio.isoformat(),
-                    "fecha_fin": fecha_fin.isoformat()
-                }
-            )
-            command.execute()
-        except Exception as e:
-            messagebox.showerror("Conflicto", str(e))
-            return
-
-        messagebox.showinfo("Éxito", "Reserva editada correctamente")
-        if self.on_save:
-            self.on_save(data["sala"], data["usuario"], data["fecha"], data["hora"])
-        self.destroy()
-
-    @property
-    def sala_input(self):
-        return self.sala_combo
 
     @property
     def usuario_input(self):
         return self.usuario_combo
 
     @property
+    def sala_input(self):
+        return self.sala_combo
+
+    @property
     def fecha_input(self):
         return self.fecha_entry
 
     @property
-    def hora_input(self):
-        return self.hora_entry
+    def hora_inicio_input(self):
+        return self.hora_inicio_combo
 
-def es_fecha_valida(fecha_str):
-    try:
-        datetime.strptime(fecha_str, "%Y-%m-%d")
-        return True
-    except ValueError:
-        return False
+    @property
+    def hora_fin_input(self):
+        return self.hora_fin_combo
 
-def es_hora_valida(hora_str):
-    try:
-        datetime.strptime(hora_str, "%H:%M")
-        return True
-    except ValueError:
-        return False
+    def guardar(self):
+        adapter = ReservaDialogAdapter(self)
+        data = adapter.get_data()
+        usuario_nombre = data.get("usuario")
+        sala_nombre = data.get("sala")
+        fecha = data.get("fecha")
+        hora_inicio = data.get("hora_inicio")
+        hora_fin = data.get("hora_fin")
+
+        if not usuario_nombre or not sala_nombre or not fecha or not hora_inicio or not hora_fin:
+            messagebox.showerror("Error", "Todos los campos son obligatorios.")
+            return
+
+        try:
+            usuario = next(u for u in self.user_service.get_all() if u["username"] == usuario_nombre)
+            sala = next(s for s in self.sala_service.get_all() if s["nombre"] == sala_nombre)
+        except StopIteration:
+            messagebox.showerror("Error", "Usuario o sala no válidos.")
+            return
+
+        try:
+            fecha_inicio = datetime.strptime(f"{fecha} {hora_inicio}", "%Y-%m-%d %H:%M")
+            fecha_fin = datetime.strptime(f"{fecha} {hora_fin}", "%Y-%m-%d %H:%M")
+            if fecha_fin <= fecha_inicio:
+                messagebox.showerror("Error", "La hora de fin debe ser posterior a la de inicio.")
+                return
+        except Exception:
+            messagebox.showerror("Error", "Formato de fecha u hora incorrecto.")
+            return
+
+        try:
+            command = EditReservaCommand(
+                self.reserva_service,
+                self.reserva["id"],
+                {
+                    "usuario_id": usuario["id"],
+                    "sala_id": sala["id"],
+                    "fecha_inicio": fecha_inicio.isoformat(),
+                    "fecha_fin": fecha_fin.isoformat()
+                }
+            )
+            command.execute()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo editar la reserva:\n{e}")
+            return
+
+        messagebox.showinfo("Éxito", "Reserva editada correctamente.")
+        if self.on_save:
+            self.on_save()
+        self.destroy()

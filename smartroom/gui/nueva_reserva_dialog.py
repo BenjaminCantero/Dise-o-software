@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkcalendar import DateEntry
 from datetime import datetime
 from adapters.reserva_dialog_adapter import ReservaDialogAdapter
 from builders.reserva_builder import ReservaBuilder
@@ -94,14 +95,15 @@ class ReservaApp(EventListener, tk.Tk):
             messagebox.showerror("Error", f"No se pudieron cargar las reservas:\n{e}")
 
 class NuevaReservaDialog(tk.Toplevel):
-    def __init__(self, parent, reserva_service, sala_service, user_service, on_success=None):
+    def __init__(self, parent, reserva_service, sala_service, user_service, on_success=None, current_user=None):
         super().__init__(parent)
         self.title("Nueva Reserva")
-        self.geometry("370x350")
+        self.geometry("370x470")  # Aumenta la altura
         self.reserva_service = reserva_service
         self.sala_service = sala_service
         self.user_service = user_service
         self.on_success = on_success
+        self.current_user = current_user
         self.configure(bg="#232946")
 
         # Siempre en primer plano y bloquea la ventana principal
@@ -109,26 +111,41 @@ class NuevaReservaDialog(tk.Toplevel):
         self.grab_set()
 
         frame = tk.Frame(self, bg="#f4f4f8", bd=2, relief="ridge")
-        frame.place(relx=0.5, rely=0.5, anchor="center", width=340, height=300)
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=340, height=420)  # Aumenta la altura del frame
         frame.pack_propagate(False)
 
-        tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(18, 0))
+        tk.Label(frame, text="Sala:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(14, 0))
         self.sala_var = tk.StringVar()
-        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=self.sala_service.get_all(), state="readonly", width=28)
+        self.sala_combo = ttk.Combobox(frame, textvariable=self.sala_var, values=[s["nombre"] for s in self.sala_service.get_all()], state="readonly", width=28)
         self.sala_combo.pack(ipady=3)
 
         tk.Label(frame, text="Usuario:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
         self.usuario_var = tk.StringVar()
-        self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=self.user_service.get_all(), state="readonly", width=28)
+        if self.current_user and self.current_user.get("role") == "admin":
+            usuarios = [u["username"] for u in self.user_service.get_all()]
+            self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=usuarios, state="readonly", width=28)
+        else:
+            self.usuario_combo = ttk.Combobox(frame, textvariable=self.usuario_var, values=[self.current_user["username"]], state="readonly", width=28)
+            self.usuario_var.set(self.current_user["username"])
+            self.usuario_combo.config(state="disabled")
         self.usuario_combo.pack(ipady=3)
 
         tk.Label(frame, text="Fecha (YYYY-MM-DD):", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.fecha_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
+        from tkcalendar import DateEntry
+        self.fecha_entry = DateEntry(frame, width=28, font=("Arial", 11), background="#eebbc3", foreground="#232946", date_pattern="yyyy-mm-dd")
         self.fecha_entry.pack(ipady=3)
 
-        tk.Label(frame, text="Hora:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
-        self.hora_entry = ttk.Entry(frame, width=30, font=("Arial", 11))
-        self.hora_entry.pack(ipady=3)
+        horas = [f"{h:02d}:{m:02d}" for h in range(8, 21) for m in (0, 30)]
+
+        tk.Label(frame, text="Hora de inicio:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.hora_inicio_var = tk.StringVar()
+        self.hora_inicio_combo = ttk.Combobox(frame, textvariable=self.hora_inicio_var, values=horas, state="readonly", width=28)
+        self.hora_inicio_combo.pack(ipady=3)
+
+        tk.Label(frame, text="Hora de fin:", font=("Arial", 12), bg="#f4f4f8", fg="#232946").pack(pady=(10, 0))
+        self.hora_fin_var = tk.StringVar()
+        self.hora_fin_combo = ttk.Combobox(frame, textvariable=self.hora_fin_var, values=horas, state="readonly", width=28)
+        self.hora_fin_combo.pack(ipady=3)
 
         style = ttk.Style()
         style.configure("Dialog.TButton", font=("Arial", 11, "bold"), background="#eebbc3", foreground="#232946", padding=6)
@@ -141,11 +158,29 @@ class NuevaReservaDialog(tk.Toplevel):
 
         self.fecha_entry.focus_set()
 
+    @property
+    def usuario_input(self):
+        return self.usuario_combo
+
+    @property
+    def sala_input(self):
+        return self.sala_combo
+
+    @property
+    def fecha_input(self):
+        return self.fecha_entry
+
+    @property
+    def hora_inicio_input(self):
+        return self.hora_inicio_combo
+
+    @property
+    def hora_fin_input(self):
+        return self.hora_fin_combo
+
     def guardar(self):
-        # --- Adapter: extrae y adapta los datos del diálogo ---
         adapter = ReservaDialogAdapter(self)
         data = adapter.get_data()
-
         usuario_nombre = data.get("usuario")
         sala_nombre = data.get("sala")
         fecha = data.get("fecha")
@@ -157,8 +192,8 @@ class NuevaReservaDialog(tk.Toplevel):
             return
 
         try:
-            usuario = next(u for u in self.usuarios if u["username"] == usuario_nombre)
-            sala = next(s for s in self.salas if s["nombre"] == sala_nombre)
+            usuario = next(u for u in self.user_service.get_all() if u["username"] == usuario_nombre)
+            sala = next(s for s in self.sala_service.get_all() if s["nombre"] == sala_nombre)
         except StopIteration:
             messagebox.showerror("Error", "Usuario o sala no válidos.")
             return
@@ -174,7 +209,6 @@ class NuevaReservaDialog(tk.Toplevel):
             return
 
         try:
-            # --- Command: ejecuta la acción de crear reserva ---
             command = CreateReservaCommand(
                 self.reserva_service,
                 {
