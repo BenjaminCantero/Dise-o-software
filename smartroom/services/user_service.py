@@ -1,35 +1,52 @@
 import requests
+from smartroom.services.base_api_service import BaseApiService
 from smartroom.services.interfaces import IAutenticacionService, IUsuarioCRUDService
 
-class UserService(IAutenticacionService, IUsuarioCRUDService):
-    API_URL = "http://127.0.0.1:8000"
-    HEADERS = {"Authorization": "Bearer secrettoken"}
-
+class UserService(BaseApiService, IAutenticacionService, IUsuarioCRUDService):
+    """
+    Facade para la gestión de usuarios vía API REST.
+    Expone una interfaz simple y maneja internamente las llamadas HTTP y los errores.
+    """
     def get_all(self):
-        resp = requests.get(f"{self.API_URL}/usuarios/", headers=self.HEADERS)
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            resp = requests.get(f"{self.API_URL}/usuarios/", headers=self.HEADERS)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            raise Exception(f"Error al obtener usuarios: {e}")
 
     def create(self, username, password, role):
-        data = {"username": username, "password": password, "role": role}
-        resp = requests.post(f"{self.API_URL}/usuarios/", json=data, headers=self.HEADERS)
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            data = {"username": username, "password": password, "role": role}
+            resp = requests.post(f"{self.API_URL}/usuarios/", json=data, headers=self.HEADERS)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            raise Exception(f"Error al crear usuario: {e}")
 
     def update(self, user_id, username, role):
-        data = {"username": username, "role": role}
-        resp = requests.put(f"{self.API_URL}/usuarios/{user_id}", json=data, headers=self.HEADERS)
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            data = {"username": username, "role": role}
+            resp = requests.put(f"{self.API_URL}/usuarios/{user_id}", json=data, headers=self.HEADERS)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            raise Exception(f"Error al actualizar usuario: {e}")
 
     def delete(self, user_id):
-        resp = requests.delete(f"{self.API_URL}/usuarios/{user_id}", headers=self.HEADERS)
-        resp.raise_for_status()
-        return resp.status_code == 204
+        try:
+            resp = requests.delete(f"{self.API_URL}/usuarios/{user_id}", headers=self.HEADERS)
+            resp.raise_for_status()
+            return resp.status_code == 204
+        except requests.RequestException as e:
+            raise Exception(f"Error al eliminar usuario: {e}")
 
     def autenticar(self, username, password):
-        data = {"username": username, "password": password}
-        resp = requests.post(f"{self.API_URL}/login", json=data, headers=self.HEADERS)
-        if resp.status_code == 200:
-            return resp.json()
-        return None
+        try:
+            data = {"username": username, "password": password}
+            resp = requests.post(f"{self.API_URL}/login", json=data, headers=self.HEADERS)
+            if resp.status_code == 200:
+                return resp.json()
+            return None
+        except requests.RequestException as e:
+            raise Exception(f"Error de autenticación: {e}")
