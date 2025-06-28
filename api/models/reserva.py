@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from ..db import Base
+from ..db import Base, TimestampMixin
 
-class Reserva(Base):
+class Reserva(Base, TimestampMixin):
     __tablename__ = "reservas"
     id = Column(Integer, primary_key=True, index=True)
     sala_id = Column(Integer, ForeignKey("salas.id"))

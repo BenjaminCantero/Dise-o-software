@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from enum import Enum
+from datetime import datetime
 
 class EstadoSalaEnum(str, Enum):
     disponible = "disponible"
@@ -12,6 +13,8 @@ class SalaIn(BaseModel):
 
 class SalaOut(SalaIn):
     id: int
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         

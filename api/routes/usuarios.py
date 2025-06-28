@@ -29,10 +29,9 @@ def get_user_service(user_repository: UserRepository = Depends(get_user_reposito
 @router.get("/", response_model=list[UsuarioOut])
 def get_usuarios(
     db: Session = Depends(get_db),
-    user_service: UserService = Depends(get_user_service),
-    current_user: str = Depends(get_current_user)
+    user_service: UserService = Depends(get_user_service)
 ):
-    """Obtiene la lista de todos los usuarios registrados. Requiere autenticación JWT."""
+    """Obtiene la lista de todos los usuarios registrados."""
     usuarios = user_service.listar_usuarios(db)
     return [UsuarioOut.from_orm(u) for u in usuarios]
 
