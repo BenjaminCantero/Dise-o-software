@@ -3,7 +3,7 @@ from gui.editar_reserva_dialog import EditarReservaDialog
 from gui.nueva_sala_dialog import NuevaSalaDialog
 from gui.editar_sala_dialog import EditarSalaDialog
 from gui.editar_usuario_dialog import EditarUsuarioDialog
-
+#trabajar
 class DialogFactory:
     """
     Fábrica centralizada para la creación de diálogos.
