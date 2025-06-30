@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+#factory
 
 class LoginWindow(tk.Toplevel):
     def __init__(self, root, user_service, on_login):
