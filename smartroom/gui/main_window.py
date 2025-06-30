@@ -7,7 +7,7 @@ from gui.dashboard_panel import DashboardPanel
 from gui.horario_panel import HorarioPanel
 from mediator.app_mediator import EventListener
 
-class MainWindow(EventListener, tk.Frame):
+class MainWindow(EventListener, ttk.Frame):
     def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None, on_login=None):
         super().__init__(root)
         self.root = root
@@ -157,10 +157,13 @@ class MainWindow(EventListener, tk.Frame):
             sala_service=self.sala_service,
             user_service=self.user_service,
             reserva_service=self.reserva_service,
-            user=self.user,  # <-- pasa el usuario actual
+            user=self.user,
             on_volver=self.mostrar_bienvenida 
         )
         reservas_panel.pack(fill="both", expand=True)
+        # Suscribe el observer aquí
+        if self.reserva_service:
+            self.reserva_service.attach(reservas_panel)
 
     def ver_admin_panel(self):
         for widget in self.main_frame.winfo_children():

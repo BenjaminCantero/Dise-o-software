@@ -97,6 +97,8 @@ class ReservasPanel(EventListener, ttk.Frame):
                         reserva["fecha_fin"].replace("T", " ")[:16]
                     )
                 )
+            if not self.tree.get_children():
+                messagebox.showinfo("Reservas", "No hay reservas para mostrar.")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudieron cargar las reservas:\n{e}")
 
@@ -153,3 +155,12 @@ class ReservasPanel(EventListener, ttk.Frame):
     def on_event(self, sender, event, data):
         if event in ("reserva_creada", "reserva_eliminada", "reserva_editada"):
             self.cargar_reservas()
+
+    def update(self, event, data):
+        if event == "reserva_creada":
+            messagebox.showinfo("Reserva", "¡Reserva creada exitosamente!")
+        elif event == "reserva_eliminada":
+            messagebox.showinfo("Reserva", "¡Reserva eliminada correctamente!")
+        elif event == "reserva_actualizada":
+            messagebox.showinfo("Reserva", "¡Reserva actualizada correctamente!")
+        self.cargar_reservas()

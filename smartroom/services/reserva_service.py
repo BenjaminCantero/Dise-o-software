@@ -9,12 +9,17 @@ from smartroom.decorators.notificacion_reserva import (
     DecoradorAuditoria,
     DecoradorNotificacion
 )
+from smartroom.observer.observer import Subject
 
-class ReservaService(BaseApiService, IReservaCRUDService):
+class ReservaService(BaseApiService, IReservaCRUDService, Subject):
     """
     Facade para la gestión de reservas vía API REST.
     Expone una interfaz simple y maneja internamente las llamadas HTTP y los errores.
     """
+
+    def __init__(self):
+        BaseApiService.__init__(self)
+        Subject.__init__(self)
 
     def get_all(self) -> List[Dict[str, Any]]:
         try:
@@ -53,7 +58,9 @@ class ReservaService(BaseApiService, IReservaCRUDService):
             }
             resp = requests.post(f"{self.API_URL}/reservas/", json=data, headers=self.HEADERS)
             resp.raise_for_status()
-            return resp.json()
+            reserva = resp.json()
+            self.notify("reserva_creada", reserva)  # Notifica a los observers
+            return reserva
         except requests.RequestException as e:
             raise Exception(f"Error al crear reserva: {e}")
 
@@ -73,7 +80,9 @@ class ReservaService(BaseApiService, IReservaCRUDService):
 
             resp = requests.put(f"{self.API_URL}/reservas/{reserva_id}", json=kwargs, headers=self.HEADERS)
             resp.raise_for_status()
-            return resp.json()
+            reserva = resp.json()
+            self.notify("reserva_actualizada", reserva)  # Notifica a los observers
+            return reserva
         except requests.RequestException as e:
             raise Exception(f"Error al actualizar reserva: {e}")
 
@@ -93,6 +102,7 @@ class ReservaService(BaseApiService, IReservaCRUDService):
 
             resp = requests.delete(f"{self.API_URL}/reservas/{reserva_id}", headers=self.HEADERS)
             resp.raise_for_status()
+            self.notify("reserva_eliminada", {"reserva_id": reserva_id})  # Notifica a los observers
             return resp.status_code == 204
         except requests.RequestException as e:
             raise Exception(f"Error al eliminar reserva: {e}")

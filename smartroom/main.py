@@ -11,6 +11,7 @@ from smartroom.services.interfaces import IUsuarioCRUDService, ISalaCRUDService,
 from smartroom.services.user_service import UserService
 from smartroom.services.sala_service import SalaService
 from smartroom.services.reserva_service import ReservaService
+from gui.reservas_panel import ReservasPanel
 
 def main():
     # Configuración del contenedor de servicios
@@ -18,6 +19,13 @@ def main():
     container.register(IUsuarioCRUDService, UserService())
     container.register(ISalaCRUDService, SalaService())
     container.register(IReservaCRUDService, ReservaService())
+
+    # Obtén la instancia de ReservaService
+    reserva_service = container.resolve(IReservaCRUDService)
+
+    # Crea el observer (panel) y suscríbelo
+    # OJO: El panel debe ser el mismo que usas en tu MainWindow
+    # Así que la suscripción final debe hacerse después de crear el panel en MainWindow
 
     mediator = AppMediator()
 
@@ -33,12 +41,17 @@ def main():
             root,
             mediator,
             sala_service=container.resolve(ISalaCRUDService),
-            reserva_service=container.resolve(IReservaCRUDService),
+            reserva_service=reserva_service,
             user=user,
             user_service=container.resolve(IUsuarioCRUDService),
             on_login=on_login
         )
         app.pack(fill="both", expand=True)
+
+        # --- Aquí suscribes el observer después de crear el panel ---
+        # Si MainWindow tiene un atributo reservas_panel:
+        if hasattr(app, "reservas_panel"):
+            reserva_service.attach(app.reservas_panel)
 
     try:
         LoginWindow(root, container.resolve(IUsuarioCRUDService), on_login)
