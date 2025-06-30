@@ -1,56 +1,53 @@
+import tkinter as tk
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import tkinter as tk
-from gui.main_window import MainWindow
-from gui.login_window import LoginWindow
-from mediator.app_mediator import AppMediator
-from core.service_container import ServiceContainer
-from smartroom.services.interfaces import IUsuarioCRUDService, ISalaCRUDService, IReservaCRUDService
-from smartroom.services.user_service import UserService
-from smartroom.services.sala_service import SalaService
-from smartroom.services.reserva_service import ReservaService
+# --- Bloque para asegurar que la raíz del proyecto esté en el path ---
+# Este bloque es una salvaguarda para encontrar la carpeta 'api'.
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+# --------------------------------------------------------------------
+
+# ¡IMPORTANTE! Nota el punto (.) antes de cada módulo local.
+from .gui.main_window import MainWindow
+from .services.sala_service import SalaService
+from .services.reserva_service import ReservaService
+from .services.user_service import UserService
+from .factories.dialog_factory import DialogFactory
 
 def main():
-    # Configuración del contenedor de servicios
-    container = ServiceContainer()
-    container.register(IUsuarioCRUDService, UserService())
-    container.register(ISalaCRUDService, SalaService())
-    container.register(IReservaCRUDService, ReservaService())
+    """
+    Punto de entrada principal para la aplicación de escritorio SmartRoom.
+    
+    Este método inicializa los servicios, las fábricas y la ventana principal
+    de la aplicación, y luego inicia el bucle de eventos de la GUI.
+    """
+    # Se asegura de que la ruta a la base de datos sea correcta.
+    db_path = os.path.join(project_root, 'api.db')
+    
+    # Inicialización de servicios
+    sala_service = SalaService(db_path)
+    user_service = UserService(db_path)
+    reserva_service = ReservaService(db_path)
 
-    mediator = AppMediator()
-
+    # Inicialización de la fábrica de diálogos con los servicios
+    dialog_factory = DialogFactory(
+        sala_service=sala_service,
+        user_service=user_service,
+        reserva_service=reserva_service
+    )
+    
+    # Creación y ejecución de la ventana principal
     root = tk.Tk()
-    root.withdraw()  # Oculta la ventana raíz principal inicialmente
-
-    def on_login(user):
-        for widget in root.winfo_children():
-            widget.destroy()
-        root.deiconify()
-        root.state("zoomed")  # Maximiza la ventana principal
-        app = MainWindow(
-            root,
-            mediator,
-            sala_service=container.resolve(ISalaCRUDService),
-            reserva_service=container.resolve(IReservaCRUDService),
-            user=user,
-            user_service=container.resolve(IUsuarioCRUDService),
-            on_login=on_login
-        )
-        app.pack(fill="both", expand=True)
-
-    try:
-        LoginWindow(root, container.resolve(IUsuarioCRUDService), on_login)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-
-    try:
-        root.mainloop()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
+    app = MainWindow(
+        root,
+        sala_service=sala_service,
+        reserva_service=reserva_service,
+        user_service=user_service,
+        dialog_factory=dialog_factory
+    )
+    root.mainloop()
 
 if __name__ == "__main__":
     main()
