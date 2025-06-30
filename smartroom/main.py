@@ -11,6 +11,7 @@ from smartroom.services.interfaces import IUsuarioCRUDService, ISalaCRUDService,
 from smartroom.services.user_service import UserService
 from smartroom.services.sala_service import SalaService
 from smartroom.services.reserva_service import ReservaService
+from factories.dialog_factory import DialogFactory
 
 def main():
     # Configuración del contenedor de servicios
@@ -24,6 +25,13 @@ def main():
     root = tk.Tk()
     root.withdraw()  # Oculta la ventana raíz principal inicialmente
 
+    # Crear la fábrica de diálogos con los servicios
+    dialog_factory = DialogFactory(
+        sala_service=container.resolve(ISalaCRUDService),
+        user_service=container.resolve(IUsuarioCRUDService),
+        reserva_service=container.resolve(IReservaCRUDService)
+    )
+
     def on_login(user):
         for widget in root.winfo_children():
             widget.destroy()
@@ -36,7 +44,8 @@ def main():
             reserva_service=container.resolve(IReservaCRUDService),
             user=user,
             user_service=container.resolve(IUsuarioCRUDService),
-            on_login=on_login
+            on_login=on_login,
+            dialog_factory=dialog_factory  # Inyecta la factory
         )
         app.pack(fill="both", expand=True)
 

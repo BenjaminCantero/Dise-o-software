@@ -8,12 +8,12 @@ from mediator.app_mediator import EventListener
 from commands.sala_commands import DeleteSalaCommand  # Debes tener este comando implementado
 
 class SalasPanel(EventListener, ttk.Frame):
-    def __init__(self, parent, mediator=None, sala_service=None, on_volver=None):
+    def __init__(self, parent, mediator=None, sala_service=None, on_volver=None, dialog_factory=None):
         super().__init__(parent)
         self.mediator = mediator
         self.sala_service = sala_service
         self.on_volver = on_volver
-        self.dialog_factory = DialogFactory(sala_service=self.sala_service)
+        self.dialog_factory = dialog_factory  # Inyecta la factory
         self.create_widgets()
         if self.mediator:
             self.mediator.register("salas_panel", self)
@@ -100,17 +100,19 @@ class SalasPanel(EventListener, ttk.Frame):
 
     def nueva_sala(self):
         def on_save(nombre, capacidad, estado):
-            # Solo refresca la lista o muestra mensaje, NO crees la sala aquí
             self.cargar_salas()
             if self.mediator:
                 self.mediator.notify(self, "sala_creada")
             messagebox.showinfo("Éxito", "Sala creada correctamente.")
-        self.dialog_factory.create_dialog(
-            "nueva_sala",
-            self,
-            sala_service=self.sala_service,
-            on_success=on_save
-        )
+        if self.dialog_factory:
+            self.dialog_factory.create_dialog(
+                "nueva_sala",
+                self,
+                sala_service=self.sala_service,
+                on_success=on_save
+            )
+        else:
+            NuevaSalaDialog(self, self.sala_service, on_success=on_save)
 
     def editar_sala(self):
         selected = self.tree.selection()
@@ -129,7 +131,10 @@ class SalasPanel(EventListener, ttk.Frame):
                         self.mediator.notify(self, "sala_editada")
                 except Exception as e:
                     messagebox.showerror("Error", f"No se pudo editar la sala:\n{e}")
-            self.dialog_factory.create_dialog("editar_sala", self, sala, on_save=on_save)
+            if self.dialog_factory:
+                self.dialog_factory.create_dialog("editar_sala", self, sala, on_save=on_save)
+            else:
+                EditarSalaDialog(self, sala, self.sala_service, on_save=on_save)
 
     def eliminar_sala(self):
         selected = self.tree.selection()

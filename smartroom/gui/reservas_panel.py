@@ -7,7 +7,7 @@ from mediator.app_mediator import EventListener
 from commands.cancel_reserva_command import CancelReservaCommand  # Debes tener este comando implementado
 
 class ReservasPanel(EventListener, ttk.Frame):
-    def __init__(self, parent, mediator=None, reserva_service=None, sala_service=None, user_service=None, user=None, on_volver=None):
+    def __init__(self, parent, mediator=None, reserva_service=None, sala_service=None, user_service=None, user=None, on_volver=None, dialog_factory=None):
         super().__init__(parent)
         self.mediator = mediator
         self.reserva_service = reserva_service
@@ -15,6 +15,7 @@ class ReservasPanel(EventListener, ttk.Frame):
         self.user_service = user_service
         self.user = user
         self.on_volver = on_volver
+        self.dialog_factory = dialog_factory  # Inyecta la factory
         self._setup_styles()
         self.create_widgets()
         if self.mediator:
@@ -105,7 +106,13 @@ class ReservasPanel(EventListener, ttk.Frame):
             self.cargar_reservas()
             if self.mediator:
                 self.mediator.notify(self, "reserva_creada", None)
-        NuevaReservaDialog(self, self.reserva_service, self.sala_service, self.user_service, on_success=on_success, current_user=self.user)
+        if self.dialog_factory:
+            dialog = self.dialog_factory.create_dialog(
+                "nueva_reserva", self, self.user, on_success=on_success
+            )
+            dialog.show() if hasattr(dialog, "show") else None
+        else:
+            NuevaReservaDialog(self, self.reserva_service, self.sala_service, self.user_service, on_success=on_success, current_user=self.user)
 
     def editar_reserva(self):
         selected = self.tree.selection()

@@ -7,12 +7,12 @@ from builders.usuario_builder import UsuarioBuilder
 from commands.user_commands import CreateUsuarioCommand, EditUsuarioCommand, DeleteUsuarioCommand
 
 class AdminPanel(EventListener, ttk.Frame):
-    def __init__(self, parent, mediator, user_service=None, on_volver=None):
+    def __init__(self, parent, mediator, user_service=None, on_volver=None, dialog_factory=None):
         super().__init__(parent)
         self.mediator = mediator
         self.user_service = user_service
         self.on_volver = on_volver
-        self.dialog_factory = DialogFactory()
+        self.dialog_factory = dialog_factory  # Inyecta la factory
         self.configure(style="Panel.TFrame")
         self.pack(fill="both", expand=True)
         self.create_widgets()
@@ -116,11 +116,7 @@ class AdminPanel(EventListener, ttk.Frame):
     def create_usuario(self):
         def on_save(username, password, role):
             try:
-                # Adapter: extrae y adapta los datos del diálogo
                 usuario_data = {"username": username, "password": password, "role": role}
-                # Builder: solo si necesitas lógica extra, si no, puedes omitirlo
-                # usuario = UsuarioBuilder().set_username(usuario_data["username"]).set_password(usuario_data["password"]).set_role(usuario_data["role"]).build()
-                # Command: ejecuta la acción de crear usuario
                 command = CreateUsuarioCommand(self.user_service, usuario_data)
                 command.execute()
                 self.cargar_usuarios()
@@ -129,7 +125,12 @@ class AdminPanel(EventListener, ttk.Frame):
                     self.mediator.notify(self, "usuario_creado", usuario_data["username"])
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo crear el usuario: {e}")
-        self.dialog_factory.create_dialog("editar_usuario", self, None, on_save=on_save)
+        if self.dialog_factory:
+            self.dialog_factory.create_dialog("editar_usuario", self, None, on_save=on_save)
+        else:
+            # fallback
+            from gui.editar_usuario_dialog import EditarUsuarioDialog
+            EditarUsuarioDialog(self, None, on_save=on_save)
 
     def delete_usuario(self):
         selected = self.tree.selection()
@@ -182,5 +183,8 @@ class AdminPanel(EventListener, ttk.Frame):
                     self.mediator.notify(self, "usuario_editado", username)
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo editar el usuario: {e}")
-
-        self.dialog_factory.create_dialog("editar_usuario", self, usuario, on_save=on_save)
+        if self.dialog_factory:
+            self.dialog_factory.create_dialog("editar_usuario", self, usuario, on_save=on_save)
+        else:
+            from gui.editar_usuario_dialog import EditarUsuarioDialog
+            EditarUsuarioDialog(self, usuario, on_save=on_save)

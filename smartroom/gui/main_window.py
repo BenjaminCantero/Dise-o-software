@@ -8,7 +8,7 @@ from gui.horario_panel import HorarioPanel
 from mediator.app_mediator import EventListener
 
 class MainWindow(EventListener, tk.Frame):
-    def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None, on_login=None):
+    def __init__(self, root, mediator, sala_service=None, reserva_service=None, user=None, user_service=None, on_login=None, dialog_factory=None):
         super().__init__(root)
         self.root = root
         self.mediator = mediator
@@ -17,6 +17,7 @@ class MainWindow(EventListener, tk.Frame):
         self.user = user
         self.user_service = user_service
         self.on_login = on_login
+        self.dialog_factory = dialog_factory  # Inyecta la factory
         self.pack(fill="both", expand=True)
         self.create_widgets()
         # --- PATRÓN MEDIATOR: Registrar el componente ---
@@ -140,38 +141,20 @@ class MainWindow(EventListener, tk.Frame):
     def ver_salas(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        salas_panel = SalasPanel(
-            self.main_frame,
-            mediator=self.mediator,
-            sala_service=self.sala_service,
-            on_volver=self.volver
-        )
-        salas_panel.pack(fill="both", expand=True)
+        panel = SalasPanel(self.main_frame, mediator=self.mediator, sala_service=self.sala_service, on_volver=self.mostrar_bienvenida, dialog_factory=self.dialog_factory)
+        panel.pack(fill="both", expand=True)
 
     def ver_reservas(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        reservas_panel = ReservasPanel(
-            parent=self.main_frame,
-            mediator=self.mediator,
-            sala_service=self.sala_service,
-            user_service=self.user_service,
-            reserva_service=self.reserva_service,
-            user=self.user,  # <-- pasa el usuario actual
-            on_volver=self.mostrar_bienvenida 
-        )
-        reservas_panel.pack(fill="both", expand=True)
+        panel = ReservasPanel(self.main_frame, mediator=self.mediator, reserva_service=self.reserva_service, sala_service=self.sala_service, user_service=self.user_service, user=self.user, on_volver=self.mostrar_bienvenida, dialog_factory=self.dialog_factory)
+        panel.pack(fill="both", expand=True)
 
     def ver_admin_panel(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
-        admin_panel = AdminPanel(
-            self.main_frame,
-            self.mediator,
-            self.user_service,
-            on_volver=lambda: self.seleccionar_seccion("dashboard")
-        )
-        admin_panel.pack(fill="both", expand=True)
+        panel = AdminPanel(self.main_frame, self.mediator, user_service=self.user_service, on_volver=self.mostrar_bienvenida, dialog_factory=self.dialog_factory)
+        panel.pack(fill="both", expand=True)
 
     def ver_dashboard(self):
         for widget in self.main_frame.winfo_children():
