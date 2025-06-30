@@ -1,4 +1,6 @@
-class ServiceContainer:
+from .singleton import SingletonMeta
+
+class ServiceContainer(metaclass=SingletonMeta):
     """
     Contenedor simple para la inyección de dependencias.
     Permite registrar y resolver servicios por interfaz o nombre.
