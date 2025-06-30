@@ -51,11 +51,6 @@ def main():
 
     try:
         LoginWindow(root, container.resolve(IUsuarioCRUDService), on_login)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-
-    try:
         root.mainloop()
     except Exception as e:
         import traceback
