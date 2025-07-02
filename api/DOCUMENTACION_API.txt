@@ -1,0 +1,84 @@
+SmartRoom API - Documentación
+============================
+
+Descripción general:
+--------------------
+SmartRoom API permite la gestión de usuarios, salas y reservas de manera centralizada y segura. Expone endpoints RESTful para operaciones CRUD y autenticación.
+
+---
+
+Autenticación
+-------------
+POST /login
+- Descripción: Autentica a un usuario y retorna sus datos si las credenciales son válidas.
+- Body:
+    - username (str): Nombre de usuario
+    - password (str): Contraseña
+- Respuesta exitosa:
+    - 200: { "id": int, "username": str, "role": str }
+- Errores:
+    - 401: Credenciales inválidas
+
+---
+
+Usuarios
+--------
+GET /usuarios/
+- Descripción: Obtiene la lista de todos los usuarios registrados.
+- Respuesta: Lista de usuarios (UsuarioOut)
+
+GET /usuarios/{usuario_id}
+- Descripción: Obtiene un usuario por su ID.
+- Respuesta: Usuario (UsuarioOut)
+- Errores: 404 si no existe
+
+POST /usuarios/
+- Descripción: Crea un nuevo usuario.
+- Body: UsuarioIn (username, password, role)
+- Respuesta: Usuario creado (UsuarioOut)
+- Errores: 400 si el username ya existe
+
+---
+
+Salas
+-----
+GET /salas/
+- Descripción: Obtiene la lista de todas las salas registradas.
+- Respuesta: Lista de salas (SalaOut)
+
+GET /salas/{sala_id}
+- Descripción: Obtiene una sala por su ID.
+- Respuesta: Sala (SalaOut)
+- Errores: 404 si no existe
+
+POST /salas/
+- Descripción: Crea una nueva sala.
+- Body: SalaIn (nombre, capacidad, estado)
+- Respuesta: Sala creada (SalaOut)
+- Errores: 400 si el nombre ya existe
+
+---
+
+Reservas
+--------
+GET /reservas/
+- Descripción: Obtiene la lista de todas las reservas registradas.
+- Respuesta: Lista de reservas (ReservaOut)
+
+GET /reservas/{reserva_id}
+- Descripción: Obtiene una reserva por su ID.
+- Respuesta: Reserva (ReservaOut)
+- Errores: 404 si no existe
+
+POST /reservas/
+- Descripción: Crea una nueva reserva y retorna la lista actualizada.
+- Body: ReservaIn
+- Respuesta: Lista de reservas actualizada (ReservaOut)
+
+---
+
+Notas adicionales
+-----------------
+- Todos los endpoints devuelven códigos de estado HTTP adecuados (200, 201, 400, 401, 404).
+- Los modelos de entrada y salida (UsuarioIn, UsuarioOut, SalaIn, SalaOut, ReservaIn, ReservaOut) están definidos en la carpeta schemas/.
+- La autenticación y autorización pueden ser reforzadas en el futuro con JWT y roles.
