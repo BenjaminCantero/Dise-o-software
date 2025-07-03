@@ -17,7 +17,7 @@ class CancelReservaCommand(Command):
     def execute(self):
         # Guarda el estado antes de cancelar para poder deshacer
         self._backup = self.reserva_service.obtener_reserva_por_id(self.reserva_id)
-        self.reserva_service.eliminar_reserva(self.reserva_id)
+        self.reserva_service.delete(self.reserva_id)
 
     def undo(self):
         # Restaura la reserva si existe backup y el servicio tiene el método adecuado

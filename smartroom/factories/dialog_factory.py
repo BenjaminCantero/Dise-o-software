@@ -46,5 +46,11 @@ class DialogFactory:
                 return dialog_class(args[0], self.sala_service, **kwargs)
             else:
                 return dialog_class(*args, **kwargs)
+        if dialog_type == "nueva_reserva":
+            # Espera: parent, on_success, current_user en args/kwargs
+            parent = args[0] if len(args) > 0 else kwargs.get('parent')
+            on_success = kwargs.get('on_success')
+            current_user = kwargs.get('current_user')
+            return NuevaReservaDialog(parent, self.reserva_service, self.sala_service, self.user_service, on_success=on_success, current_user=current_user)
         # Otros diálogos pueden requerir lógica similar
         return dialog_class(*args, **kwargs)

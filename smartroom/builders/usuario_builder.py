@@ -1,4 +1,3 @@
-from api.models.usuario import Usuario
 class UsuarioBuilder:
     def __init__(self):
         self._username = None
@@ -20,13 +19,12 @@ class UsuarioBuilder:
     def build(self):
         if self._username is None:
             raise ValueError("El username es obligatorio")
-        if self._password is None:
-            raise ValueError("El password es obligatorio")
         if self._role is None:
             raise ValueError("El rol es obligatorio")
-
-        return Usuario(
-            username=self._username,
-            password=self._password,
-            role=self._role
-        )
+        data = {
+            "username": self._username,
+            "role": self._role
+        }
+        if self._password is not None:
+            data["password"] = self._password
+        return data

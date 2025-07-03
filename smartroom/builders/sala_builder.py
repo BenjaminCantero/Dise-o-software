@@ -25,9 +25,8 @@ class SalaBuilder:
             raise ValueError("La capacidad de la sala es obligatoria")
         if self._estado is None:
             raise ValueError("El estado de la sala es obligatorio")
-        
-        return Sala(
-            nombre=self._nombre,
-            capacidad=self._capacidad,
-            estado=self._estado
-        )
+        return {
+            "nombre": self._nombre,
+            "capacidad": self._capacidad,
+            "estado": self._estado
+        }

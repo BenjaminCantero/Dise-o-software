@@ -124,7 +124,13 @@ class AdminPanel(EventListener, ttk.Frame):
     def create_usuario(self):
         def on_save(username, password, role):
             try:
-                usuario_data = {"username": username, "password": password, "role": role}
+                usuario_data = (
+                    UsuarioBuilder()
+                    .set_username(username)
+                    .set_password(password)
+                    .set_role(role)
+                    .build()
+                )
                 command = CreateUsuarioCommand(self.user_service, usuario_data)
                 command.execute()
                 self.cargar_usuarios()
@@ -179,10 +185,12 @@ class AdminPanel(EventListener, ttk.Frame):
             try:
                 if not username or not role:
                     raise Exception("El nombre de usuario y el rol son obligatorios.")
-                usuario_data = {
-                    "username": username.strip(),
-                    "role": role.strip()
-                }
+                usuario_data = (
+                    UsuarioBuilder()
+                    .set_username(username.strip())
+                    .set_role(role.strip())
+                    .build()
+                )
                 command = EditUsuarioCommand(self.user_service, usuario_id, usuario_data)
                 command.execute()
                 self.cargar_usuarios()

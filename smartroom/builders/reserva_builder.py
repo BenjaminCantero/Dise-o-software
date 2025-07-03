@@ -33,9 +33,9 @@ class ReservaBuilder:
             raise ValueError("fecha_inicio es obligatorio")
         if self._fecha_fin is None:
             raise ValueError("fecha_fin es obligatorio")
-        return Reserva(
-            usuario_id=self._usuario,
-            sala_id=self._sala,
-            fecha_inicio=self._fecha_inicio,
-            fecha_fin=self._fecha_fin
-        )
+        return {
+            "usuario_id": self._usuario,
+            "sala_id": self._sala,
+            "fecha_inicio": self._fecha_inicio,
+            "fecha_fin": self._fecha_fin
+        }

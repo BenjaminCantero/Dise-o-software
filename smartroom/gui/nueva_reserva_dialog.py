@@ -209,15 +209,18 @@ class NuevaReservaDialog(tk.Toplevel):
             return
 
         try:
-            command = CreateReservaCommand(
-                self.reserva_service,
-                {
-                    "usuario_id": usuario["id"],
-                    "sala_id": sala["id"],
-                    "fecha_inicio": fecha_inicio.isoformat(),
-                    "fecha_fin": fecha_fin.isoformat()
-                }
-            )
+            # Usar el builder para construir la reserva (ahora retorna dict)
+            builder = ReservaBuilder()
+            reserva_dict = builder \
+                .set_usuario(usuario["id"]) \
+                .set_sala(sala["id"]) \
+                .set_fecha_inicio(fecha_inicio) \
+                .set_fecha_fin(fecha_fin) \
+                .build()
+            # Serializar fechas a string ISO antes de enviar
+            reserva_dict["fecha_inicio"] = reserva_dict["fecha_inicio"].isoformat()
+            reserva_dict["fecha_fin"] = reserva_dict["fecha_fin"].isoformat()
+            command = CreateReservaCommand(self.reserva_service, reserva_dict)
             command.execute()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo crear la reserva:\n{e}")

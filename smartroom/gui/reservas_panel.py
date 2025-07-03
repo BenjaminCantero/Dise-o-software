@@ -108,7 +108,7 @@ class ReservasPanel(EventListener, ttk.Frame):
                 self.mediator.notify(self, "reserva_creada", None)
         if self.dialog_factory:
             dialog = self.dialog_factory.create_dialog(
-                "nueva_reserva", self, self.user, on_success=on_success
+                "nueva_reserva", self, on_success=on_success, current_user=self.user
             )
             dialog.show() if hasattr(dialog, "show") else None
         else:

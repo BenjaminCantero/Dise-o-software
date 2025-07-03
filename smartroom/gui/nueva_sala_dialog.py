@@ -84,7 +84,7 @@ class NuevaSalaDialog(tk.Toplevel):
 
         messagebox.showinfo("Éxito", "Sala creada correctamente.")
         if self.on_success:
-            self.on_success()
+            self.on_success(nombre, capacidad, estado)
         self.destroy()
 
     @property

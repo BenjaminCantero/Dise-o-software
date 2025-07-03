@@ -77,3 +77,15 @@ class EditarSalaDialog(tk.Toplevel):
         if self.on_save:
             self.on_save(nombre, capacidad, estado)
         self.destroy()
+
+    @property
+    def nombre_input(self):
+        return self.nombre_entry
+
+    @property
+    def capacidad_input(self):
+        return self.capacidad_entry
+
+    @property
+    def estado_input(self):
+        return self.estado_combo
