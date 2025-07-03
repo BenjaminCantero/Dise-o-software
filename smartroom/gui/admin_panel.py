@@ -77,14 +77,22 @@ class AdminPanel(EventListener, ttk.Frame):
             ttk.Label(card, text=value, style="CardValue.TLabel").pack(pady=(0, 10))
             cards_frame.columnconfigure(i, weight=1)
 
-        # Tabla de usuarios
-        tabla_label = ttk.Label(self, text="Cuentas registradas", font=("Segoe UI", 14, "bold"), background="#f4f4f8", foreground="#232946")
-        tabla_label.pack(pady=(30, 5))
+        # Contenedor principal para tabla y botones
+        main_container = ttk.Frame(self, style="Panel.TFrame")
+        main_container.pack(fill="both", expand=True, padx=20, pady=(10, 0))
+        main_container.rowconfigure(0, weight=1)
+        main_container.rowconfigure(1, weight=0)
+        main_container.columnconfigure(0, weight=1)
 
-        table_frame = ttk.Frame(self, style="Panel.TFrame")
-        table_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        # Tabla de usuarios
+        tabla_label = ttk.Label(main_container, text="Cuentas registradas", font=("Segoe UI", 14, "bold"), background="#f4f4f8", foreground="#232946")
+        tabla_label.grid(row=0, column=0, sticky="w", pady=(10, 5))
+
+        table_frame = ttk.Frame(main_container, style="Panel.TFrame")
+        table_frame.grid(row=1, column=0, sticky="nsew")
+        main_container.rowconfigure(1, weight=1)
         columns = ("username", "role")
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=14, style="Custom.Treeview")
+        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=12, style="Custom.Treeview")
         self.tree.heading("username", text="Usuario")
         self.tree.heading("role", text="Rol")
         self.tree.column("username", width=180, anchor="center")
@@ -94,12 +102,12 @@ class AdminPanel(EventListener, ttk.Frame):
         self.tree.pack(side="left", fill="both", expand=True)
         vsb.pack(side="right", fill="y")
 
-        # Botones de acción
+        # Botones de acción (siempre visibles abajo)
         btn_frame = ttk.Frame(self, style="Panel.TFrame")
-        btn_frame.pack(pady=10)
-        ttk.Button(btn_frame, text="Crear Usuario", style="Modern.TButton", width=18, command=self.create_usuario).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Eliminar Usuario", style="Modern.TButton", width=18, command=self.delete_usuario).pack(side="left", padx=8)
-        ttk.Button(btn_frame, text="Editar Usuario", style="Modern.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8)
+        btn_frame.pack(fill="x", pady=(0, 18), padx=20)
+        ttk.Button(btn_frame, text="Crear Usuario", style="Modern.TButton", width=18, command=self.create_usuario).pack(side="left", padx=8, pady=8)
+        ttk.Button(btn_frame, text="Eliminar Usuario", style="Modern.TButton", width=18, command=self.delete_usuario).pack(side="left", padx=8, pady=8)
+        ttk.Button(btn_frame, text="Editar Usuario", style="Modern.TButton", width=18, command=self.editar_usuario).pack(side="left", padx=8, pady=8)
 
         ttk.Button(self, text="Volver al inicio", style="Modern.TButton", command=self.on_volver).pack(pady=10)
 
